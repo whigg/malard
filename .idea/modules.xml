@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/catalogue-api.iml" filepath="$PROJECT_DIR$/.idea/modules/catalogue-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/catalogue-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/catalogue-impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/environment-api.iml" filepath="$PROJECT_DIR$/.idea/modules/environment-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/environment-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/environment-impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/malard.iml" filepath="$PROJECT_DIR$/.idea/modules/malard.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/malard-build.iml" filepath="$PROJECT_DIR$/.idea/modules/malard-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/point-api.iml" filepath="$PROJECT_DIR$/.idea/modules/point-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/point-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/point-impl.iml" />
+    </modules>
+  </component>
+</project>
