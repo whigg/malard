@@ -1,5 +1,10 @@
 import json
 import requests
+import datetime
+
+def dateconverter(o):
+    if isinstance(o, datetime.datetime):
+        return o.__str__()
 
 class DataSetQuery:
     def __init__(self, serverUrl ):
@@ -30,19 +35,19 @@ class DataSetQuery:
     def getGridCells(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
         gcUrl = self.serverUrl + '/api/boundingbox/' + parentDsName + '/' + dsName
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
-        jsonStr = json.dumps(bbox)
+        jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     #similar to getGridCells except a result for each time slice is also returned.
     def getShards(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
         gcUrl = self.serverUrl + '/api/shards/' + parentDsName + '/' + dsName
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
-        jsonStr = json.dumps(bbox)
+        jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     def getNetCdfFile(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
         gcUrl = self.serverUrl + '/point/netcdffile/' + parentDsName + '/' + dsName
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
-        jsonStr = json.dumps(bbox)
+        jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
