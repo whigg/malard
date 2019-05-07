@@ -38,7 +38,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val outputPath = Await.result(env.getEnvironment().invoke(), 10 seconds ).outputCdfPath
 
-    val fileName = s"${outputPath}data.nc"
+    val fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT.getTime}_${bbf.maxT.getTime}.nc"
 
     val future = catalogue.shards(parentDsName, dsName).invoke(bbf)
 
