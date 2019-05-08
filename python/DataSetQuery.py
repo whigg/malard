@@ -53,7 +53,8 @@ class DataSetQuery:
         return response.text
     def getDataSetColumns(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
         gcUrl = self.serverUrl + '/point/datasetcolumns/' + parentDsName + '/' + dsName
+        print(gcUrl)
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
-        jsonStr = json.dumps(bbox)
+        jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
