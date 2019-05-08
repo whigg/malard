@@ -1,10 +1,8 @@
 package com.earthwave.point.api
 
 import com.earthwave.catalogue.api._
-import com.lightbend.lagom.scaladsl.api.Service.pathCall
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 import play.api.libs.json._
-
 
 /**
   * The Point service interface.
@@ -14,11 +12,11 @@ import play.api.libs.json._
   */
 trait PointService extends Service {
 
-
   def getGeoJson( parentDSName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,FeatureCollection]
 
   def getNetCdfFile( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,String]
 
+  def getDataSetColumns(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Messages.Columns]
 
   override final def descriptor: Descriptor = {
     import Service._
@@ -26,7 +24,8 @@ trait PointService extends Service {
     named("point")
       .withCalls(
         pathCall("/point/getgeojson/:parent/:dsname", getGeoJson _ ),
-        pathCall("/point/netcdffile/:parent/:dsname", getNetCdfFile _ )
+        pathCall("/point/netcdffile/:parent/:dsname", getNetCdfFile _ ),
+        pathCall("/point/datasetcolumns/:parent/:dsname", getDataSetColumns _ )
       )
       .withAutoAcl(true)
     // @formatter:on
