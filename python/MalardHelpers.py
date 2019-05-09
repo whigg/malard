@@ -10,4 +10,6 @@ def getDataFrameFromNetCDF(filePath):
         srs = pandas.Series(d[:])
         data[v] = srs
 
-    return pandas.DataFrame(data)
+    df = pandas.DataFrame(data)
+    nc.close()
+    return df
