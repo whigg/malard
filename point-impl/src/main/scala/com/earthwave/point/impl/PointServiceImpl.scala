@@ -85,7 +85,8 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val projection = q.projection.foldLeft[String]("")( (x,y) => x + "_" + y )
     val filters = q.filters.foldLeft[String]("")( (x,y) => x + "_" + y.column + y.op + y.threshold )
-    val fileName = s"${outputPath}${parentDSName}_${dsName}_${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT.getTime}_${q.bbf.maxT.getTime}${projection}${filters}.nc"
+    val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT.getTime}_${q.bbf.maxT.getTime}${projection}${filters}".hashCode
+    val fileName = s"${outputPath}${parentDSName}_${dsName}_${fileNameHash}.nc"
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
