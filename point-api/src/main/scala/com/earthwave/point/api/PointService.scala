@@ -1,7 +1,8 @@
 package com.earthwave.point.api
 
+import akka.NotUsed
 import com.earthwave.catalogue.api._
-import com.earthwave.point.api.Messages.Query
+import com.earthwave.point.api.Messages.{Cache, Query}
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 
 /**
@@ -18,6 +19,8 @@ trait PointService extends Service {
 
   def executeQuery( parentDsName : String, dsName : String) : ServiceCall[Query,String]
 
+  def releaseCache() : ServiceCall[Cache,String]
+
   def getDataSetColumns(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Messages.Columns]
 
   override final def descriptor: Descriptor = {
@@ -28,7 +31,8 @@ trait PointService extends Service {
         pathCall("/point/getgeojson/:parent/:dsname", getGeoJson _ ),
         pathCall("/point/netcdffile/:parent/:dsname", getNetCdfFile _ ),
         pathCall("/point/datasetcolumns/:parent/:dsname", getDataSetColumns _ ),
-        pathCall("/point/query/:parent/:dsname", executeQuery _)
+        pathCall("/point/query/:parent/:dsname", executeQuery _),
+        pathCall("/point/releasecache", releaseCache() )
       )
       .withAutoAcl(true)
     // @formatter:on

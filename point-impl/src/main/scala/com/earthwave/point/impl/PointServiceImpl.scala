@@ -2,10 +2,11 @@ package com.earthwave.point.impl
 
 import java.io.File
 
+import akka.NotUsed
 import akka.actor.{ActorSystem, Props}
 import com.earthwave.point.api._
 import com.earthwave.catalogue.api._
-import com.earthwave.point.impl.GeoJsonActor.{GeoJson}
+import com.earthwave.point.impl.GeoJsonActor.GeoJson
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -14,7 +15,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.earthwave.core.{Column, NetCdfReader, NetCdfWriter}
 import com.earthwave.environment.api.EnvironmentService
-import com.earthwave.point.api.Messages.{Columns, FeatureCollection, Query}
+import com.earthwave.point.api.Messages.{Cache, Columns, FeatureCollection, Query}
 
 /**
   * Implementation of the PointService.
@@ -120,5 +121,17 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       }
     }
     Future.successful(fileName)
+  }
+
+  override def releaseCache() : ServiceCall[Cache, String] = { c => {
+    val file = new java.io.File(c.handle)
+
+    if (file.exists()) {
+      println(s"Attempting to delete ${c.handle}")
+      file.delete()
+    }
+
+    Future.successful(s"Released cache file ${c.handle} ")
+    }
   }
 }

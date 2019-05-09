@@ -64,3 +64,9 @@ class DataSetQuery:
         jsonStr = json.dumps(query,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
+    def releaseCache(self, handle):
+        url = self.serverUrl + '/point/releasecache'
+        h = { 'handle': handle }
+        j = json.dumps(h)
+        r = requests.post(url,data=j, headers=self.headers)
+        return r.text

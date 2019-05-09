@@ -5,6 +5,8 @@ import play.api.libs.json.{Format, Json}
 
 object Messages {
 
+  case class Cache( handle : String )
+
   case class Filter( column : String, op : String, threshold : Double )
 
   case class Query( bbf : BoundingBoxFilter, projection : List[String], filters : List[Filter] )
@@ -20,6 +22,11 @@ object Messages {
   case class FeatureCollection(`type` : String, features: List[Feature] )
 
   //Serialisation helpers.
+  object Cache
+  {
+    implicit val format : Format[Cache] = Json.format[Cache]
+  }
+
   object Column
   {
     implicit val format : Format[Column] = Json.format[Column]
