@@ -86,7 +86,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     val projection = q.projection.foldLeft[String]("")( (x,y) => x + "_" + y )
     val filters = q.filters.foldLeft[String]("")( (x,y) => x + "_" + y.column + y.op + y.threshold )
     val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT.getTime}_${q.bbf.maxT.getTime}${projection}${filters}".hashCode
-    val fileName = s"${outputPath}${parentDSName}_${dsName}_${fileNameHash}.nc"
+    var fileName = s"${outputPath}${parentDSName}_${dsName}_${fileNameHash}.nc"
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
@@ -97,17 +97,27 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       var cols = scala.collection.mutable.Set("x", "y", "time")
       q.projection.foreach(p => cols.+=(p))
 
-      val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
+      if(!shards.shards.isEmpty) {
+        val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
 
-      val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
+        val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
 
-      val writer = new NetCdfWriter(fileName, columns)
+        val writer = new NetCdfWriter(fileName, columns)
 
-      shardReaders.foreach(x => { val data = x._2.getVariablesAndData(q)
-                                  if(data._2.length != 0){writer.writeWithFilter(data._1, data._2)}})
+        shardReaders.foreach(x => {
+          val data = x._2.getVariablesAndData(q)
+          if (data._2.length != 0) {
+            writer.writeWithFilter(data._1, data._2)
+          }
+        })
 
-      writer.close()
-      shardReaders.foreach(s => s._2.close())
+        writer.close()
+        shardReaders.foreach(s => s._2.close())
+      }
+      else
+      {
+        fileName = "Error: Empty resultset."
+      }
     }
     Future.successful(fileName)
   }

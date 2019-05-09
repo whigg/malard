@@ -170,10 +170,6 @@ class CatalogueServiceImpl() extends CatalogueService {
 
     val results: Seq[Document] = Await.result(fut, 10 seconds)
 
-    println(s"Results count ${results.length} ")
-
-    println(s"First one: ${results.head.toJson()} ")
-
     val docs = results.toList.map( doc => Shard(doc.getString("shardName"),
                                                 doc.getDouble( "minX" ),
                                                 doc.getDouble("maxX"),
