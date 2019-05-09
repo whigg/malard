@@ -1,5 +1,5 @@
 package com.earthwave.point.impl
-import com.earthwave.point.api.{Feature, FeatureCollection, Geometry}
+import com.earthwave.point.api.Messages.{Feature, FeatureCollection, Geometry}
 import com.lightbend.lagom.scaladsl.playjson.{JsonSerializer, JsonSerializerRegistry}
 
 import scala.collection.immutable.Seq

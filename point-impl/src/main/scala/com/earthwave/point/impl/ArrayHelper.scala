@@ -3,6 +3,7 @@ package com.earthwave.core
 import java.util.Date
 
 import com.earthwave.catalogue.api.BoundingBoxFilter
+import com.earthwave.point.impl.Operator
 import ucar.ma2.DataType
 
 import scala.collection.mutable.ListBuffer
@@ -10,9 +11,10 @@ import scala.collection.mutable.ListBuffer
 object ArrayHelper {
 
 
-  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter ) : Array[Int]={
+  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)] ) : Array[Int]={
 
     val mask = new ListBuffer[Int]()
+    val numberOfFilters = f.length
 
     for( i <- 0 until xArr.getSize.toInt )
     {
@@ -20,9 +22,11 @@ object ArrayHelper {
       val y = yArr.getDouble(i)
       val t = new Date(tArr.getLong(i)*1000)
 
-      if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t.compareTo(bbf.minT) >=0 && t.compareTo(bbf.maxT) <=0 )
-      {
-        mask.append(i)
+      if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t.compareTo(bbf.minT) >=0 && t.compareTo(bbf.maxT) <=0 ) {
+        val filterRes = f.map(x => x._1.op(x._2.getDouble(i))).filter(res => res == true)
+        if( numberOfFilters == filterRes.length ) {
+          mask.append(i)
+        }
       }
     }
 

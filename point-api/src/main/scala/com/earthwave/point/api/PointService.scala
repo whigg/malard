@@ -1,8 +1,8 @@
 package com.earthwave.point.api
 
 import com.earthwave.catalogue.api._
+import com.earthwave.point.api.Messages.Query
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
-import play.api.libs.json._
 
 /**
   * The Point service interface.
@@ -12,9 +12,11 @@ import play.api.libs.json._
   */
 trait PointService extends Service {
 
-  def getGeoJson( parentDSName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,FeatureCollection]
+  def getGeoJson( parentDSName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,Messages.FeatureCollection]
 
   def getNetCdfFile( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,String]
+
+  def executeQuery( parentDsName : String, dsName : String) : ServiceCall[Query,String]
 
   def getDataSetColumns(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Messages.Columns]
 
@@ -25,30 +27,14 @@ trait PointService extends Service {
       .withCalls(
         pathCall("/point/getgeojson/:parent/:dsname", getGeoJson _ ),
         pathCall("/point/netcdffile/:parent/:dsname", getNetCdfFile _ ),
-        pathCall("/point/datasetcolumns/:parent/:dsname", getDataSetColumns _ )
+        pathCall("/point/datasetcolumns/:parent/:dsname", getDataSetColumns _ ),
+        pathCall("/point/query/:parent/:dsname", executeQuery _)
       )
       .withAutoAcl(true)
     // @formatter:on
   }
 }
 
-case class Geometry(`type` : String, coordinates : List[Double] )
 
-
-case class Feature(`type` : String, geometry : Geometry, properties: Map[String,Double]  )
-
-case class FeatureCollection(`type` : String, features: List[Feature] )
-
-object Geometry{
-  implicit val format : Format[Geometry] = Json.format[Geometry]
-}
-
-object Feature{
-  implicit val format : Format[Feature] = Json.format[Feature]
-}
-
-object FeatureCollection{
-  implicit val format : Format[FeatureCollection] = Json.format[FeatureCollection]
-}
 
 

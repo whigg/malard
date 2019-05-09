@@ -25,19 +25,13 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLev
   writer.setRedefineMode(false)
 
 
-  def writeWithFilter(variables : List[(Variable,ucar.ma2.Array)], bbf : BoundingBoxFilter) = {
+  def writeWithFilter(variables : List[(Variable,ucar.ma2.Array)], mask : Array[Int]) = {
 
     val origin = Array.ofDim[Int](1)
     origin(0) = if( rowcount == 0 ){ 0 }else{(rowcount)-1}
 
     //put the packing code in here
     val variablePairs = srcVariables.zip(variables)
-
-    val x = variablePairs.filter( x => x._1.getShortName == "x" ).head._2
-    val y = variablePairs.filter( y => y._1.getShortName == "y" ).head._2
-    val t = variablePairs.filter( t => t._1.getShortName == "time").head._2
-
-    val mask = ArrayHelper.buildMask(x._2, y._2, t._2, bbf)
 
     variablePairs.foreach(v =>
           {

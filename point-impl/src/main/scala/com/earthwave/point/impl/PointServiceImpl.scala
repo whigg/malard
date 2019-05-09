@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.{ActorSystem, Props}
 import com.earthwave.point.api._
 import com.earthwave.catalogue.api._
-import com.earthwave.point.impl.GeoJsonActor.{GeoJson, GeoJsonFile}
+import com.earthwave.point.impl.GeoJsonActor.{GeoJson}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -14,7 +14,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.earthwave.core.{Column, NetCdfReader, NetCdfWriter}
 import com.earthwave.environment.api.EnvironmentService
-import com.earthwave.point.api.Messages.{Columns, Query}
+import com.earthwave.point.api.Messages.{Columns, FeatureCollection, Query}
 
 /**
   * Implementation of the PointService.
@@ -43,7 +43,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val shards =  Await.result(future, 10 seconds)
 
-    val reader = new NetCdfReader( shards.shards.head.shardName )
+    val reader = new NetCdfReader( shards.shards.head.shardName, Set[String]() )
 
     val columns = reader.getVariables().map(c => Messages.Column( c.getShortName() ))
 
@@ -64,35 +64,50 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       val numberOfPoints = shards.shards.map(x => x.numberOfPoints).sum
       println(s"Number of points: $numberOfPoints")
 
-      val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName)))
+      val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName,Set[String]())))
 
       val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
 
       val writer = new NetCdfWriter(fileName, columns)
 
-      shardReaders.foreach(x => writer.writeWithFilter(x._2.getVariablesAndData(), bbf))
+      shardReaders.foreach(x => { val data = x._2.getVariablesAndData(Query(bbf, List[String](), List[Messages.Filter]()))
+                                  if(data._2.length != 0){writer.writeWithFilter(data._1, data._2 )}})
 
       writer.close()
+      shardReaders.foreach(s => s._2.close())
     }
     Future.successful(fileName)
   }
 
-  def executeAggregation( parentDSName : String, dsName : String ) : ServiceCall[Query, String] = { q =>
+  override def executeQuery( parentDSName : String, dsName : String ) : ServiceCall[Query, String] = { q =>
 
-    val future = catalogue.shards(parentDSName, dsName).invoke(q.bbf)
+    val outputPath = Await.result(env.getEnvironment().invoke(), 10 seconds ).outputCdfPath
 
-    val shards = Await.result(future, 10 seconds)
-    val numberOfPoints = shards.shards.map(x => x.numberOfPoints).sum
-    println(s"Number of points: $numberOfPoints")
+    val projection = q.projection.foldLeft[String]("")( (x,y) => x + "_" + y )
+    val filters = q.filters.foldLeft[String]("")( (x,y) => x + "_" + y.column + y.op + y.threshold )
+    val fileName = s"${outputPath}${parentDSName}_${dsName}_${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT.getTime}_${q.bbf.maxT.getTime}${projection}${filters}.nc"
+    val cacheCheck = new File(fileName)
 
-    val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName)))
+    if( !cacheCheck.exists() ) {
+      val future = catalogue.shards(parentDSName, dsName).invoke(q.bbf)
 
-    val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
+      val shards = Await.result(future, 10 seconds)
 
-    Future.successful("Results...")
+      var cols = scala.collection.mutable.Set("x", "y", "time")
+      q.projection.foreach(p => cols.+=(p))
+
+      val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
+
+      val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
+
+      val writer = new NetCdfWriter(fileName, columns)
+
+      shardReaders.foreach(x => { val data = x._2.getVariablesAndData(q)
+                                  if(data._2.length != 0){writer.writeWithFilter(data._1, data._2)}})
+
+      writer.close()
+      shardReaders.foreach(s => s._2.close())
+    }
+    Future.successful(fileName)
   }
-
-
-
-
 }

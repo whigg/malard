@@ -3,10 +3,10 @@ package com.earthwave.point.impl
 import java.io.{BufferedWriter, File, FileWriter}
 import java.util.Date
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor}
 import com.earthwave.catalogue.api.{BoundingBoxFilter, Shards}
 import com.earthwave.core.NetCdfReader
-import com.earthwave.point.api.{Feature, FeatureCollection, Geometry}
+import com.earthwave.point.api.Messages.{Feature, FeatureCollection, Geometry}
 import com.earthwave.point.impl.GeoJsonActor.{GeoJson, GeoJsonFile}
 
 import scala.collection.mutable.{ListBuffer, Map}
@@ -36,7 +36,7 @@ class GeoJsonActor() extends Actor{
   private def createGeoJson( shards : Shards, bbf : BoundingBoxFilter ) : FeatureCollection = {
 
     println(s"Received ${shards.shards.length} to process" )
-    val readers = shards.shards.map( s => new NetCdfReader( s.shardName ) )
+    val readers = shards.shards.map( s => new NetCdfReader( s.shardName, Set[String]() ) )
 
     val buffer = new ListBuffer[Feature]()
 
