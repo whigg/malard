@@ -58,3 +58,9 @@ class DataSetQuery:
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
+    def executeQuery( self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT, projection, filters ):
+        gcUrl = self.serverUrl + '/point/query/' + parentDsName + '/' + dsName
+        query = { 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }, 'projection':projection,'filters': filters}
+        jsonStr = json.dumps(query,default=dateconverter)
+        response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
+        return response.text

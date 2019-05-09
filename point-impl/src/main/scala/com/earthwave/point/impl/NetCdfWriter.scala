@@ -1,6 +1,5 @@
 package com.earthwave.core
 
-import com.earthwave.catalogue.api.BoundingBoxFilter
 import ucar.ma2.DataType
 import ucar.nc2.{NetcdfFileWriter, Variable}
 import ucar.nc2.write.{Nc4Chunking, Nc4ChunkingStrategy}

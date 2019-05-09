@@ -1,7 +1,5 @@
 package com.earthwave.core
 
-
-import com.earthwave.catalogue.api.BoundingBoxFilter
 import com.earthwave.point.api.Messages.Query
 import com.earthwave.point.impl.Operators
 
