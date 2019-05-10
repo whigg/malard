@@ -29,7 +29,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       val future = catalogue.shards(parentDSName, dsName).invoke(bbf)
 
       val result = Await.result( future, 10 seconds  )
-      val numberOfPoints = result.shards.map(x => x.numberOfPoints).sum
+      val numberOfPoints = result.map(x => x.numberOfPoints).sum
 
       println(s"Number of points: $numberOfPoints")
       val geojsonactor = system.actorOf(Props(new GeoJsonActor( )))
@@ -44,7 +44,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val shards =  Await.result(future, 10 seconds)
 
-    val reader = new NetCdfReader( shards.shards.head.shardName, Set[String]() )
+    val reader = new NetCdfReader( shards.head.shardName, Set[String]() )
 
     val columns = reader.getVariables().map(c => Messages.Column( c.getShortName() ))
 
@@ -62,10 +62,10 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       val future = catalogue.shards(parentDsName, dsName).invoke(bbf)
 
       val shards = Await.result(future, 10 seconds)
-      val numberOfPoints = shards.shards.map(x => x.numberOfPoints).sum
+      val numberOfPoints = shards.map(x => x.numberOfPoints).sum
       println(s"Number of points: $numberOfPoints")
 
-      val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName,Set[String]())))
+      val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName,Set[String]())))
 
       val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
 
@@ -98,8 +98,8 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       var cols = scala.collection.mutable.Set("x", "y", "time")
       q.projection.foreach(p => cols.+=(p))
 
-      if(!shards.shards.isEmpty) {
-        val shardReaders = shards.shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
+      if(!shards.isEmpty) {
+        val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
 
         val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
 
