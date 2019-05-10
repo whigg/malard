@@ -70,3 +70,7 @@ class DataSetQuery:
         j = json.dumps(h)
         r = requests.post(url,data=j, headers=self.headers)
         return r.text
+    def getSwathDetails(self, parentDsName, dsName, swathId):
+        url = self.serverUrl + '/api/swathdetailsfromid/' + parentDsName + '/' + dsName + '/' + str(swathId)
+        response = requests.get(url, headers=self.headers)
+        return response.text
