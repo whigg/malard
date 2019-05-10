@@ -1,6 +1,7 @@
 package com.earthwave.catalogue.api
 
 import akka.NotUsed
+import com.lightbend.lagom.scaladsl.api.Service.pathCall
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 
 /**
@@ -52,6 +53,26 @@ trait CatalogueService extends Service {
 
   def shards( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, Shards ]
 
+  /**
+    * Get GridCells from input swathId.
+    *
+    * curl -X GET http://localhost:9000/api/swathdetails/:parent/:dataset
+    */
+  def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,SwathDetails]
+
+  /**
+    * Get GridCells from input swathId.
+    *
+    * curl -X GET http://localhost:9000/api/swathdetailsfromid/:parent/:dataset/:id
+    */
+  def getSwathDetailsFromId( parentDsName : String, dsName : String, id : Long ) : ServiceCall[NotUsed,SwathDetail]
+  /**
+    * Get GridCells from input swathId.
+    *
+    * curl -X GET http://localhost:9000/api/swathdetailsfromname/:parent/:dataset/:name
+    */
+  def getSwathDetailsFromName( parentDsName : String, dsName : String, id : String ) : ServiceCall[NotUsed,SwathDetail]
+
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
@@ -62,7 +83,10 @@ trait CatalogueService extends Service {
         pathCall("/api/datasets/:parentName", dataSets _),
         pathCall("/api/boundingbox/:parent/:dsname", boundingBox _ ),
         pathCall("/api/boundingbox/:parent/:dsname", boundingBoxQuery _ ),
-        pathCall("/api/shards/:parent/:dsname", shards _ )
+        pathCall("/api/shards/:parent/:dsname", shards _ ),
+        pathCall("/api/swathdetailsfromid/:parent/:dsname/:id", getSwathDetailsFromId _ ),
+        pathCall("/api/swathdetailsfromname/:parent/:dsname/:name", getSwathDetailsFromName _ ),
+        pathCall( "/api/swathdetails/:parent/:dsname", getSwathDetails _)
       )
       .withAutoAcl(true)
     // @formatter:on

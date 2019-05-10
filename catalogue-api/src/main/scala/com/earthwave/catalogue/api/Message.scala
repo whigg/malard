@@ -120,3 +120,24 @@ object Shards
 {
   implicit val format : Format[Shards] = Json.format[Shards]
 }
+
+case class SwathDetails( swathDetails : List[SwathDetail] )
+
+object SwathDetails
+{
+  implicit  val format : Format[SwathDetails] = Json.format[SwathDetails]
+}
+
+case class SwathDetail( swathName : String, pointCount : Long, gridCells : List[GridCell] )
+
+object SwathDetail
+{
+  implicit val format : Format[SwathDetail] = Json.format[SwathDetail]
+}
+
+case class GridCell(projection : String, x : Long, y : Long, pointCount : Long)
+
+object GridCell
+{
+  implicit val format : Format[GridCell] = Json.format[GridCell]
+}

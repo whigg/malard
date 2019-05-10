@@ -1,16 +1,18 @@
 package com.earthwave.catalogue.impl
 
-import java.util.Date
+import java.util
 
 import akka.NotUsed
 import com.earthwave.catalogue.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
+import org.bson.{BsonArray, BsonValue}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.{Document, MongoClient}
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Aggregates._
 import org.mongodb.scala.model.Accumulators._
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
@@ -152,7 +154,6 @@ class CatalogueServiceImpl() extends CatalogueService {
   }
 
   override def shards(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Shards] = { bbf =>
-    println(s"Wiring check. Parent=$parentDsName, DataSet=$dsName")
     val mongoDb = client.getDatabase(parentDsName)
     val collection = mongoDb.getCollection("catalogue")
 
@@ -181,58 +182,65 @@ class CatalogueServiceImpl() extends CatalogueService {
                                                     ) )
     Future.successful(Shards(docs))
   }
-}
 
-object ShardDetailImpl
-{
-  def fromDocument( doc : Document ): CatalogueElement= {
+  override def getSwathDetailsFromName( parentDsName : String, dsName : String, name : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
+    val f : Bson = and(equal("datasetName",dsName), equal("swathName", name))
 
-    val d = doc.filterNot(p => (p._1 == "_id") || (p._1 == "insertTime"))
+    val results = getSwathDetailsWithFilter( parentDsName, f )
 
-    val dsName: String = doc.getString("dsName")
-    val shardName: String = doc.getString("shardName")
-    val projection: String = doc.getString("projection")
-    val year: Int = doc.getInteger("year")
-    val month: Int = doc.getInteger("month")
-    val gridCellMinX: Long = doc.getLong("gridCellMinX")
-    val gridCellMaxX: Long = doc.getLong("gridCellMaxX")
-    val gridCellMinY: Long = doc.getLong("gridCellMinY")
-    val gridCellMaxY: Long = doc.getLong("gridCellMaxY")
-    val gridCellSize: Long = doc.getLong("gridCellSize")
-    val minX: Double = doc.getDouble("minX")
-    val maxX: Double = doc.getDouble("maxX")
-    val minY: Double = doc.getDouble("minY")
-    val maxY: Double = doc.getDouble("maxX")
-    val minLat: Double = doc.getDouble("minLat")
-    val maxLat: Double = doc.getDouble("maxLat")
-    val minLon: Double = doc.getDouble("minLon")
-    val maxLon: Double = doc.getDouble("maxLon")
-    val minTime: Date = doc.getDate("minTime")
-    val maxTime: Date = doc.getDate("maxTime")
-    val count: Long = doc.getLong("count")
-    val qualityCount: Long = doc.getLong("qualityCount")
+    if( results.isEmpty )
+      throw new Exception(s"No results returned for name=[$name].")
+    if( results.length > 1)
+      throw new Exception(s"Duplicate swath details found for name=[$name].")
 
-    CatalogueElement(dsName
-      , shardName
-      , projection
-      , year
-      , month
-      , gridCellMinX
-      , gridCellMaxX
-      , gridCellMinY
-      , gridCellMaxY
-      , gridCellSize
-      , minX
-      , maxX
-      , minY
-      , maxY
-      , minLat
-      , maxLat
-      , minLon
-      , maxLon
-      , minTime
-      , maxTime
-      , count
-      , qualityCount)
+    Future.successful(results.head)
   }
+
+  override def getSwathDetailsFromId( parentDsName : String, dsName : String, id : Long ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
+    val f : Bson = and(equal("datasetName",dsName), equal("swathId",id))
+
+    val results = getSwathDetailsWithFilter( parentDsName, f )
+
+    if( results.isEmpty )
+      throw new Exception(s"No results returned for id=[$id].")
+    if( results.length > 1)
+      throw new Exception(s"Duplicate swath details found for id=[$id].")
+
+    Future.successful(results.head)
+  }
+
+  override def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,SwathDetails] ={ _ =>
+
+    val f : Bson = equal("datasetName",dsName)
+
+    Future.successful(SwathDetails(getSwathDetailsWithFilter( parentDsName, f)))
+  }
+
+  private def getSwathDetailsWithFilter( parentDsName : String, filter : Bson  ) : List[SwathDetail] = {
+
+    val mongoDb = client.getDatabase(parentDsName)
+    val collection = mongoDb.getCollection("swathDetails")
+
+    val obs = collection.find(filter).toFuture()
+
+    val results : Seq[Document] = Await.result(obs, 10 seconds)
+
+    val docs = results.toList
+
+    def convertResults( doc : Document ) : SwathDetail = {
+      val gcsDocs: BsonArray = doc.get("gridCells").get.asArray()
+
+      val buffer = new ListBuffer[GridCell]()
+
+      for (i <- 0 until gcsDocs.size()) {
+        val doc = gcsDocs.get(i).asDocument()
+        buffer.append(GridCell(doc.getString("projection").getValue, doc.getInt64("x").longValue(), doc.getInt64("y").longValue(), doc.getInt32("pointCount").longValue()))
+      }
+
+      SwathDetail(doc.getString("swathName"), doc.getInteger("pointCount").toLong, buffer.toList)
+    }
+    docs.map(d => convertResults(d))
+  }
+
 }
+
