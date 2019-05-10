@@ -58,7 +58,7 @@ trait CatalogueService extends Service {
     *
     * curl -X GET http://localhost:9000/api/swathdetails/:parent/:dataset
     */
-  def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,SwathDetails]
+  def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,List[SwathDetail]]
 
   /**
     * Get GridCells from input swathId.
