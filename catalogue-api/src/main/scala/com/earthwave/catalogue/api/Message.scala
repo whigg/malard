@@ -68,13 +68,6 @@ object DataSet
   implicit val format: Format[DataSet] = Json.format[DataSet]
 }
 
-case class DataSets( dataSets : Seq[DataSet] )
-
-object DataSets
-{
-  implicit val format: Format[DataSets] = Json.format[DataSets]
-}
-
 case class BoundingBox( gridCellMinX : Long
                         , gridCellMaxX : Long
                         , gridCellMinY : Long
@@ -87,13 +80,6 @@ case class BoundingBox( gridCellMinX : Long
 object BoundingBox
 {
   implicit val format : Format[BoundingBox] = Json.format[BoundingBox]
-}
-
-case class BoundingBoxes( boxes : Seq[BoundingBox] )
-
-object BoundingBoxes
-{
-  implicit val format : Format[BoundingBoxes] = Json.format[BoundingBoxes]
 }
 
 case class BoundingBoxFilter( minX : Long
@@ -112,20 +98,6 @@ case class Shard(shardName : String, minX : Double, maxX : Double, minY : Double
 
 object Shard{
   implicit val format :Format[Shard] = Json.format[Shard]
-}
-
-case class Shards( shards : Seq[Shard] )
-
-object Shards
-{
-  implicit val format : Format[Shards] = Json.format[Shards]
-}
-
-case class SwathDetails( swathDetails : List[SwathDetail] )
-
-object SwathDetails
-{
-  implicit  val format : Format[SwathDetails] = Json.format[SwathDetails]
 }
 
 case class SwathDetail( swathName : String, pointCount : Long, gridCells : List[GridCell] )

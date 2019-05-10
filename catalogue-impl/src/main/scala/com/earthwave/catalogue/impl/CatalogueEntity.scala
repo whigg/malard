@@ -18,13 +18,10 @@ import scala.collection.immutable.Seq
 object CatalogueSerializerRegistry extends JsonSerializerRegistry {
   override def serializers: Seq[JsonSerializer[_]] = Seq(
     JsonSerializer[DataSet],
-    JsonSerializer[DataSets],
     JsonSerializer[Catalogue],
     JsonSerializer[CatalogueElement],
     JsonSerializer[CatalogueFilter],
     JsonSerializer[BoundingBox],
-    JsonSerializer[BoundingBoxes],
     JsonSerializer[Shard],
-    JsonSerializer[Shards]
   )
 }

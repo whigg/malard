@@ -25,7 +25,7 @@ class CatalogueServiceImpl() extends CatalogueService {
   implicit val ec = ExecutionContext.global
   private val ignoreDataSets = Set("admin","config","local")
 
-  override def parentDataSets(): ServiceCall[NotUsed, DataSets] = { _ =>
+  override def parentDataSets(): ServiceCall[NotUsed, List[DataSet]] = { _ =>
 
     val obs = client.listDatabaseNames()
 
@@ -33,10 +33,10 @@ class CatalogueServiceImpl() extends CatalogueService {
 
     val res = Await.result(fut, 10 seconds)
 
-    Future.successful( DataSets(res.map(d=> DataSet(d)).filterNot( p => ignoreDataSets.contains(p.name) )) )
+    Future.successful( res.map(d=> DataSet(d)).filterNot( p => ignoreDataSets.contains(p.name) ).toList )
   }
 
-  override def dataSets( parentName : String ): ServiceCall[NotUsed,DataSets] = {_ =>
+  override def dataSets( parentName : String ): ServiceCall[NotUsed,List[DataSet]] = {_ =>
 
     val mongoDb = client.getDatabase(parentName)
 
@@ -47,7 +47,7 @@ class CatalogueServiceImpl() extends CatalogueService {
     val result = Await.result(fut, 10 seconds)
 
     val dataSets = result.map(d => DataSet(d.getString("_id") ))
-    Future.successful(DataSets(dataSets))
+    Future.successful((dataSets.toList))
   }
 
 
@@ -108,7 +108,7 @@ class CatalogueServiceImpl() extends CatalogueService {
     }
   }
 
-  override def boundingBoxQuery(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, BoundingBoxes] = { bbf =>
+  override def boundingBoxQuery(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, List[BoundingBox]] = { bbf =>
     {
       println(s"Wiring check. Parent=$parentDsName, DataSet=$dsName")
       val mongoDb = client.getDatabase(parentDsName)
@@ -149,11 +149,11 @@ class CatalogueServiceImpl() extends CatalogueService {
                                                         , doc.getDate("maxTime")
                                                         , doc.getLong("numberOfPoints")
                                                         , doc.getInteger("numberOfShards").toLong )})
-      Future.successful(BoundingBoxes(docs))
+      Future.successful(docs)
     }
   }
 
-  override def shards(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Shards] = { bbf =>
+  override def shards(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, List[Shard]] = { bbf =>
     val mongoDb = client.getDatabase(parentDsName)
     val collection = mongoDb.getCollection("catalogue")
 
@@ -180,7 +180,7 @@ class CatalogueServiceImpl() extends CatalogueService {
                                                 doc.getDate("maxTime"),
                                                 doc.getLong("count")
                                                     ) )
-    Future.successful(Shards(docs))
+    Future.successful(docs)
   }
 
   override def getSwathDetailsFromName( parentDsName : String, dsName : String, name : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
@@ -209,11 +209,11 @@ class CatalogueServiceImpl() extends CatalogueService {
     Future.successful(results.head)
   }
 
-  override def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,SwathDetails] ={ _ =>
+  override def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,List[SwathDetail]] ={ _ =>
 
     val f : Bson = equal("datasetName",dsName)
 
-    Future.successful(SwathDetails(getSwathDetailsWithFilter( parentDsName, f)))
+    Future.successful(getSwathDetailsWithFilter( parentDsName, f))
   }
 
   private def getSwathDetailsWithFilter( parentDsName : String, filter : Bson  ) : List[SwathDetail] = {

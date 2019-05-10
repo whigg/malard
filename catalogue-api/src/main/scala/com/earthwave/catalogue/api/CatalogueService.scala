@@ -23,13 +23,13 @@ trait CatalogueService extends Service {
     *
     * curl -X GET http://localhost:9000/api/parentdatasets
     */
-  def parentDataSets() : ServiceCall[NotUsed, DataSets ]
+  def parentDataSets() : ServiceCall[NotUsed, List[DataSet] ]
   /**
     * List available data sets
     *
     * curl -X GET http://localhost:9000/api/datasets/dataSetName
     */
-  def dataSets(dataSetName : String) : ServiceCall[NotUsed, DataSets ]
+  def dataSets(dataSetName : String) : ServiceCall[NotUsed, List[DataSet] ]
 
   /**
     * Overall bounding box of the data
@@ -43,7 +43,7 @@ trait CatalogueService extends Service {
     *
     * curl -X GET http://localhost:9000/api/boundingbox/parent/:one/dataset/:two
     */
-  def boundingBoxQuery( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, BoundingBoxes ]
+  def boundingBoxQuery( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, List[BoundingBox] ]
 
   /**
     * Get shards  for the bounding box that is passed
@@ -51,7 +51,7 @@ trait CatalogueService extends Service {
     * curl -X GET http://localhost:9000/api/shards/parent/:one/dataset/:two
     */
 
-  def shards( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, Shards ]
+  def shards( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, List[Shard] ]
 
   /**
     * Get GridCells from input swathId.
