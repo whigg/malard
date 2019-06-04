@@ -21,7 +21,7 @@ trait EnvironmentService extends Service {
     named("environment")
       .withCalls(
         pathCall("/env/setenvironment", setEnvironment _),
-        pathCall("/env/getenvironment", getEnvironment )
+        pathCall("/env/getenvironment", getEnvironment _)
       )
       .withAutoAcl(true)
     // @formatter:on

@@ -1,11 +1,9 @@
 package com.earthwave.catalogue.impl
 
-import java.util
-
 import akka.NotUsed
 import com.earthwave.catalogue.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
-import org.bson.{BsonArray, BsonValue}
+import org.bson.{BsonArray}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.{Document, MongoClient}
 import org.mongodb.scala.model.Filters._

@@ -11,7 +11,7 @@ val mongo = "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0"
 
 
 lazy val `malard` = (project in file("."))
-  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`)
+  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`)
 
 lazy val `catalogue-api` = (project in file("catalogue-api"))
   .settings(
@@ -77,3 +77,24 @@ lazy val `environment-impl` = (project in file("environment-impl"))
   .settings(lagomForkedTestSettings)
   .dependsOn(`environment-api`)
 
+lazy val `mask-api` = (project in file("mask-api"))
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslApi
+    )
+  )
+
+lazy val `mask-impl` = (project in file("mask-impl"))
+  .enablePlugins(LagomScala)
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslPersistenceCassandra,
+      lagomScaladslKafkaBroker,
+      lagomScaladslTestKit,
+      macwire,
+      scalaTest,
+      mongo
+    )
+  )
+  .settings(lagomForkedTestSettings)
+  .dependsOn(`mask-api`,`environment-api`)

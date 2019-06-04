@@ -2,7 +2,6 @@ package com.earthwave.point.impl
 
 import java.io.File
 
-import akka.NotUsed
 import akka.actor.{ActorSystem, Props}
 import com.earthwave.point.api._
 import com.earthwave.catalogue.api._
