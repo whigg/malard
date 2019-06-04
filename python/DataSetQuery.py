@@ -82,3 +82,17 @@ class DataSetQuery:
         url = self.serverUrl + '/api/swathdetails/' + parentDsName + '/' + dsName
         response = requests.get(url, headers=self.headers)
         return response.text
+    def publishMask(self, sourcePath, fileName, parentDsName, maskType, region, minX, minY, size ):
+        url = self.serverUrl + '/mask/publishmask/' + parentDsName + '/' + maskType + '/' + region
+        request = { 'sourceFilePath' : sourcePath, 'shapeFile':fileName, 'gridCell' : { 'minX':minX, 'minY':minY, 'size': size } }
+        j = json.dumps(request)
+        response = requests.post(url,data=j, headers=self.headers)
+        return response.text
+    def getMasks(self, parentDsName ):
+        url = self.serverUrl + '/mask/gridmasks/' + parentDsName
+        response = requests.get(url, headers=self.headers)
+        return response.text
+    def getGridCellMasks(self, parentdataset, maskType, region):
+        url = self.serverUrl + '/mask/gridcells/' + parentdataset + '/' + maskType + '/' + region
+        response = requests.get(url, headers=self.headers)
+        return response.text
