@@ -10,8 +10,8 @@ class DataSetQuery:
     def __init__(self, serverUrl ):
         self.serverUrl = serverUrl
         self.headers = {'Content-Type':'application/json'}
-    def setEnvironment(self, name, outputCdfPath):
-        data = { 'name': name, 'outputCdfPath': outputCdfPath }
+    def setEnvironment(self, name, outputCdfPath, publisherPath):
+        data = { 'name': name, 'outputCdfPath': outputCdfPath, 'publisherPath': publisherPath }
         jsonStr = json.dumps(data)
         setUrl = self.serverUrl + '/env/setenvironment'
         response = requests.post(setUrl, data=jsonStr, headers=self.headers)
