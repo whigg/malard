@@ -1,12 +1,13 @@
 package com.earthwave.mask.impl
 
+import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
 import akka.NotUsed
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.mask.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
-import org.mongodb.scala.model.Accumulators.{sum}
+import org.mongodb.scala.model.Accumulators.sum
 import org.mongodb.scala.{Completed, Document, MongoClient, Observer}
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Aggregates._
@@ -29,7 +30,14 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks" )
 
-    val outputPath = s"${environment.publisherPath}/${parentDataSet}/static/${`type`}/$region/cell_${x.gridCell.minX}_${x.gridCell.minY}/${x.shapeFile}"
+    val outputDir = s"${environment.publisherPath}/${parentDataSet}/static/${`type`}/$region/cell_${x.gridCell.minX}_${x.gridCell.minY}/"
+
+    val dir = new File(outputDir)
+    if(!dir.exists()) {
+      dir.mkdirs()
+    }
+
+    val outputPath = s"$outputDir/${x.shapeFile}"
 
     val inputFile = java.nio.file.Paths.get(s"${x.sourceFilePath}/${x.shapeFile}")
     val outputFile = java.nio.file.Paths.get(outputPath)
@@ -73,7 +81,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     val results = Await.result(collection.aggregate(List(g)).toFuture(), 10 seconds ).toList
 
     val masks = results.map( d => { val id = d.get("_id").get.asDocument()
-                                    Mask( id.getString("type").toString, id.getString("region").toString  )
+                                    Mask( id.getString("type").getValue, id.getString("region").getValue  )
                                   })
 
     Future.successful(masks)
@@ -84,7 +92,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
-    val f = filter(and(equal("type",`type`),equal("region",region)))
+    val f = and(equal("type",`type`),equal("region",region))
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
