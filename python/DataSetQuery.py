@@ -84,7 +84,7 @@ class DataSetQuery:
         return response.text
     def publishMask(self, sourcePath, fileName, parentDsName, maskType, region, minX, minY, size ):
         url = self.serverUrl + '/mask/publishmask/' + parentDsName + '/' + maskType + '/' + region
-        request = { 'sourceFilePath' : sourcePath, 'shapeFile':fileName, 'gridCell' : { 'minX':minX, 'minY':minY, 'size': size } }
+        request = { 'sourceFilePath' : sourcePath, 'fileName':fileName, 'gridCell' : { 'minX':minX, 'minY':minY, 'size': size } }
         j = json.dumps(request)
         response = requests.post(url,data=j, headers=self.headers)
         return response.text

@@ -37,9 +37,9 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
       dir.mkdirs()
     }
 
-    val outputPath = s"$outputDir${x.shapeFile}".replace("//","/")
+    val outputPath = s"$outputDir${x.fileName}".replace("//","/")
 
-    val inputFile = java.nio.file.Paths.get(s"${x.sourceFilePath}/${x.shapeFile}")
+    val inputFile = java.nio.file.Paths.get(s"${x.sourceFilePath}/${x.fileName}")
     val outputFile = java.nio.file.Paths.get(outputPath)
 
     Files.copy(inputFile, outputFile,StandardCopyOption.REPLACE_EXISTING )

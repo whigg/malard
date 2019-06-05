@@ -16,7 +16,7 @@ object GridCellMask
   implicit val format : Format[GridCellMask] = Json.format[GridCellMask]
 }
 
-case class MaskFile( sourceFilePath : String, shapeFile : String, gridCell : GridCell )
+case class MaskFile( sourceFilePath : String, fileName : String, gridCell : GridCell )
 
 object MaskFile
 {
