@@ -102,3 +102,19 @@ class DataSetQuery:
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
+    def publishGridCellStats(self, parentDsName, runName, minX, minY, size, statistics ):
+        url = self.serverUrl + '/gridcellstats/publishgridcellstats/' + parentDsName + '/' + runName
+        request = { 'gridCell' : { 'minX':minX, 'minY':minY, 'size': size }, 'statistics' : statistics }
+        j = json.dumps(request)
+        response = requests.post(url,data=j, headers=self.headers)
+        return response.text
+    def getAvailableRunStatistics(self, parentDsName ):
+        url = self.serverUrl + '/gridcellstats/getavailablestatistics/' + parentDsName
+        response = requests.get(url, headers=self.headers)
+        return response.text
+    def getGridCellStatistics(self, parentdataset, runName, minX, minY, size):
+        url = self.serverUrl + '/gridcellstats/getgridcellstatistics/' + parentdataset + '/' + runName
+        request = { 'minX':minX, 'minY':minY, 'size': size }
+        j = json.dumps(request)
+        response = requests.post(url, data=j, headers=self.headers)
+        return response.text
