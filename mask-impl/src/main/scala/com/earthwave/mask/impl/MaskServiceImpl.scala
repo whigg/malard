@@ -57,7 +57,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
     val doc = Document( "type" -> `type`,
                         "region" -> region,
-                        "shapeFile" -> outputPath,
+                        "fileName" -> outputPath,
                         "gridCellMinX" -> x.gridCell.minX,
                         "gridCellMaxX" -> (x.gridCell.minX + x.gridCell.size),
                         "gridCellMinY" -> x.gridCell.minY,
@@ -108,7 +108,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
-    val masks = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("shapeFile") ))
+    val masks = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("fileName") ))
 
     Future.successful(masks)
   }
@@ -127,7 +127,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
-    val mask = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("shapeFile") )).head
+    val mask = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("fileName") )).head
 
     Future.successful(mask)
 
