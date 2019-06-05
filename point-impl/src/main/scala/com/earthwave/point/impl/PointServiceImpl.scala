@@ -94,8 +94,11 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
       val shards = Await.result(future, 10 seconds)
 
-      var cols = scala.collection.mutable.Set("x", "y", "time")
-      q.projection.foreach(p => cols.+=(p))
+      val cols = if(q.projection.isEmpty){ scala.collection.mutable.Set() }else {
+        val c = scala.collection.mutable.Set("x", "y", "time")
+        q.projection.foreach(p => c.+=(p))
+        c
+      }
 
       if(!shards.isEmpty) {
         val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
