@@ -44,6 +44,17 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
     Files.copy(inputFile, outputFile,StandardCopyOption.REPLACE_EXISTING )
 
+    //check existence of output file
+    val file = new File(outputPath)
+    if( file.exists() )
+    {
+      println(s"File written successfully: ${outputPath}")
+    }
+    else
+    {
+      throw new Exception(s"Error copying inputFile $inputFile to $outputFile")
+    }
+
     val doc = Document( "type" -> `type`,
                         "region" -> region,
                         "shapeFile" -> outputPath,
@@ -65,6 +76,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
        println(s"Completed writing DataSet=[$parentDataSet], Type=[${`type`}], Region=[$region]")
       }})
 
+    println(s"Mask published for GridCell x=${x.gridCell.minX}, y=${x.gridCell.minY} and size=${x.gridCell.minY} to $outputPath")
     Future.successful(s"Published: ${outputFile}")
   }
 
