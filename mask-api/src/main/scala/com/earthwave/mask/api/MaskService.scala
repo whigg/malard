@@ -17,6 +17,8 @@ trait MaskService extends Service {
 
   def getGridCellMasks( parentDataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]]
 
+  def getGridCellMask( parentDataSet : String, `type` : String, region : String ): ServiceCall[GridCell,GridCellMask]
+
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
@@ -24,6 +26,7 @@ trait MaskService extends Service {
       .withCalls(
         pathCall("/mask/gridmasks/:parentdataset", getMasks _ ),
         pathCall("/mask/gridcells/:parentdataset/:type/:region", getGridCellMasks _ ),
+        pathCall("/mask/gridcellmask/:parentdataset/:type/:region", getGridCellMask _),
         pathCall("/mask/publishmask/:parentdataset/:type/:region", publishMask _)
       )
       .withAutoAcl(true)

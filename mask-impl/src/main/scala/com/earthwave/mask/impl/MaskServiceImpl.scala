@@ -100,5 +100,25 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
     Future.successful(masks)
   }
+
+  override def getGridCellMask( parentDataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
+
+    val db = client.getDatabase(parentDataSet)
+
+    val collection = db.getCollection("masks")
+
+    val f = and(equal("type",`type`),
+            and(equal("region",region),
+            and(equal("gridCellMinX", gc.minX),
+            and(equal("gridCellMinY", gc.minY),
+            and(equal("size", gc.size))))))
+
+    val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
+
+    val mask = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("shapeFile") )).head
+
+    Future.successful(mask)
+
+  }
 }
 

@@ -96,3 +96,9 @@ class DataSetQuery:
         url = self.serverUrl + '/mask/gridcells/' + parentdataset + '/' + maskType + '/' + region
         response = requests.get(url, headers=self.headers)
         return response.text
+    def getGridCellMask(self, parentdataset, maskType, region, minX, minY, size):
+        url = self.serverUrl + '/mask/gridcellmask/' + parentdataset + '/' + maskType + '/' + region
+        request = { 'minX':minX, 'minY':minY, 'size': size }
+        j = json.dumps(request)
+        response = requests.post(url, data=j, headers=self.headers)
+        return response.text
