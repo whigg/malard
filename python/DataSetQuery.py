@@ -118,3 +118,13 @@ class DataSetQuery:
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
+    def getProjection(self, shortName ):
+        url = self.serverUrl + '/projection/getprojection/' + shortName
+        response = requests.get(url, headers=self.headers)
+        return response.text
+    def publishProjection(self, shortName, proj4):
+        url = self.serverUrl + '/projection/publishprojection'
+        request = { 'shortName':shortName, 'proj4':proj4 }
+        j = json.dumps(request)
+        response = requests.post(url, data=j, headers=self.headers)
+        return response.text
