@@ -215,11 +215,9 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     println("Completed calculating maxes and mins")
 
-
     val date = LocalDateTime.ofEpochSecond(tMin, 0, ZoneOffset.UTC)
 
     val now = LocalDateTime.now(ZoneOffset.UTC)
-
     // LocalDateTime to epoch seconds
     val seconds = now.atZone(ZoneOffset.UTC).toEpochSecond()
 
