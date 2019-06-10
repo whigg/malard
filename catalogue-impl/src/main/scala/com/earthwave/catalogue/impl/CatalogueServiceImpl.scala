@@ -242,8 +242,8 @@ class CatalogueServiceImpl() extends CatalogueService {
 
   override def publishCatalogueElement(parentDsName: String, dsName: String): ServiceCall[CatalogueElement, String] = { ce =>
 
-    val db = client.getDatabase("catalogue")
-    val coll = db.getCollection(parentDsName)
+    val db = client.getDatabase(parentDsName)
+    val coll = db.getCollection("catalogue")
 
     val doc = ShardDetailImpl.toDocument(ce)
 
