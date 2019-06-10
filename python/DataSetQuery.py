@@ -87,22 +87,22 @@ class DataSetQuery:
         url = self.serverUrl + '/api/swathdetails/' + parentDsName + '/' + dsName
         response = requests.get(url, headers=self.headers)
         return response.text
-    def publishMask(self, sourcePath, fileName, parentDsName, maskType, region, minX, minY, size ):
-        url = self.serverUrl + '/mask/publishmask/' + self.envName + "/" + parentDsName + '/' + maskType + '/' + region
+    def publishMask(self, sourcePath, fileName, parentDsName, dataSet, maskType, region, minX, minY, size ):
+        url = self.serverUrl + '/mask/publishmask/' + self.envName + "/" + parentDsName + '/' + dataSet +'/' + maskType + '/' + region
         request = { 'sourceFilePath' : sourcePath, 'fileName':fileName, 'gridCell' : { 'minX':minX, 'minY':minY, 'size': size } }
         j = json.dumps(request)
         response = requests.post(url,data=j, headers=self.headers)
         return response.text
-    def getMasks(self, parentDsName ):
-        url = self.serverUrl + '/mask/gridmasks/' + self.envName + "/" + parentDsName
+    def getMasks(self, parentDsName, dataSet ):
+        url = self.serverUrl + '/mask/gridmasks/' + self.envName + "/" + parentDsName + '/' + dataSet
         response = requests.get(url, headers=self.headers)
         return response.text
-    def getGridCellMasks(self, parentdataset, maskType, region):
-        url = self.serverUrl + '/mask/gridcells/'  + self.envName + "/" + parentdataset + '/' + maskType + '/' + region
+    def getGridCellMasks(self, parentdataset, dataSet, maskType, region):
+        url = self.serverUrl + '/mask/gridcells/'  + self.envName + "/" + parentdataset + '/' + dataSet + '/' + maskType + '/' + region
         response = requests.get(url, headers=self.headers)
         return response.text
-    def getGridCellMask(self, parentdataset, maskType, region, minX, minY, size):
-        url = self.serverUrl + '/mask/gridcellmask/'  + self.envName + "/" + parentdataset + '/' + maskType + '/' + region
+    def getGridCellMask(self, parentdataset, dataSet, maskType, region, minX, minY, size):
+        url = self.serverUrl + '/mask/gridcellmask/'  + self.envName + "/" + parentdataset + '/' + dataSet + '/' + maskType + '/' + region
         request = { 'minX':minX, 'minY':minY, 'size': size }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
