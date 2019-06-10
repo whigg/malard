@@ -11,23 +11,23 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
   */
 trait MaskService extends Service {
 
-  def publishMask( envName : String, parentDataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String]
+  def publishMask( envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String]
 
-  def getMasks( envName : String, parentDataSet : String ) : ServiceCall[NotUsed,List[Mask]]
+  def getMasks( envName : String, parentDataSet : String, dataSet : String ) : ServiceCall[NotUsed,List[Mask]]
 
-  def getGridCellMasks( envName : String, parentDataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]]
+  def getGridCellMasks( envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]]
 
-  def getGridCellMask( envName : String, parentDataSet : String, `type` : String, region : String ): ServiceCall[GridCell,GridCellMask]
+  def getGridCellMask( envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ): ServiceCall[GridCell,GridCellMask]
 
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
     named("mask")
       .withCalls(
-        pathCall("/mask/gridmasks/:envName/:parentdataset", getMasks _ ),
-        pathCall("/mask/gridcells/:envName/:parentdataset/:type/:region", getGridCellMasks _ ),
-        pathCall("/mask/gridcellmask/:envName/:parentdataset/:type/:region", getGridCellMask _),
-        pathCall("/mask/publishmask/:envName/:parentdataset/:type/:region", publishMask _)
+        pathCall("/mask/gridmasks/:envName/:parentdataset/:dataset", getMasks _ ),
+        pathCall("/mask/gridcells/:envName/:parentdataset/:dataset/:type/:region", getGridCellMasks _ ),
+        pathCall("/mask/gridcellmask/:envName/:parentdataset/:dataset/:type/:region", getGridCellMask _),
+        pathCall("/mask/publishmask/:envName/:parentdataset/:dataset/:type/:region", publishMask _)
       )
       .withAutoAcl(true)
     // @formatter:on

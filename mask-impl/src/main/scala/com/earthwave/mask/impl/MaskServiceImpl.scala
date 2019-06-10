@@ -23,14 +23,14 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
   private val client = MongoClient()
   implicit val ec = ExecutionContext.global
 
-  override def publishMask( envName : String, parentDataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String] = { x =>
+  override def publishMask( envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String] = { x =>
 
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks" )
 
-    val outputDir = s"${environment.maskPublisherPath}/${parentDataSet}/static/${`type`}/$region/cell_x${x.gridCell.minX}_y${x.gridCell.minY}_s${x.gridCell.size}/"
+    val outputDir = s"${environment.maskPublisherPath}/${parentDataSet}/static/$dataSet/${`type`}/$region/cell_x${x.gridCell.minX}_y${x.gridCell.minY}_s${x.gridCell.size}/"
 
     val dir = new File(outputDir)
     if(!dir.exists()) {
@@ -56,6 +56,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     }
 
     val doc = Document( "envName" -> envName,
+                        "dataSet" -> dataSet,
                         "type" -> `type`,
                         "region" -> region,
                         "fileName" -> outputPath,
@@ -81,12 +82,12 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(s"Published: ${outputFile}")
   }
 
-  override def getMasks(envName : String, parentDataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
+  override def getMasks(envName : String, parentDataSet : String, dataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
 
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
-    val f = filter(equal("envName",envName))
+    val f = filter(and(equal("dataSet",dataSet),equal("envName",envName)))
 
     val groupByCols = Document( "type" -> "$type"
                               , "region" -> "$region" )
@@ -102,12 +103,12 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(masks)
   }
 
-  override def getGridCellMasks(envName : String, parentDataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]] ={ _ =>
+  override def getGridCellMasks(envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]] ={ _ =>
 
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
-    val f = and(equal("envName",envName),and(equal("type",`type`),equal("region",region)))
+    val f = and(equal("dataSet",dataSet),and(equal("envName",envName),and(equal("type",`type`),equal("region",region))))
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
@@ -116,13 +117,14 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(masks)
   }
 
-  override def getGridCellMask(envName : String, parentDataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
+  override def getGridCellMask(envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
 
     val db = client.getDatabase(parentDataSet)
 
     val collection = db.getCollection("masks")
 
     val f = and(equal("envName",envName),
+            and(equal("dataSet", dataSet),
             and(equal("type",`type`),
             and(equal("region",region),
             and(equal("gridCellMinX", gc.minX),
