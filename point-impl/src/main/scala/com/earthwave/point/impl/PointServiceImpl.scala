@@ -224,7 +224,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     val seconds = now.atZone(ZoneOffset.UTC).toEpochSecond()
 
     val shardPath = s"${basePath}/${dsName}/gridcell/y${date.getYear}/m${date.getMonthValue}/cell_${gcp.projection}_${gcp.minX}_${gcp.minY}/"
-    val shardName = s"${shardPath}GricCell_$seconds.nc"
+    val shardName = s"${shardPath}GridCell_$seconds.nc"
 
     def createDir( path : String) : Unit=
     {
