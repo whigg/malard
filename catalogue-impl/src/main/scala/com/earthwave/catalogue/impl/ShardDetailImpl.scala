@@ -9,8 +9,6 @@ object ShardDetailImpl
 {
   def fromDocument( doc : Document ): CatalogueElement= {
 
-    val d = doc.filterNot(p => (p._1 == "_id") || (p._1 == "insertTime"))
-
     val dsName: String = doc.getString("dsName")
     val shardName: String = doc.getString("shardName")
     val projection: String = doc.getString("projection")
@@ -56,5 +54,32 @@ object ShardDetailImpl
       , maxTime
       , count
       , qualityCount)
+  }
+
+  def toDocument( element : CatalogueElement) : Document ={
+
+    Document(
+      "dsName" -> element.dsName,
+      "shardName" -> element.shardName,
+      "projection" -> element.projection,
+      "month" -> element.month,
+      "year" -> element.year,
+      "gridCellMinX" -> element.gridCellMinX,
+      "gridCellMaxX" -> element.gridCellMaxX,
+      "gridCellMinY" -> element.gridCellMinY,
+      "gridCellMaxY" -> element.gridCellMaxY,
+      "gridCellSize" -> element.gridCellSize,
+      "minX" -> element.minX,
+      "maxX" -> element.maxX,
+      "minY" -> element.minY,
+      "maxY" -> element.maxY,
+      "minLat" -> element.minLat,
+      "maxLat" -> element.maxLat,
+      "minLon" -> element.minLon,
+      "maxLon" -> element.maxLon,
+      "minTime" -> element.minTime ,
+      "maxTime" -> element.maxTime,
+      "count" -> element.count,
+      "qualityCount" -> element.qualityCount)
   }
 }

@@ -1,9 +1,8 @@
-package com.earthwave.core
+package com.earthwave.point.impl
 
 import java.util.Date
 
 import com.earthwave.catalogue.api.BoundingBoxFilter
-import com.earthwave.point.impl.Operator
 import ucar.ma2.DataType
 
 import scala.collection.mutable.ListBuffer

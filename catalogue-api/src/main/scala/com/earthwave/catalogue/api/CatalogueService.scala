@@ -1,7 +1,6 @@
 package com.earthwave.catalogue.api
 
 import akka.NotUsed
-import com.lightbend.lagom.scaladsl.api.Service.pathCall
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 
 /**
@@ -73,6 +72,8 @@ trait CatalogueService extends Service {
     */
   def getSwathDetailsFromName( parentDsName : String, dsName : String, id : String ) : ServiceCall[NotUsed,SwathDetail]
 
+  def publishCatalogueElement( parentDsName : String, dsName : String) : ServiceCall[CatalogueElement, String]
+
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
@@ -86,7 +87,8 @@ trait CatalogueService extends Service {
         pathCall("/api/shards/:parent/:dsname", shards _ ),
         pathCall("/api/swathdetailsfromid/:parent/:dsname/:id", getSwathDetailsFromId _ ),
         pathCall("/api/swathdetailsfromname/:parent/:dsname/:name", getSwathDetailsFromName _ ),
-        pathCall( "/api/swathdetails/:parent/:dsname", getSwathDetails _)
+        pathCall( "/api/swathdetails/:parent/:dsname", getSwathDetails _),
+        pathCall( "/api/publishcatalogueelement/:parent/:dsname", publishCatalogueElement _)
       )
       .withAutoAcl(true)
     // @formatter:on

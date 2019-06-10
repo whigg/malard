@@ -1,10 +1,15 @@
-package com.earthwave.core
+package com.earthwave.point.impl
 
+import com.earthwave.point.impl.WriterColumn.Column
 import ucar.ma2.DataType
 import ucar.nc2.{NetcdfFileWriter, Variable}
 import ucar.nc2.write.{Nc4Chunking, Nc4ChunkingStrategy}
 
-case class Column( name : String, decimalPlaces : Int, dataType : DataType  )
+object WriterColumn {
+
+  case class Column(name: String, decimalPlaces: Int, dataType: DataType)
+
+}
 
 class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLevel :Int = 1 ) {
 
@@ -40,6 +45,19 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLev
 
     rowcount = rowcount + mask.length
 }
+  def write(variables : List[(Variable, ucar.ma2.Array)]) = {
+    val origin = Array.ofDim[Int](1)
+    origin(0) = if( rowcount == 0 ){ 0 }else{(rowcount)-1}
+
+    val variablePairs = srcVariables.zip(variables)
+
+    variablePairs.foreach(v =>
+    {
+      writer.write(v._1, origin, v._2._2)
+    })
+
+    rowcount = rowcount + variables.head._2.getSize.toInt
+  }
 
   private def writeArray( v : Variable, origin : Array[Int], a : AnyRef , mask : Array[Int]) ={
 

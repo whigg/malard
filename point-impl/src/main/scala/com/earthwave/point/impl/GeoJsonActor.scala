@@ -5,7 +5,6 @@ import java.util.Date
 
 import akka.actor.Actor
 import com.earthwave.catalogue.api.{BoundingBoxFilter, Shard}
-import com.earthwave.core.NetCdfReader
 import com.earthwave.point.api.Messages.{Feature, FeatureCollection, Geometry}
 import com.earthwave.point.impl.GeoJsonActor.{GeoJson, GeoJsonFile}
 

@@ -1,7 +1,6 @@
-package com.earthwave.core
+package com.earthwave.point.impl
 
 import com.earthwave.point.api.Messages.Query
-import com.earthwave.point.impl.Operators
 
 import scala.collection.JavaConverters._
 import ucar.nc2.{NetcdfFile, Variable}

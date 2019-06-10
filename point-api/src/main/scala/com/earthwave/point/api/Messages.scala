@@ -21,6 +21,8 @@ object Messages {
 
   case class FeatureCollection(`type` : String, features: List[Feature] )
 
+  case class GridCellPoints( projection : String, minX : Long, minY : Long, size : Long, fileName : String )
+
   //Serialisation helpers.
   object Cache
   {
@@ -57,5 +59,10 @@ object Messages {
 
   object FeatureCollection{
     implicit val format : Format[FeatureCollection] = Json.format[FeatureCollection]
+  }
+
+  object GridCellPoints
+  {
+    implicit val format : Format[GridCellPoints] = Json.format[GridCellPoints]
   }
 }

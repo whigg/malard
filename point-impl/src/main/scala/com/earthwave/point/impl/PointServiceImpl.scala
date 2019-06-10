@@ -1,6 +1,8 @@
 package com.earthwave.point.impl
 
 import java.io.File
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.Date
 
 import akka.actor.{ActorSystem, Props}
 import com.earthwave.point.api._
@@ -12,9 +14,9 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.earthwave.core.{Column, NetCdfReader, NetCdfWriter}
 import com.earthwave.environment.api.EnvironmentService
-import com.earthwave.point.api.Messages.{Cache, Columns, FeatureCollection, Query}
+import com.earthwave.point.api.Messages._
+import ucar.nc2.Variable
 
 /**
   * Implementation of the PointService.
@@ -50,9 +52,9 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     Future.successful(Columns(columns))
   }
 
-  override def getNetCdfFile( parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, String] = { bbf =>
+  override def getNetCdfFile( envName : String, parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, String] = { bbf =>
 
-    val outputPath = Await.result(env.getEnvironment().invoke(), 10 seconds ).outputCdfPath
+    val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
     val fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT.getTime}_${bbf.maxT.getTime}.nc"
     val cacheCheck = new File(fileName)
@@ -66,7 +68,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
       val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName,Set[String]())))
 
-      val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
+      val columns = shardReaders.head._2.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
 
       val writer = new NetCdfWriter(fileName, columns)
 
@@ -79,9 +81,9 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     Future.successful(fileName)
   }
 
-  override def executeQuery( parentDSName : String, dsName : String ) : ServiceCall[Query, String] = { q =>
+  override def executeQuery(envName : String, parentDSName : String, dsName : String ) : ServiceCall[Query, String] = { q =>
 
-    val outputPath = Await.result(env.getEnvironment().invoke(), 10 seconds ).outputCdfPath
+    val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
     val projection = q.projection.foldLeft[String]("")( (x,y) => x + "_" + y )
     val filters = q.filters.foldLeft[String]("")( (x,y) => x + "_" + y.column + y.op + y.threshold )
@@ -103,7 +105,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       if(!shards.isEmpty) {
         val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
 
-        val columns = shardReaders.head._2.getVariables().map(x => Column(x.getShortName, 0, x.getDataType))
+        val columns = shardReaders.head._2.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
 
         val writer = new NetCdfWriter(fileName, columns)
 
@@ -135,5 +137,127 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     Future.successful(s"Released cache file ${c.handle} ")
     }
+  }
+
+  override def publishGridCellPoints(envName : String, parentDsName: String, dsName: String): ServiceCall[Messages.GridCellPoints, String] = { gcp =>
+
+    println(s"Received publishGridCellPoints request X=[${gcp.minX}] Y=[${gcp.minY}] Size=[${gcp.size}, FileName=${gcp.fileName}]")
+
+    val outputBasePath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).pointCdfPath
+    println(s"PointCdf output base path for $envName is $outputBasePath ")
+
+    val reader = new NetCdfReader(gcp.fileName, Set[String]())
+
+    val variablesAndData = reader.getVariables().map(v => (v, v.read()))
+
+    val catalogueElement = createCatalogueElement( variablesAndData, outputBasePath, gcp, parentDsName, dsName )
+
+    val writer = new NetCdfWriter(catalogueElement.shardName, reader.getVariables().map( x => WriterColumn.Column(x.getShortName, 0, x.getDataType)))
+
+    writer.write( variablesAndData )
+
+    reader.close()
+    writer.close()
+
+    Await.result(catalogue.publishCatalogueElement(parentDsName,dsName).invoke(catalogueElement), 10 seconds )
+
+    Future.successful(s"Published grid cell points for input ${gcp.fileName} to ${catalogueElement.shardName}")
+  }
+
+  private def createCatalogueElement( variablesAndData : List[(Variable, ucar.ma2.Array)], basePath : String, gcp : GridCellPoints, parentDsName : String, dsName : String ): CatalogueElement={
+    val x = variablesAndData.filter(x => x._1.getShortName() == "x").head._2
+    val y = variablesAndData.filter(x => x._1.getShortName() == "y").head._2
+    val lat = variablesAndData.filter(x => x._1.getShortName() == "lat").head._2
+    val lon = variablesAndData.filter(x => x._1.getShortName() == "lon").head._2
+    val t = variablesAndData.filter(x => x._1.getShortName() == "time").head._2
+
+    var xMin,  yMin,  latMin, lonMin = Double.NaN
+    var xMax, yMax, latMax, lonMax = Double.NaN
+    var tMin, tMax = Long.MaxValue
+
+    val qualityCount = 0
+    val count = x.getSize.toInt
+
+    def max( lhs: Double, rhs : Double ):Double={
+      if(lhs.isNaN){ rhs }else{ Math.max(lhs,rhs)}
+    }
+
+    def maxL( lhs : Long, rhs : Long):Long={
+
+      if(lhs == Long.MaxValue){ return rhs  }else{Math.max(lhs,rhs)}
+
+    }
+    def min( lhs: Double, rhs : Double ):Double={
+      if(lhs.isNaN){ rhs }else{ Math.min(lhs,rhs)}
+    }
+
+    def minL( lhs : Long, rhs : Long):Long={
+
+      if(lhs == Long.MaxValue){ return rhs  }else{Math.min(lhs,rhs)}
+
+    }
+
+    println("Starting to calc maxes and mins")
+
+    for( i <- 0 until count)
+    {
+      xMin = min(xMin, x.getDouble(i))
+      xMax = max(xMax, x.getDouble(i))
+      yMin = min(yMin, y.getDouble(i))
+      yMax = max(yMax, y.getDouble(i))
+      latMin = min(latMin, lat.getDouble(i))
+      latMax = max(latMax, lat.getDouble(i))
+      lonMin = min(lonMin, lon.getDouble(i))
+      lonMax = max(lonMax, lon.getDouble(i))
+      tMin = minL(tMin, t.getLong(i))
+      tMax = maxL(tMax, t.getLong(i))
+    }
+
+    println("Completed calculating maxes and mins")
+
+
+    val date = LocalDateTime.ofEpochSecond(tMin, 0, ZoneOffset.UTC)
+
+    val now = LocalDateTime.now(ZoneOffset.UTC)
+
+    // LocalDateTime to epoch seconds
+    val seconds = now.atZone(ZoneOffset.UTC).toEpochSecond()
+
+    val shardPath = s"${basePath}/${dsName}/gridcell/y${date.getYear}/m${date.getMonthValue}/cell_${gcp.projection}_${gcp.minX}_${gcp.minY}/"
+    val shardName = s"${shardPath}GricCell_$seconds.nc"
+
+    def createDir( path : String) : Unit=
+    {
+      val dir = new File(path)
+      if(!dir.exists()){
+        dir.mkdirs()
+      }
+    }
+
+    createDir(shardPath)
+
+    CatalogueElement( dsName,
+      shardName,
+      gcp.projection,
+      date.getYear,
+      date.getMonthValue,
+      gcp.minX,
+      gcp.minX + gcp.size,
+      gcp.minY,
+      gcp.minY + gcp.size,
+      gcp.size,
+      xMin,
+      xMax,
+      yMin,
+      yMax,
+      latMin,
+      latMax,
+      lonMin,
+      lonMax,
+      new Date( 1000 * tMin),
+      new Date(1000 * tMax),
+      count,
+      qualityCount
+    )
   }
 }

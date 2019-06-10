@@ -23,14 +23,14 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
   private val client = MongoClient()
   implicit val ec = ExecutionContext.global
 
-  override def publishMask( parentDataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String] = { x =>
+  override def publishMask( envName : String, parentDataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String] = { x =>
 
-    val environment = Await.result(env.getEnvironment().invoke(), 10 seconds )
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks" )
 
-    val outputDir = s"${environment.publisherPath}/${parentDataSet}/static/${`type`}/$region/cell_${x.gridCell.minX}_${x.gridCell.minY}/"
+    val outputDir = s"${environment.maskPublisherPath}/${parentDataSet}/static/${`type`}/$region/cell_x${x.gridCell.minX}_y${x.gridCell.minY}_s${x.gridCell.size}/"
 
     val dir = new File(outputDir)
     if(!dir.exists()) {
@@ -55,7 +55,8 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
       throw new Exception(s"Error copying inputFile $inputFile to $outputFile")
     }
 
-    val doc = Document( "type" -> `type`,
+    val doc = Document( "envName" -> envName,
+                        "type" -> `type`,
                         "region" -> region,
                         "fileName" -> outputPath,
                         "gridCellMinX" -> x.gridCell.minX,
@@ -80,17 +81,19 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(s"Published: ${outputFile}")
   }
 
-  override def getMasks(parentDataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
+  override def getMasks(envName : String, parentDataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
 
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
+
+    val f = filter(equal("envName",envName))
 
     val groupByCols = Document( "type" -> "$type"
                               , "region" -> "$region" )
 
     val g = group( groupByCols, sum("type", 1), sum("region", 1))
 
-    val results = Await.result(collection.aggregate(List(g)).toFuture(), 10 seconds ).toList
+    val results = Await.result(collection.aggregate(List(f,g)).toFuture(), 10 seconds ).toList
 
     val masks = results.map( d => { val id = d.get("_id").get.asDocument()
                                     Mask( id.getString("type").getValue, id.getString("region").getValue  )
@@ -99,12 +102,12 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(masks)
   }
 
-  override def getGridCellMasks( parentDataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]] ={ _ =>
+  override def getGridCellMasks(envName : String, parentDataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]] ={ _ =>
 
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
-    val f = and(equal("type",`type`),equal("region",region))
+    val f = and(equal("envName",envName),and(equal("type",`type`),equal("region",region)))
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
@@ -113,23 +116,26 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(masks)
   }
 
-  override def getGridCellMask( parentDataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
+  override def getGridCellMask(envName : String, parentDataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
 
     val db = client.getDatabase(parentDataSet)
 
     val collection = db.getCollection("masks")
 
-    val f = and(equal("type",`type`),
+    val f = and(equal("envName",envName),
+            and(equal("type",`type`),
             and(equal("region",region),
             and(equal("gridCellMinX", gc.minX),
             and(equal("gridCellMinY", gc.minY),
-            and(equal("size", gc.size))))))
+            and(equal("size", gc.size)))))))
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
-    val mask = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("fileName") )).head
+    val mask = results.toList.map(d => GridCellMask( GridCell(d.getLong("gridCellMinX"), d.getLong("gridCellMinY"),d.getLong("size")), d.getString("fileName") ))
 
-    Future.successful(mask)
+    val res: GridCellMask = if( mask.isEmpty ){ GridCellMask(gc, "NoMask") }else{mask.head}
+
+    Future.successful(res)
 
   }
 }

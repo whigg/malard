@@ -3,9 +3,9 @@ package com.earthwave.catalogue.impl
 import akka.NotUsed
 import com.earthwave.catalogue.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
-import org.bson.{BsonArray}
+import org.bson.BsonArray
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.{Document, MongoClient}
+import org.mongodb.scala.{Completed, Document, MongoClient, Observer}
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Aggregates._
 import org.mongodb.scala.model.Accumulators._
@@ -240,5 +240,25 @@ class CatalogueServiceImpl() extends CatalogueService {
     docs.map(d => convertResults(d))
   }
 
+  override def publishCatalogueElement(parentDsName: String, dsName: String): ServiceCall[CatalogueElement, String] = { ce =>
+
+    val db = client.getDatabase(parentDsName)
+    val coll = db.getCollection(dsName)
+
+    val doc = ShardDetailImpl.toDocument(ce)
+
+    val obs = coll.insertOne(doc)
+
+    obs.subscribe(new Observer[Completed] {
+      override def onNext(result: Completed): Unit = println(s"onNext: $result")
+
+      override def onError(e: Throwable): Unit = throw new Exception("Error writing results to Mongo")
+
+      override def onComplete(): Unit = {
+        println(s"Published catalogue entry successfully to Mongo")
+      }})
+
+    Future.successful(s"Published catalogue element for GridCell X=[${ce.gridCellMinX}] Y=[${ce.gridCellMinY}]")
+  }
 }
 

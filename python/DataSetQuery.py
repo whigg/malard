@@ -7,17 +7,22 @@ def dateconverter(o):
         return o.__str__()
 
 class DataSetQuery:
-    def __init__(self, serverUrl ):
+    def __init__(self, serverUrl, envName = "DEV" ):
         self.serverUrl = serverUrl
+        self.envName = envName
         self.headers = {'Content-Type':'application/json'}
-    def setEnvironment(self, name, outputCdfPath, publisherPath):
-        data = { 'name': name, 'outputCdfPath': outputCdfPath, 'publisherPath': publisherPath }
+    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath ):
+        data = { 'name': name
+                , 'cacheCdfPath': cacheCdfPath
+                , 'maskPublisherPath': maskPublisherPath
+                , 'pointCdfPath': pointCdfPath }
+
         jsonStr = json.dumps(data)
-        setUrl = self.serverUrl + '/env/setenvironment'
+        setUrl = self.serverUrl + '/env/createenvironment/' + name 
         response = requests.post(setUrl, data=jsonStr, headers=self.headers)
         return response.text 
-    def getEnvironment(self):
-        getUrl = self.serverUrl + '/env/getenvironment'
+    def getEnvironment(self, name):
+        getUrl = self.serverUrl + '/env/getenvironment/' + name
         response = requests.get(getUrl, headers=self.headers)
         return response.text
     def getParentDataSets(self):
@@ -46,7 +51,7 @@ class DataSetQuery:
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     def getNetCdfFile(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/point/netcdffile/' + parentDsName + '/' + dsName
+        gcUrl = self.serverUrl + '/point/netcdffile/' + self.envName + "/" + parentDsName + '/' + dsName
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
@@ -59,7 +64,7 @@ class DataSetQuery:
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     def executeQuery( self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT, projection, filters ):
-        gcUrl = self.serverUrl + '/point/query/' + parentDsName + '/' + dsName
+        gcUrl = self.serverUrl + '/point/query/' + self.envName + "/" + parentDsName + '/' + dsName
         query = { 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }, 'projection':projection,'filters': filters}
         jsonStr = json.dumps(query,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
@@ -83,21 +88,21 @@ class DataSetQuery:
         response = requests.get(url, headers=self.headers)
         return response.text
     def publishMask(self, sourcePath, fileName, parentDsName, maskType, region, minX, minY, size ):
-        url = self.serverUrl + '/mask/publishmask/' + parentDsName + '/' + maskType + '/' + region
+        url = self.serverUrl + '/mask/publishmask/' + self.envName + "/" + parentDsName + '/' + maskType + '/' + region
         request = { 'sourceFilePath' : sourcePath, 'fileName':fileName, 'gridCell' : { 'minX':minX, 'minY':minY, 'size': size } }
         j = json.dumps(request)
         response = requests.post(url,data=j, headers=self.headers)
         return response.text
     def getMasks(self, parentDsName ):
-        url = self.serverUrl + '/mask/gridmasks/' + parentDsName
+        url = self.serverUrl + '/mask/gridmasks/' + self.envName + "/" + parentDsName
         response = requests.get(url, headers=self.headers)
         return response.text
     def getGridCellMasks(self, parentdataset, maskType, region):
-        url = self.serverUrl + '/mask/gridcells/' + parentdataset + '/' + maskType + '/' + region
+        url = self.serverUrl + '/mask/gridcells/'  + self.envName + "/" + parentdataset + '/' + maskType + '/' + region
         response = requests.get(url, headers=self.headers)
         return response.text
     def getGridCellMask(self, parentdataset, maskType, region, minX, minY, size):
-        url = self.serverUrl + '/mask/gridcellmask/' + parentdataset + '/' + maskType + '/' + region
+        url = self.serverUrl + '/mask/gridcellmask/'  + self.envName + "/" + parentdataset + '/' + maskType + '/' + region
         request = { 'minX':minX, 'minY':minY, 'size': size }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
@@ -125,6 +130,13 @@ class DataSetQuery:
     def publishProjection(self, shortName, proj4):
         url = self.serverUrl + '/projection/publishprojection'
         request = { 'shortName':shortName, 'proj4':proj4 }
+        j = json.dumps(request)
+        response = requests.post(url, data=j, headers=self.headers)
+        return response.text
+    def publishGridCellPoints(self, parentDataSet, dataSet, minX, minY, size, sourceFileName, projection):
+        #":envName/:parent/:dsname"
+        url = self.serverUrl + '/point/publishgridcellpoints/' + self.envName + '/' + parentDataSet + '/' + dataSet
+        request = { 'minX':minX, 'minY':minY, 'size': size, 'fileName' : sourceFileName, 'projection':projection }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text

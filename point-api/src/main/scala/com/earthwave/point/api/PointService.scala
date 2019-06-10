@@ -2,7 +2,8 @@ package com.earthwave.point.api
 
 import akka.NotUsed
 import com.earthwave.catalogue.api._
-import com.earthwave.point.api.Messages.{Cache, Query}
+import com.earthwave.point.api.Messages.{Cache, GridCellPoints, Query}
+import com.lightbend.lagom.scaladsl.api.Service.pathCall
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 
 /**
@@ -15,13 +16,15 @@ trait PointService extends Service {
 
   def getGeoJson( parentDSName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,Messages.FeatureCollection]
 
-  def getNetCdfFile( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,String]
+  def getNetCdfFile( envName : String, parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,String]
 
-  def executeQuery( parentDsName : String, dsName : String) : ServiceCall[Query,String]
+  def executeQuery( envName : String, parentDsName : String, dsName : String) : ServiceCall[Query,String]
 
   def releaseCache() : ServiceCall[Cache,String]
 
   def getDataSetColumns(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Messages.Columns]
+
+  def publishGridCellPoints( envName : String, parentDsName : String, dsName : String ) : ServiceCall[GridCellPoints, String]
 
   override final def descriptor: Descriptor = {
     import Service._
@@ -29,10 +32,11 @@ trait PointService extends Service {
     named("point")
       .withCalls(
         pathCall("/point/getgeojson/:parent/:dsname", getGeoJson _ ),
-        pathCall("/point/netcdffile/:parent/:dsname", getNetCdfFile _ ),
+        pathCall("/point/netcdffile/:envName/:parent/:dsname", getNetCdfFile _ ),
         pathCall("/point/datasetcolumns/:parent/:dsname", getDataSetColumns _ ),
-        pathCall("/point/query/:parent/:dsname", executeQuery _),
-        pathCall("/point/releasecache", releaseCache() )
+        pathCall("/point/query/:envName/:parent/:dsname", executeQuery _),
+        pathCall("/point/releasecache", releaseCache()),
+        pathCall("/point/publishgridcellpoints/:envName/:parent/:dsname", publishGridCellPoints _ )
       )
       .withAutoAcl(true)
     // @formatter:on

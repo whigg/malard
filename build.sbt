@@ -71,7 +71,8 @@ lazy val `environment-impl` = (project in file("environment-impl"))
       lagomScaladslKafkaBroker,
       lagomScaladslTestKit,
       macwire,
-      scalaTest
+      scalaTest,
+      mongo
     )
   )
   .settings(lagomForkedTestSettings)
