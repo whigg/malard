@@ -129,7 +129,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
             and(equal("region",region),
             and(equal("gridCellMinX", gc.minX),
             and(equal("gridCellMinY", gc.minY),
-            and(equal("size", gc.size)))))))
+            and(equal("size", gc.size))))))))
 
     val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
 
