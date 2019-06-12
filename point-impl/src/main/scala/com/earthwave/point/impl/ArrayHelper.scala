@@ -102,7 +102,7 @@ object ArrayHelper {
       return ucar.ma2.Array.factory(array)
     }
 
-    throw new Exception("Unexpected column type.")
+    throw new Exception(s"Unexpected column type: ${dt.toString}")
   }
 
 }
