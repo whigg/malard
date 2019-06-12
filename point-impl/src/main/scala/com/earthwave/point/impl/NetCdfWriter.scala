@@ -40,7 +40,13 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLev
     variablePairs.foreach(v =>
           {
             val arr = ArrayHelper.applyMask(v._2._2, mask)
-              writer.write(v._1, origin, arr)
+              try {
+                writer.write(v._1, origin, arr)
+              }
+              catch{
+                case e : Exception => println( s"Error occurred writing ${v._1.getShortName}")
+
+              }
           })
 
     rowcount = rowcount + mask.length
@@ -58,29 +64,6 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLev
 
     rowcount = rowcount + variables.head._2.getSize.toInt
   }
-
-  private def writeArray( v : Variable, origin : Array[Int], a : AnyRef , mask : Array[Int]) ={
-
-    if( v.getDataType == DataType.SHORT) {
-      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[Short]]), mask))
-    }
-    if( v.getDataType == DataType.INT) {
-      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[Int]]), mask))
-    }
-    else if( v.getDataType == DataType.LONG)
-    {
-      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[Long]]), mask))
-    }
-    else if( v.getDataType == DataType.OBJECT)
-    {
-      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[String]]), mask))
-    }
-    else
-    {
-      throw new Exception(s"Unsupported data type: ${v.getDataType.toString}")
-    }
-  }
-
 
   def rowCount : Int  = {
     rowcount
