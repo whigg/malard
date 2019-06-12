@@ -92,7 +92,7 @@ object ArrayHelper {
 
       return ucar.ma2.Array.factory(array)
     }
-    else if( dt == DataType.STRING ) {
+    else if( dt == DataType.OBJECT ) {
       val array = new Array[String](mask.length)
 
       for (j <- 0 until length) {
