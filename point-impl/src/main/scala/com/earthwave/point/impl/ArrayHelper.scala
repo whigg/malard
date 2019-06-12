@@ -92,6 +92,15 @@ object ArrayHelper {
 
       return ucar.ma2.Array.factory(array)
     }
+    else if( dt == DataType.STRING ) {
+      val array = new Array[String](mask.length)
+
+      for (j <- 0 until length) {
+        array(j) = src.getObject(mask(j)).asInstanceOf[String]
+      }
+
+      return ucar.ma2.Array.factory(array)
+    }
 
     throw new Exception("Unexpected column type.")
   }
