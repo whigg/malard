@@ -79,6 +79,18 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
     val res = getEnvFromDb()
 
+    def createDir( path : String): Unit =
+    {
+      val dir = new File(path)
+      if(!dir.exists()) {
+        dir.mkdirs()
+      }
+    }
+
+    createDir(res.pointCdfPath)
+    createDir(res.maskPublisherPath)
+    createDir(res.cacheCdfPath)
+
     Future.successful( res )
   }
 

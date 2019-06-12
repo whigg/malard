@@ -56,27 +56,38 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
-    val fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT.getTime}_${bbf.maxT.getTime}.nc"
+    var fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT.getTime}_${bbf.maxT.getTime}.nc"
+    println(s"Output filename: $fileName")
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
       val future = catalogue.shards(parentDsName, dsName).invoke(bbf)
 
       val shards = Await.result(future, 10 seconds)
-      val numberOfPoints = shards.map(x => x.numberOfPoints).sum
-      println(s"Number of points: $numberOfPoints")
+      if(!shards.isEmpty) {
+        val numberOfPoints = shards.map(x => x.numberOfPoints).sum
+        println(s"Number of points: $numberOfPoints")
 
-      val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName,Set[String]())))
+        val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName, Set[String]())))
 
-      val columns = shardReaders.head._2.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
+        val columns = shardReaders.head._2.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
 
-      val writer = new NetCdfWriter(fileName, columns)
+        val writer = new NetCdfWriter(fileName, columns)
 
-      shardReaders.foreach(x => { val data = x._2.getVariablesAndData(Query(bbf, List[String](), List[Messages.Filter]()))
-                                  if(data._2.length != 0){writer.writeWithFilter(data._1, data._2 )}})
+        shardReaders.foreach(x => {
+          val data = x._2.getVariablesAndData(Query(bbf, List[String](), List[Messages.Filter]()))
+          if (data._2.length != 0) {
+            writer.writeWithFilter(data._1, data._2)
+          }
+        })
 
-      writer.close()
-      shardReaders.foreach(s => s._2.close())
+        writer.close()
+        shardReaders.foreach(s => s._2.close())
+      }
+      else
+      {
+        fileName = "Error: Empty resultset."
+      }
     }
     Future.successful(fileName)
   }
