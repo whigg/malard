@@ -68,21 +68,30 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
         val numberOfPoints = shards.map(x => x.numberOfPoints).sum
         println(s"Number of points: $numberOfPoints")
 
-        val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName, Set[String]())))
-
-        val columns = shardReaders.head._2.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
+        val tempReader = new NetCdfReader( shards.head.shardName, Set[String]() )
+        val columns = tempReader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
+        tempReader.close()
 
         val writer = new NetCdfWriter(fileName, columns)
 
-        shardReaders.foreach(x => {
-          val data = x._2.getVariablesAndData(Query(bbf, List[String](), List[Messages.Filter]()))
-          if (data._2.length != 0) {
-            writer.writeWithFilter(data._1, data._2)
-          }
-        })
-
-        writer.close()
-        shardReaders.foreach(s => s._2.close())
+        try {
+          shards.foreach(x => {
+            val reader = new NetCdfReader(x.shardName, Set[String]())
+            try {
+              val data = reader.getVariablesAndData(Query(bbf, List[String](), List[Messages.Filter]()))
+              if (data._2.length != 0) {
+                writer.writeWithFilter(data._1, data._2)
+              }
+            }
+            finally {
+              reader.close()
+            }
+          })
+        }
+        finally
+        {
+          writer.close()
+        }
       }
       else
       {
@@ -113,25 +122,33 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
         c
       }
 
-      if(!shards.isEmpty) {
-        val shardReaders = shards.map(s => (s, new NetCdfReader(s.shardName, cols.toSet)))
-
-        val columns = shardReaders.head._2.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
+      if (!shards.isEmpty) {
+        val tempReader = new NetCdfReader(shards.head.shardName, cols.toSet)
+        val columns = tempReader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
+        tempReader.close()
 
         val writer = new NetCdfWriter(fileName, columns)
 
-        shardReaders.foreach(x => {
-          val data = x._2.getVariablesAndData(q)
-          if (data._2.length != 0) {
-            writer.writeWithFilter(data._1, data._2)
-          }
-        })
-
-        writer.close()
-        shardReaders.foreach(s => s._2.close())
+        try {
+          shards.foreach(x => {
+            val reader = new NetCdfReader(x.shardName, cols.toSet)
+            try {
+              val data = reader.getVariablesAndData(q)
+              if (data._2.length != 0) {
+                writer.writeWithFilter(data._1, data._2)
+              }
+            }
+            finally {
+              reader.close()
+            }
+          })
+        }
+        finally
+        {
+          writer.close()
+        }
       }
-      else
-      {
+      else {
         fileName = "Error: Empty resultset."
       }
     }
