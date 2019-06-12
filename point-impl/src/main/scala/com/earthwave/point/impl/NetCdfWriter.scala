@@ -71,6 +71,10 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLev
     {
       writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[Long]]), mask))
     }
+    else if( v.getDataType == DataType.STRING)
+    {
+      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[Long]]), mask))
+    }
     else
     {
       throw new Exception(s"Unsupported data type: ${v.getDataType.toString}")

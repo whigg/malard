@@ -165,11 +165,19 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
   }
 
   private def createCatalogueElement( variablesAndData : List[(Variable, ucar.ma2.Array)], basePath : String, gcp : GridCellPoints, parentDsName : String, dsName : String ): CatalogueElement={
-    val x = variablesAndData.filter(x => x._1.getShortName() == "x").head._2
-    val y = variablesAndData.filter(x => x._1.getShortName() == "y").head._2
-    val lat = variablesAndData.filter(x => x._1.getShortName() == "lat").head._2
-    val lon = variablesAndData.filter(x => x._1.getShortName() == "lon").head._2
-    val t = variablesAndData.filter(x => x._1.getShortName() == "time").head._2
+
+    def getDataForVariable( name : String ): ucar.ma2.Array = {
+
+      val ret = variablesAndData.filter( x => x._1.getShortName() == name  ).headOption
+
+      ret.getOrElse(throw new Exception(s"Mandatory category column $name is missing from inputCdf"))._2
+    }
+
+    val x = getDataForVariable( "x" )
+    val y = getDataForVariable("y")
+    val lat = getDataForVariable("lat")
+    val lon = getDataForVariable("lon")
+    val t = getDataForVariable("time")
 
     var xMin,  yMin,  latMin, lonMin = Double.NaN
     var xMax, yMax, latMax, lonMax = Double.NaN
