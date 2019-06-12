@@ -37,6 +37,8 @@ object ArrayHelper {
     val dt = src.getDataType
     val length = mask.length
 
+    val origin = new Array[Int](length)
+
     if( dt == DataType.DOUBLE )
     {
       val array = new Array[Double](mask.length)
@@ -93,13 +95,12 @@ object ArrayHelper {
       return ucar.ma2.Array.factory(array)
     }
     else if( dt == DataType.OBJECT ) {
-      val array = new Array[String](mask.length)
+      val array = new Array[Object](mask.length)
 
       for (j <- 0 until length) {
-        array(j) = src.getObject(mask(j)).asInstanceOf[String]
+        array(j) = src.getObject(mask(j))
       }
-
-      return ucar.ma2.Array.factory(array)
+      return ucar.ma2.Array.factory(DataType.OBJECT, origin, array)
     }
 
     throw new Exception(s"Unexpected column type: ${dt.toString}")
