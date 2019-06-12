@@ -73,7 +73,7 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], deflateLev
     }
     else if( v.getDataType == DataType.STRING)
     {
-      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[Long]]), mask))
+      writer.write(v, origin, ArrayHelper.applyMask(ucar.ma2.Array.factory(a.asInstanceOf[Array[String]]), mask))
     }
     else
     {
