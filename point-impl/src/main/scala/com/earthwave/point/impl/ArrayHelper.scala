@@ -106,4 +106,67 @@ object ArrayHelper {
     throw new Exception(s"Unexpected column type: ${dt.toString}")
   }
 
+  def convertArray( src : ucar.ma2.Array, dt : DataType ) : ucar.ma2.Array = {
+
+    val length = src.getSize.toInt
+
+    if( dt == DataType.DOUBLE )
+    {
+      val array = new Array[Double](length)
+
+      for( j <- 0 until length )
+      {
+        array(j) = src.getDouble(j)
+      }
+
+      return ucar.ma2.Array.factory(array)
+    }
+    else if( dt == DataType.FLOAT )
+    {
+      val array = new Array[Float](length)
+
+      for( j <- 0 until length )
+      {
+        array(j) = src.getDouble(j).toFloat
+      }
+
+      return ucar.ma2.Array.factory(array)
+    }
+    else if( dt == DataType.LONG )
+    {
+      val array = new Array[Long](length)
+
+      for( j <- 0 until length )
+      {
+        array(j) = src.getDouble(j).toLong
+      }
+
+      return ucar.ma2.Array.factory(array)
+    }
+    else if( dt == DataType.INT )
+    {
+      val array = new Array[Int](length)
+
+      for( j <- 0 until length )
+      {
+        array(j) = src.getDouble(j).toInt
+      }
+
+      return ucar.ma2.Array.factory(array)
+    }
+    else if( dt == DataType.SHORT )
+    {
+      val array = new Array[Short](length)
+
+      for( j <- 0 until length )
+      {
+        array(j) = src.getDouble(j).toShort
+      }
+
+      return ucar.ma2.Array.factory(array)
+    }
+
+    throw new Exception(s"Unsupported conversion from DataType: ${dt.toString}")
+  }
+
 }

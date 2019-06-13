@@ -16,6 +16,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.point.api.Messages._
+import ucar.ma2.DataType
 import ucar.nc2.Variable
 
 /**
@@ -72,7 +73,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
         val columns = tempReader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
         tempReader.close()
 
-        val writer = new NetCdfWriter(fileName, columns)
+        val writer = new NetCdfWriter(fileName, columns, Map[String,DataType]())
 
         try {
           shards.foreach(x => {
@@ -127,8 +128,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
         val columns = tempReader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
         tempReader.close()
 
-        val writer = new NetCdfWriter(fileName, columns)
-
+        val writer = new NetCdfWriter(fileName, columns, Map[String,DataType]())
         try {
           shards.foreach(x => {
             val reader = new NetCdfReader(x.shardName, cols.toSet)
@@ -180,7 +180,32 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val catalogueElement = createCatalogueElement( variablesAndData, outputBasePath, gcp, parentDsName, dsName )
 
-    val writer = new NetCdfWriter(catalogueElement.shardName, reader.getVariables().map( x => WriterColumn.Column(x.getShortName, 0, x.getDataType)))
+    val schema = Map[String, DataType]( "lon" ->	DataType.DOUBLE,
+                                                "lat" ->	DataType.DOUBLE,
+                                                "elev" -> DataType.FLOAT,
+                                                "heading" ->	DataType.FLOAT,
+                                                "demDiff" ->	DataType.FLOAT,
+                                                "demDiffMad" -> 	DataType.FLOAT,
+                                                "demDiffMad2" ->	DataType.FLOAT,
+                                                "phaseAmb" -> DataType.SHORT,
+                                                "meanDiffSpread" -> 	DataType.FLOAT,
+                                                "wf_number" -> 	DataType.SHORT,
+                                                "sampleNb" -> 	DataType.SHORT,
+                                                "power"	 -> DataType.FLOAT,
+                                                "powerdB" ->	DataType.FLOAT,
+                                                "phase"	-> DataType.FLOAT,
+                                                "phaseS" -> 	DataType.FLOAT,
+                                                "phaseSSegment" ->	DataType.FLOAT,
+                                                "phaseConfidence" ->	DataType.FLOAT,
+                                                "coh"	-> DataType.FLOAT,
+                                                "x"	->DataType.DOUBLE,
+                                                "y"	->DataType.DOUBLE,
+                                                "time"	-> DataType.LONG,
+                                                "index" -> DataType.LONG,
+                                                "swathFileId" ->	DataType.INT
+                                                )
+
+    val writer = new NetCdfWriter(catalogueElement.shardName, reader.getVariables().map( x => WriterColumn.Column(x.getShortName, 0, x.getDataType)), schema)
 
     writer.write( variablesAndData )
 
