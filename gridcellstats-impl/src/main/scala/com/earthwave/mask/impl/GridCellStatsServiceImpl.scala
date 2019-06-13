@@ -85,7 +85,33 @@ class GridCellStatsServiceImpl() extends GridCellStatsService {
     statsDoc.forEach( (k,v) => statsMap.+=((k, v.asDouble().doubleValue())) )
 
     Future.successful(statsMap.toMap)
+  }
 
+  override def getRunStatistics(parentDataSet: String, runName: String): ServiceCall[NotUsed, List[GridCellStatistics]] = { _ =>
+
+    val db = client.getDatabase(parentDataSet)
+
+    val collection = db.getCollection("statistics")
+
+    val f = and(equal("runName", runName))
+    val results = Await.result(collection.find( f ).toFuture(), 10 seconds)
+
+    def gridCellStatsFromDoc( doc : Document) : GridCellStatistics = {
+      var statsMap = scala.collection.mutable.Map[String,Double]()
+      val statsDoc = doc.get("statistics").get.asDocument()
+
+      val x = doc.getLong("gridCellMinX")
+      val y = doc.getLong("gridCellMinY")
+      val size = doc.getLong("size")
+
+      statsDoc.forEach( (k,v) => statsMap.+=((k, v.asDouble().doubleValue())) )
+
+      GridCellStatistics( GridCell(x,y,size), statsMap.toMap  )
+    }
+
+    val stats = results.map( d => gridCellStatsFromDoc( d ))
+
+    Future.successful(stats.toList)
   }
 }
 
