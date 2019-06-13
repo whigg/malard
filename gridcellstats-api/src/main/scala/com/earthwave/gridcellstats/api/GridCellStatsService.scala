@@ -19,6 +19,8 @@ trait GridCellStatsService extends Service {
 
   def getGridCellStatistics( parentDataSet : String, runName : String ) : ServiceCall[GridCell,Map[String,Double]]
 
+  def getRunStatistics( parentDataSet : String, runName : String ) : ServiceCall[NotUsed,List[GridCellStatistics]]
+
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
@@ -26,7 +28,8 @@ trait GridCellStatsService extends Service {
       .withCalls(
         pathCall("/gridcellstats/publishgridcellstats/:parentdataset/:runName", publishGridCellStats _ ),
         pathCall("/gridcellstats/getavailablestatistics/:parentdataset", getAvailableStatistics _ ),
-        pathCall("/gridcellstats/getgridcellstatistics/:parentdataset/:runName", getGridCellStatistics _)
+        pathCall("/gridcellstats/getgridcellstatistics/:parentdataset/:runName", getGridCellStatistics _),
+        pathCall("/gridcellstats/getrunstatistics/:parentdataset/:runName", getRunStatistics _)
       )
       .withAutoAcl(true)
     // @formatter:on
