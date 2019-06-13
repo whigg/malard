@@ -117,6 +117,10 @@ class DataSetQuery:
         url = self.serverUrl + '/gridcellstats/getavailablestatistics/' + parentDsName
         response = requests.get(url, headers=self.headers)
         return response.text
+    def getRunStatistics(self, parentDsName, runName ):
+        url = self.serverUrl + '/gridcellstats/getrunstatistics/' + parentDsName + '/' + runName
+        response = requests.get(url, headers=self.headers)
+        return response.text
     def getGridCellStatistics(self, parentdataset, runName, minX, minY, size):
         url = self.serverUrl + '/gridcellstats/getgridcellstatistics/' + parentdataset + '/' + runName
         request = { 'minX':minX, 'minY':minY, 'size': size }
