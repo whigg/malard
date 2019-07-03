@@ -144,3 +144,9 @@ class DataSetQuery:
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
+    def validateDataFiles(self, inputDir, startsWith, endsWith, columns ):
+        url = self.serverUrl + '/validation/validate'
+        request = { 'dir' : inputDir, 'startsWith' : startsWith, 'endsWith' : endsWith, 'expectedColumns' : columns } 
+        j = json.dumps(request)
+        response = requests.post(url, data=j, headers=self.headers)
+        return response.text

@@ -25,6 +25,13 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
     filter.head
   }
 
+  def getVariableExists( name : String ) : Boolean ={
+
+    val filter = variables.filter( x => x.getShortName.contentEquals(name) )
+
+    if( filter.isEmpty ){ return false }else{ return true }
+  }
+
   def getVariables( ) : List[Variable] = {
 
     // put the code to do the unpacking in here

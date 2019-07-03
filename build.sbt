@@ -11,7 +11,7 @@ val mongo = "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0"
 
 
 lazy val `malard` = (project in file("."))
-  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`)
+  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-api`,`validation-impl`)
 
 lazy val `catalogue-api` = (project in file("catalogue-api"))
   .settings(
@@ -143,3 +143,25 @@ lazy val `mask-impl` = (project in file("mask-impl"))
   )
   .settings(lagomForkedTestSettings)
   .dependsOn(`projection-api`)
+  
+    lazy val `validation-api` = (project in file("validation-api"))
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslApi
+    )
+  )
+
+  lazy val `validation-impl` = (project in file("validation-impl"))
+  .enablePlugins(LagomScala)
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslPersistenceCassandra,
+      lagomScaladslKafkaBroker,
+      lagomScaladslTestKit,
+      macwire,
+      scalaTest,
+      mongo
+    )
+  )
+  .settings(lagomForkedTestSettings)
+  .dependsOn(`validation-api`,`point-impl`)
