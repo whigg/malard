@@ -94,11 +94,11 @@ object ArrayHelper {
 
       return ucar.ma2.Array.factory(array)
     }
-    else if( dt == DataType.OBJECT ) {
+    else if( dt == DataType.STRING ) {
       val array = new Array[String](mask.length)
 
       for (j <- 0 until length) {
-        array(j) = src.getObject(mask(j)).asInstanceOf[String]
+        array(j) = src.getObject(mask(j)).toString
       }
       return ucar.ma2.Array.factory(DataType.STRING, origin, array)
     }
