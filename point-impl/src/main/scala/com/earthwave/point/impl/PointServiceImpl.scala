@@ -129,17 +129,18 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
         tempReader.close()
 
         val writer = new NetCdfWriter(fileName, columns, Map[String,DataType]())
-
-        val data = shards.par.map( s => { val reader = new NetCdfReader(s.shardName, cols.toSet)
-                                          val data = reader.getVariablesAndData(q)
-                                          reader.close()
-                                          data
-                                        } )
         try {
-          data.foreach(x => {
-              if (x._2.length != 0) {
-                writer.writeWithFilter(x._1, x._2)
+          shards.foreach(x => {
+            val reader = new NetCdfReader(x.shardName, cols.toSet)
+            try {
+              val data = reader.getVariablesAndData(q)
+              if (data._2.length != 0) {
+                writer.writeWithFilter(data._1, data._2)
               }
+            }
+            finally {
+              reader.close()
+            }
           })
         }
         finally
