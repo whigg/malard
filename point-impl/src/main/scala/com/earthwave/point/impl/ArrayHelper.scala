@@ -100,7 +100,7 @@ object ArrayHelper {
       for (j <- 0 until length) {
         array(j) = src.getObject(mask(j)).asInstanceOf[String]
       }
-      return ucar.ma2.Array.factory(DataType.OBJECT, origin, array)
+      return ucar.ma2.Array.factory(DataType.STRING, origin, array)
     }
 
     throw new Exception(s"Unexpected column type: ${dt.toString}")
