@@ -95,10 +95,10 @@ object ArrayHelper {
       return ucar.ma2.Array.factory(array)
     }
     else if( dt == DataType.OBJECT ) {
-      val array = new Array[Object](mask.length)
+      val array = new Array[String](mask.length)
 
       for (j <- 0 until length) {
-        array(j) = src.getObject(mask(j))
+        array(j) = src.getObject(mask(j)).asInstanceOf[String]
       }
       return ucar.ma2.Array.factory(DataType.OBJECT, origin, array)
     }
