@@ -32,6 +32,10 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], val schema
                                                       writer.addVariable(null, x.name, schemaType, "row")
                                                     }
                                                     else {
+                                                      if(x.name == "dataset")
+                                                      {
+                                                        println(s"${x.dataType}")
+                                                      }
                                                       writer.addVariable(null, x.name, x.dataType, "row")
                                                     }
                                                   })
@@ -49,7 +53,7 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], val schema
 
     variablePairs.foreach(v =>
           {
-            val arr = ArrayHelper.applyMask(v._2._2, mask)
+            val arr = ArrayHelper.applyMask(v._1.getDataType, v._2._2, mask)
               try {
                 writer.write(v._1, origin, arr)
               }
