@@ -11,7 +11,7 @@ val mongo = "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0"
 
 
 lazy val `malard` = (project in file("."))
-  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-api`,`validation-impl`)
+  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-api`,`validation-impl`,`validation-stream-api`,`validation-stream-impl`)
 
 lazy val `catalogue-api` = (project in file("catalogue-api"))
   .settings(
@@ -165,3 +165,21 @@ lazy val `mask-impl` = (project in file("mask-impl"))
   )
   .settings(lagomForkedTestSettings)
   .dependsOn(`validation-api`,`point-impl`)
+
+lazy val `validation-stream-api` = (project in file("validation-stream-api"))
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslApi
+    )
+  )
+
+lazy val `validation-stream-impl` = (project in file("validation-stream-impl"))
+  .enablePlugins(LagomScala)
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslTestKit,
+      macwire,
+      scalaTest
+    )
+  )
+  .dependsOn(`validation-stream-api`,`point-impl`)
