@@ -32,9 +32,9 @@ object ArrayHelper {
     mask.toArray
   }
 
-  def applyMask( src : ucar.ma2.Array, mask : Array[Int] ) : ucar.ma2.Array = {
+  def applyMask( dataType : DataType, src : ucar.ma2.Array, mask : Array[Int] ) : ucar.ma2.Array = {
 
-    val dt = src.getDataType
+    val dt = dataType
     val length = mask.length
 
     val origin = new Array[Int](length)
@@ -94,7 +94,7 @@ object ArrayHelper {
 
       return ucar.ma2.Array.factory(array)
     }
-    else if( dt == DataType.OBJECT ) {
+    else if( dt == DataType.STRING ) {
       val array = new Array[String](mask.length)
 
       for (j <- 0 until length) {
