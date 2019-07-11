@@ -2,7 +2,6 @@ package com.earthwave.pointstream.api
 
 import akka.NotUsed
 import akka.stream.scaladsl.Source
-import com.earthwave.point.api.Messages.Query
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 
 
@@ -14,14 +13,14 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
   */
 trait PointStreamService extends Service {
 
-  def executeQuery( envName : String, parentDataSet : String, dataSetName : String ): ServiceCall[Source[Query,NotUsed], Source[String, NotUsed]]
+  def doQuery(): ServiceCall[StreamQuery, Source[String,NotUsed]]
 
   override final def descriptor: Descriptor = {
     import Service._
 
     named("point-stream")
       .withCalls(
-        pathCall("/pointstream/query/:envName/:parent/:dsname", executeQuery _)
+        namedCall("query", doQuery)
       ).withAutoAcl(true)
   }
 }

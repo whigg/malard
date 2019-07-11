@@ -4,7 +4,9 @@ import datetime
 
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
-        return o.__str__()
+        timestamp = datetime.datetime.timestamp(o) 
+        print(timestamp)
+        return timestamp
 
 class DataSetQuery:
     def __init__(self, serverUrl, envName = "DEV" ):

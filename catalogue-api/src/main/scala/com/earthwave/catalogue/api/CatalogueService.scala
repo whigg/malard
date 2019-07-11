@@ -11,11 +11,6 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
   */
 trait CatalogueService extends Service {
 
-  /**
-    * Example: curl -H "Content-Type: application/json" -X POST -d {\"dbName\":\"mtngla\",\"year\":2010}
-    * http://localhost:9000/api/gridcells
-    */
-  def filterCatalogue(): ServiceCall[CatalogueFilter, Catalogue]
 
   /**
     * List available parent data sets
@@ -79,7 +74,6 @@ trait CatalogueService extends Service {
     // @formatter:off
     named("catalogue")
       .withCalls(
-        pathCall("/api/gridcells", filterCatalogue()),
         pathCall("/api/parentdatasets", parentDataSets()),
         pathCall("/api/datasets/:parentName", dataSets _),
         pathCall("/api/boundingbox/:parent/:dsname", boundingBox _ ),

@@ -7,11 +7,6 @@ import play.api.libs.json.{Format, Json}
 /**
   * The CatalogueFilter message class.
   */
-case class CatalogueFilter( dbName : String, dsName : Option[String], year : Option[Int], month : Option[Int], lat : Option[Double], lon :Option[Double], x : Option[Double], y: Option[Double] )
-
-/**
-  * The CatalogueFilter message class.
-  */
 case class CatalogueElement(  dsName : String
                               , shardName : String
                               , projection : String
@@ -35,15 +30,6 @@ case class CatalogueElement(  dsName : String
                               , count : Long
                               , qualityCount : Long
                            )
-
-object CatalogueFilter {
-  /**
-    * Format for converting CatalogueFilter messages to and from JSON.
-    *
-    * This will be picked up by a Lagom implicit conversion from Play's JSON format to Lagom's message serializer.
-    */
-  implicit val format: Format[CatalogueFilter] = Json.format[CatalogueFilter]
-}
 
 object CatalogueElement {
   /**
@@ -72,8 +58,8 @@ case class BoundingBox( gridCellMinX : Long
                         , gridCellMaxX : Long
                         , gridCellMinY : Long
                         , gridCellMaxY : Long
-                        , minTime : Date
-                        , maxTime : Date
+                        , minTime : Long
+                        , maxTime : Long
                         , totalPoints : Long
                         , numberOfShards : Long )
 
@@ -86,15 +72,15 @@ case class BoundingBoxFilter( minX : Long
                               , maxX : Long
                               , minY : Long
                               , maxY : Long
-                              , minT : Date
-                              , maxT : Date)
+                              , minT : Long
+                              , maxT : Long)
 
 object BoundingBoxFilter
 {
   implicit val format : Format[BoundingBoxFilter] = Json.format[BoundingBoxFilter]
 }
 
-case class Shard(shardName : String, minX : Double, maxX : Double, minY : Double, maxY : Double, minT : Date, maxT : Date, numberOfPoints: Long)
+case class Shard(shardName : String, minX : Double, maxX : Double, minY : Double, maxY : Double, minT : Long, maxT : Long, numberOfPoints: Long)
 
 object Shard{
   implicit val format :Format[Shard] = Json.format[Shard]

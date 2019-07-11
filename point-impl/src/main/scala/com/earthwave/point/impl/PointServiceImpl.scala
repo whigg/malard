@@ -57,7 +57,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
-    var fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT.getTime}_${bbf.maxT.getTime}.nc"
+    var fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT}_${bbf.maxT}.nc"
     println(s"Output filename: $fileName")
     val cacheCheck = new File(fileName)
 
@@ -108,7 +108,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val projection = q.projection.foldLeft[String]("")( (x,y) => x + "_" + y )
     val filters = q.filters.foldLeft[String]("")( (x,y) => x + "_" + y.column + y.op + y.threshold )
-    val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT.getTime}_${q.bbf.maxT.getTime}${projection}${filters}".hashCode
+    val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}".hashCode
     var fileName = s"${outputPath}${parentDSName}_${dsName}_${fileNameHash}.nc"
     val cacheCheck = new File(fileName)
 

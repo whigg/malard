@@ -11,7 +11,7 @@ val mongo = "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0"
 
 
 lazy val `malard` = (project in file("."))
-  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-api`,`validation-impl`,`validation-stream-api`,`validation-stream-impl`)
+  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-stream-api`,`validation-stream-impl`,`point-stream-api`,`point-stream-impl`)
 
 lazy val `catalogue-api` = (project in file("catalogue-api"))
   .settings(
@@ -143,28 +143,6 @@ lazy val `mask-impl` = (project in file("mask-impl"))
   )
   .settings(lagomForkedTestSettings)
   .dependsOn(`projection-api`)
-  
-    lazy val `validation-api` = (project in file("validation-api"))
-  .settings(
-    libraryDependencies ++= Seq(
-      lagomScaladslApi
-    )
-  )
-
-  lazy val `validation-impl` = (project in file("validation-impl"))
-  .enablePlugins(LagomScala)
-  .settings(
-    libraryDependencies ++= Seq(
-      lagomScaladslPersistenceCassandra,
-      lagomScaladslKafkaBroker,
-      lagomScaladslTestKit,
-      macwire,
-      scalaTest,
-      mongo
-    )
-  )
-  .settings(lagomForkedTestSettings)
-  .dependsOn(`validation-api`,`point-impl`)
 
 lazy val `validation-stream-api` = (project in file("validation-stream-api"))
   .settings(
@@ -183,3 +161,21 @@ lazy val `validation-stream-impl` = (project in file("validation-stream-impl"))
     )
   )
   .dependsOn(`validation-stream-api`,`point-impl`)
+
+lazy val `point-stream-api` = (project in file("point-stream-api"))
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslApi
+    )
+  ).dependsOn(`catalogue-api`,`point-api`)
+
+lazy val `point-stream-impl` = (project in file("point-stream-impl"))
+  .enablePlugins(LagomScala)
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslTestKit,
+      macwire,
+      scalaTest
+    )
+  )
+  .dependsOn(`point-stream-api`, `catalogue-api`,`environment-api`,`point-impl`)

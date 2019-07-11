@@ -19,9 +19,9 @@ object ArrayHelper {
     {
       val x = xArr.getDouble(i)
       val y = yArr.getDouble(i)
-      val t = new Date(tArr.getLong(i)*1000)
+      val t = tArr.getLong(i)
 
-      if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t.compareTo(bbf.minT) >=0 && t.compareTo(bbf.maxT) <=0 ) {
+      if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t >= bbf.minT && t <= bbf.maxT ) {
         val filterRes = f.map(x => x._1.op(x._2.getDouble(i))).filter(res => res == true)
         if( numberOfFilters == filterRes.length ) {
           mask.append(i)

@@ -50,10 +50,10 @@ class GeoJsonActor() extends Actor{
       for (i <- 0 until xArr.getSize.toInt) {
         val x = xArr.getDouble(i)
         val y = yArr.getDouble(i)
-        val t = new Date(tArr.getLong(i)*1000)
+        val t = tArr.getLong(i)
 
         if(i%10000==0){println(s"Processed $i rows.")}
-        if( x <= bbf.maxX && x >= bbf.minX && y <= bbf.maxY && y >= bbf.minY && t.compareTo(bbf.minT) >= 0 && t.compareTo(bbf.maxT) <=0  ) {
+        if( x <= bbf.maxX && x >= bbf.minX && y <= bbf.maxY && y >= bbf.minY && t >= bbf.minT && t <= bbf.maxT ) {
           val properties = Map[String, Double]("id" -> i)
 
           def nanAsNull(arr: ucar.ma2.Array, i: Int): Double = {

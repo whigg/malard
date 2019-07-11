@@ -1,5 +1,7 @@
 package com.earthwave.catalogue.impl
 
+import java.util.Date
+
 import akka.NotUsed
 import com.earthwave.catalogue.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -21,7 +23,7 @@ class CatalogueServiceImpl() extends CatalogueService {
 
   private val client = MongoClient()
   implicit val ec = ExecutionContext.global
-  private val ignoreDataSets = Set("admin","config","local")
+  private val ignoreDataSets = Set("admin","config","local","Configuration")
 
   override def parentDataSets(): ServiceCall[NotUsed, List[DataSet]] = { _ =>
 
@@ -46,30 +48,6 @@ class CatalogueServiceImpl() extends CatalogueService {
 
     val dataSets = result.map(d => DataSet(d.getString("_id") ))
     Future.successful((dataSets.toList))
-  }
-
-
-  override def filterCatalogue(): ServiceCall[CatalogueFilter, Catalogue] = { x =>
-
-    val mongoDb = client.getDatabase(x.dbName)
-
-    println(s"Connected to MongoDB with name ${x.dbName}.")
-    println(s"Request has year: ${x.year.get}")
-    val collection = mongoDb.getCollection("catalogue")
-
-    val condition = and( equal( "year", x.year.get  ), equal("month", x.month.get))
-
-    val obs = collection.find(condition)
-
-    val fut = obs.toFuture()
-
-    val results = Await.result(fut, 10 seconds)
-
-    println(s"Number of rows retrieved: ${results.length}")
-
-    val catalogue = results.map(d => ShardDetailImpl.fromDocument(d) )
-
-    Future.successful( Catalogue(catalogue.toList) )
   }
 
   override def boundingBox( parentName : String, dsName : String  ) : ServiceCall[NotUsed, BoundingBox] = { _ => {
@@ -99,8 +77,8 @@ class CatalogueServiceImpl() extends CatalogueService {
                                     , doc.getLong("gridCellMaxX")
                                     , doc.getLong("gridCellMinY")
                                     , doc.getLong("gridCellMaxY")
-                                    , doc.getDate("minTime")
-                                    , doc.getDate("maxTime")
+                                    , (doc.getDate("minTime").getTime*0.001).toLong
+                                    , (doc.getDate("maxTime").getTime*0.001).toLong
                                     , doc.getLong("numberOfPoints")
                                     , doc.getInteger("numberOfShards").toLong))
     }
@@ -117,13 +95,18 @@ class CatalogueServiceImpl() extends CatalogueService {
                                 , "gridCellMaxY" -> "$gridCellMaxY"
                                 , "gridCellMinY" -> "$gridCellMinY")
 
+      val minDate = new Date(bbf.minT*1000)
+      val maxDate = new Date(bbf.maxT*1000)
+      println(s"MinDate: $minDate, Max Date: $maxDate")
+
+
       val f: Bson = filter( and(equal("dsName",dsName)
                   ,and(gte( "gridCellMaxX", bbf.minX )
                   ,and(lte( "gridCellMinX", bbf.maxX)
                   ,and(gte( "gridCellMaxY", bbf.minY)
                   ,and(lte("gridCellMinY", bbf.maxY)
-                  ,and(gte( "maxTime", bbf.minT )
-                  , lte( "minTime", bbf.maxT ))))))))
+                  ,and(gte( "maxTime", minDate )
+                  , lte( "minTime", maxDate ))))))))
 
      val g = group( groupByCols
                     , min("minTime", "$minTime")
@@ -143,8 +126,8 @@ class CatalogueServiceImpl() extends CatalogueService {
                                                         , id.getInt64("gridCellMaxX").longValue()
                                                         , id.getInt64("gridCellMinY").longValue()
                                                         , id.getInt64("gridCellMaxY").longValue()
-                                                        , doc.getDate("minTime")
-                                                        , doc.getDate("maxTime")
+                                                        , (doc.getDate("minTime").getTime*0.001).toLong
+                                                        , (doc.getDate("maxTime").getTime*0.001).toLong
                                                         , doc.getLong("numberOfPoints")
                                                         , doc.getInteger("numberOfShards").toLong )})
       Future.successful(docs)
@@ -160,8 +143,8 @@ class CatalogueServiceImpl() extends CatalogueService {
         ,and(lt( "gridCellMinX", bbf.maxX)
           ,and(gt( "gridCellMaxY", bbf.minY)
             ,and(lt("gridCellMinY", bbf.maxY)
-              ,and(gte( "maxTime", bbf.minT )
-                , lte( "minTime", bbf.maxT )))))))
+              ,and(gte( "maxTime", new Date( bbf.minT * 1000) )
+                , lte( "minTime", new Date( bbf.maxT * 1000) )))))))
 
     val obs = collection.find(f)
 
@@ -174,8 +157,8 @@ class CatalogueServiceImpl() extends CatalogueService {
                                                 doc.getDouble("maxX"),
                                                 doc.getDouble("minY"),
                                                 doc.getDouble("maxY"),
-                                                doc.getDate("minTime"),
-                                                doc.getDate("maxTime"),
+                                                (doc.getDate("minTime").getTime*0.001).toLong,
+                                                (doc.getDate("maxTime").getTime*0.001).toLong,
                                                 doc.getLong("count")
                                                     ) )
     Future.successful(docs)

@@ -20,7 +20,6 @@ object CatalogueSerializerRegistry extends JsonSerializerRegistry {
     JsonSerializer[DataSet],
     JsonSerializer[Catalogue],
     JsonSerializer[CatalogueElement],
-    JsonSerializer[CatalogueFilter],
     JsonSerializer[BoundingBox],
     JsonSerializer[Shard],
   )
