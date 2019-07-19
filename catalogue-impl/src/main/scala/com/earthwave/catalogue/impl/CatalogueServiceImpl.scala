@@ -36,27 +36,35 @@ class CatalogueServiceImpl() extends CatalogueService {
     Future.successful( res.map(d=> DataSet(d)).filterNot( p => ignoreDataSets.contains(p.name) ).toList )
   }
 
-  override def dataSets( parentName : String ): ServiceCall[NotUsed,List[DataSet]] = {_ =>
+  override def dataSets( parentName : String ): ServiceCall[NotUsed,List[DataSetRegion]] = {_ =>
 
     val mongoDb = client.getDatabase(parentName)
 
     val catalogue = mongoDb.getCollection("catalogue")
 
-    val fut = catalogue.aggregate(List(group("$dsName", sum( "count", 1 ))) ).toFuture()
+    val groupByCols = Document( "dsName" -> "$dsName"
+                              , "region" -> "$region" )
+
+    val groupBy = group( groupByCols, sum( "count", 1 ) )
+
+    val fut = catalogue.aggregate( List(groupBy) ).toFuture()
 
     val result = Await.result(fut, 10 seconds)
 
-    val dataSets = result.map(d => DataSet(d.getString("_id") ))
+    val dataSets = result.map(d => {
+      val id = d.get("_id").get.asDocument()
+      DataSetRegion(id.getString("dsName").getValue, id.getString("region").getValue)
+    })
     Future.successful((dataSets.toList))
   }
 
-  override def boundingBox( parentName : String, dsName : String  ) : ServiceCall[NotUsed, BoundingBox] = { _ => {
+  override def boundingBox( parentName : String, dsName : String, region : String  ) : ServiceCall[NotUsed, BoundingBox] = { _ => {
 
       println(s"Wiring check. Parent=$parentName, DataSet=$dsName")
       val mongoDb = client.getDatabase(parentName)
       val collection = mongoDb.getCollection("catalogue")
 
-      val f = filter(equal("dsName", dsName ))
+      val f = filter(and(equal("dsName", dsName ),equal("region", region)))
       val g = group( null, min("gridCellMinX",  "$gridCellMinX")
                     , max("gridCellMaxX", "$gridCellMaxX")
                     , min("gridCellMinY",  "$gridCellMinY")
@@ -77,14 +85,14 @@ class CatalogueServiceImpl() extends CatalogueService {
                                     , doc.getLong("gridCellMaxX")
                                     , doc.getLong("gridCellMinY")
                                     , doc.getLong("gridCellMaxY")
-                                    , (doc.getDate("minTime").getTime*0.001).toLong
-                                    , (doc.getDate("maxTime").getTime*0.001).toLong
+                                    , doc.getDouble("minTime")
+                                    , doc.getDouble("maxTime")
                                     , doc.getLong("numberOfPoints")
                                     , doc.getInteger("numberOfShards").toLong))
     }
   }
 
-  override def boundingBoxQuery(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, List[BoundingBox]] = { bbf =>
+  override def boundingBoxQuery(parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, List[BoundingBox]] = { bbf =>
     {
       println(s"Wiring check. Parent=$parentDsName, DataSet=$dsName")
       val mongoDb = client.getDatabase(parentDsName)
@@ -95,18 +103,14 @@ class CatalogueServiceImpl() extends CatalogueService {
                                 , "gridCellMaxY" -> "$gridCellMaxY"
                                 , "gridCellMinY" -> "$gridCellMinY")
 
-      val minDate = new Date(bbf.minT*1000)
-      val maxDate = new Date(bbf.maxT*1000)
-      println(s"MinDate: $minDate, Max Date: $maxDate")
-
-
       val f: Bson = filter( and(equal("dsName",dsName)
+                  ,and(equal("region", region)
                   ,and(gte( "gridCellMaxX", bbf.minX )
                   ,and(lte( "gridCellMinX", bbf.maxX)
                   ,and(gte( "gridCellMaxY", bbf.minY)
                   ,and(lte("gridCellMinY", bbf.maxY)
-                  ,and(gte( "maxTime", minDate )
-                  , lte( "minTime", maxDate ))))))))
+                  ,and(gte( "maxTime", bbf.minT )
+                  , lte( "minTime", bbf.maxT )))))))))
 
      val g = group( groupByCols
                     , min("minTime", "$minTime")
@@ -126,25 +130,29 @@ class CatalogueServiceImpl() extends CatalogueService {
                                                         , id.getInt64("gridCellMaxX").longValue()
                                                         , id.getInt64("gridCellMinY").longValue()
                                                         , id.getInt64("gridCellMaxY").longValue()
-                                                        , (doc.getDate("minTime").getTime*0.001).toLong
-                                                        , (doc.getDate("maxTime").getTime*0.001).toLong
+                                                        , doc.getDouble("minTime")
+                                                        , doc.getDouble("maxTime")
                                                         , doc.getLong("numberOfPoints")
                                                         , doc.getInteger("numberOfShards").toLong )})
       Future.successful(docs)
     }
   }
 
-  override def shards(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, List[Shard]] = { bbf =>
+  override def shards(parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, List[Shard]] = { bbf =>
     val mongoDb = client.getDatabase(parentDsName)
     val collection = mongoDb.getCollection("catalogue")
 
+
+    println(s"Shard request [${parentDsName}] [$dsName] [${bbf.minX}] [${bbf.minY}] [${bbf.minT}] [${bbf.maxT}] ")
+
     val f: Bson =  and(equal("dsName",dsName)
-      ,and(gt( "gridCellMaxX", bbf.minX )
-        ,and(lt( "gridCellMinX", bbf.maxX)
-          ,and(gt( "gridCellMaxY", bbf.minY)
-            ,and(lt("gridCellMinY", bbf.maxY)
-              ,and(gte( "maxTime", new Date( bbf.minT * 1000) )
-                , lte( "minTime", new Date( bbf.maxT * 1000) )))))))
+      ,and(equal("region", region)
+      ,and(gte( "gridCellMaxX", bbf.minX )
+        ,and(lte( "gridCellMinX", bbf.maxX)
+          ,and(gte( "gridCellMaxY", bbf.minY)
+            ,and(lte("gridCellMinY", bbf.maxY)
+              ,and(gte( "maxTime", bbf.minT )
+                , lte( "minTime", bbf.maxT ))))))))
 
     val obs = collection.find(f)
 
@@ -152,20 +160,22 @@ class CatalogueServiceImpl() extends CatalogueService {
 
     val results: Seq[Document] = Await.result(fut, 10 seconds)
 
+    println(s"Found [${results.length}] shards")
+
     val docs = results.toList.map( doc => Shard(doc.getString("shardName"),
                                                 doc.getDouble( "minX" ),
                                                 doc.getDouble("maxX"),
                                                 doc.getDouble("minY"),
                                                 doc.getDouble("maxY"),
-                                                (doc.getDate("minTime").getTime*0.001).toLong,
-                                                (doc.getDate("maxTime").getTime*0.001).toLong,
+                                                doc.getDouble("minTime"),
+                                                doc.getDouble("maxTime"),
                                                 doc.getLong("count")
                                                     ) )
     Future.successful(docs)
   }
 
-  override def getSwathDetailsFromName( parentDsName : String, dsName : String, name : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
-    val f : Bson = and(equal("datasetName",dsName), equal("swathName", name))
+  override def getSwathDetailsFromName( parentDsName : String, dsName : String, region : String, name : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
+    val f : Bson = and(equal("region",region),and(equal("datasetName",dsName), equal("swathName", name)))
 
     val results = getSwathDetailsWithFilter( parentDsName, f )
 
@@ -177,8 +187,8 @@ class CatalogueServiceImpl() extends CatalogueService {
     Future.successful(results.head)
   }
 
-  override def getSwathDetailsFromId( parentDsName : String, dsName : String, id : Long ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
-    val f : Bson = and(equal("datasetName",dsName), equal("swathId",id))
+  override def getSwathDetailsFromId( parentDsName : String, dsName : String, region : String, id : Long ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
+    val f : Bson = and(equal("region",region),and(equal("datasetName",dsName), equal("swathId",id)))
 
     val results = getSwathDetailsWithFilter( parentDsName, f )
 
@@ -190,9 +200,9 @@ class CatalogueServiceImpl() extends CatalogueService {
     Future.successful(results.head)
   }
 
-  override def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,List[SwathDetail]] ={ _ =>
+  override def getSwathDetails( parentDsName : String, dsName : String,region : String ) : ServiceCall[NotUsed,List[SwathDetail]] ={ _ =>
 
-    val f : Bson = equal("datasetName",dsName)
+    val f : Bson = and(equal("datasetName",dsName),equal("region", region))
 
     Future.successful(getSwathDetailsWithFilter( parentDsName, f))
   }
@@ -218,7 +228,7 @@ class CatalogueServiceImpl() extends CatalogueService {
         buffer.append(GridCell(doc.getString("projection").getValue, doc.getInt64("x").longValue(), doc.getInt64("y").longValue(), doc.getInt32("pointCount").longValue()))
       }
 
-      SwathDetail(doc.getString("swathName"), doc.getInteger("pointCount").toLong, buffer.toList)
+      SwathDetail(doc.getString("swathName"), doc.getInteger("pointCount").toLong, doc.getInteger("swathId"), buffer.toList)
     }
     docs.map(d => convertResults(d))
   }

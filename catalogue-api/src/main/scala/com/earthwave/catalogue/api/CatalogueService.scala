@@ -23,21 +23,21 @@ trait CatalogueService extends Service {
     *
     * curl -X GET http://localhost:9000/api/datasets/dataSetName
     */
-  def dataSets(dataSetName : String) : ServiceCall[NotUsed, List[DataSet] ]
+  def dataSets(dataSetName : String) : ServiceCall[NotUsed, List[DataSetRegion] ]
 
   /**
     * Overall bounding box of the data
     *
     * curl -X GET http://localhost:9000/api/boundingbox/parent/:one/dataset/:two
     */
-  def boundingBox( parentDsName : String, dsName : String ) : ServiceCall[NotUsed, BoundingBox ]
+  def boundingBox( parentDsName : String, dsName : String, region : String ) : ServiceCall[NotUsed, BoundingBox ]
 
   /**
     * Overall bounding box of the data
     *
     * curl -X GET http://localhost:9000/api/boundingbox/parent/:one/dataset/:two
     */
-  def boundingBoxQuery( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, List[BoundingBox] ]
+  def boundingBoxQuery( parentDsName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter, List[BoundingBox] ]
 
   /**
     * Get shards  for the bounding box that is passed
@@ -45,27 +45,27 @@ trait CatalogueService extends Service {
     * curl -X GET http://localhost:9000/api/shards/parent/:one/dataset/:two
     */
 
-  def shards( parentDsName : String, dsName : String ) : ServiceCall[BoundingBoxFilter, List[Shard] ]
+  def shards( parentDsName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter, List[Shard] ]
 
   /**
     * Get GridCells from input swathId.
     *
     * curl -X GET http://localhost:9000/api/swathdetails/:parent/:dataset
     */
-  def getSwathDetails( parentDsName : String, dsName : String ) : ServiceCall[NotUsed,List[SwathDetail]]
+  def getSwathDetails( parentDsName : String, dsName : String, region : String ) : ServiceCall[NotUsed,List[SwathDetail]]
 
   /**
     * Get GridCells from input swathId.
     *
     * curl -X GET http://localhost:9000/api/swathdetailsfromid/:parent/:dataset/:id
     */
-  def getSwathDetailsFromId( parentDsName : String, dsName : String, id : Long ) : ServiceCall[NotUsed,SwathDetail]
+  def getSwathDetailsFromId( parentDsName : String, dsName : String, region : String, id : Long ) : ServiceCall[NotUsed,SwathDetail]
   /**
     * Get GridCells from input swathId.
     *
     * curl -X GET http://localhost:9000/api/swathdetailsfromname/:parent/:dataset/:name
     */
-  def getSwathDetailsFromName( parentDsName : String, dsName : String, id : String ) : ServiceCall[NotUsed,SwathDetail]
+  def getSwathDetailsFromName( parentDsName : String, dsName : String, region : String,name : String ) : ServiceCall[NotUsed,SwathDetail]
 
   def publishCatalogueElement( parentDsName : String, dsName : String) : ServiceCall[CatalogueElement, String]
 
@@ -76,12 +76,12 @@ trait CatalogueService extends Service {
       .withCalls(
         pathCall("/api/parentdatasets", parentDataSets()),
         pathCall("/api/datasets/:parentName", dataSets _),
-        pathCall("/api/boundingbox/:parent/:dsname", boundingBox _ ),
-        pathCall("/api/boundingbox/:parent/:dsname", boundingBoxQuery _ ),
-        pathCall("/api/shards/:parent/:dsname", shards _ ),
-        pathCall("/api/swathdetailsfromid/:parent/:dsname/:id", getSwathDetailsFromId _ ),
-        pathCall("/api/swathdetailsfromname/:parent/:dsname/:name", getSwathDetailsFromName _ ),
-        pathCall( "/api/swathdetails/:parent/:dsname", getSwathDetails _),
+        pathCall("/api/boundingbox/:parent/:dsname/:region", boundingBox _ ),
+        pathCall("/api/boundingbox/:parent/:dsname/:region", boundingBoxQuery _ ),
+        pathCall("/api/shards/:parent/:dsname/:region", shards _ ),
+        pathCall("/api/swathdetailsfromid/:parent/:dsname/:region/:id", getSwathDetailsFromId _ ),
+        pathCall("/api/swathdetailsfromname/:parent/:dsname/:region/:name", getSwathDetailsFromName _ ),
+        pathCall( "/api/swathdetails/:parent/:dsname/:region", getSwathDetails _),
         pathCall( "/api/publishcatalogueelement/:parent/:dsname", publishCatalogueElement _)
       )
       .withAutoAcl(true)

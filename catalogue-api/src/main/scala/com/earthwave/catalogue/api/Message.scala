@@ -8,6 +8,7 @@ import play.api.libs.json.{Format, Json}
   * The CatalogueFilter message class.
   */
 case class CatalogueElement(  dsName : String
+                              , region : String
                               , shardName : String
                               , projection : String
                               , year : Int
@@ -25,10 +26,9 @@ case class CatalogueElement(  dsName : String
                               , maxLat : Double
                               , minLon : Double
                               , maxLon : Double
-                              , minTime : Date
-                              , maxTime : Date
+                              , minTime : Double
+                              , maxTime : Double
                               , count : Long
-                              , qualityCount : Long
                            )
 
 object CatalogueElement {
@@ -47,6 +47,12 @@ object Catalogue
   implicit val format: Format[Catalogue] = Json.format[Catalogue]
 }
 
+case class DataSetRegion( name: String, region : String )
+
+object DataSetRegion
+{
+  implicit val format: Format[DataSetRegion] = Json.format[DataSetRegion]
+}
 case class DataSet( name: String )
 
 object DataSet
@@ -54,12 +60,14 @@ object DataSet
   implicit val format: Format[DataSet] = Json.format[DataSet]
 }
 
+
+
 case class BoundingBox( gridCellMinX : Long
                         , gridCellMaxX : Long
                         , gridCellMinY : Long
                         , gridCellMaxY : Long
-                        , minTime : Long
-                        , maxTime : Long
+                        , minTime : Double
+                        , maxTime : Double
                         , totalPoints : Long
                         , numberOfShards : Long )
 
@@ -72,21 +80,21 @@ case class BoundingBoxFilter( minX : Long
                               , maxX : Long
                               , minY : Long
                               , maxY : Long
-                              , minT : Long
-                              , maxT : Long)
+                              , minT : Double
+                              , maxT : Double)
 
 object BoundingBoxFilter
 {
   implicit val format : Format[BoundingBoxFilter] = Json.format[BoundingBoxFilter]
 }
 
-case class Shard(shardName : String, minX : Double, maxX : Double, minY : Double, maxY : Double, minT : Long, maxT : Long, numberOfPoints: Long)
+case class Shard(shardName : String, minX : Double, maxX : Double, minY : Double, maxY : Double, minT : Double, maxT : Double, numberOfPoints: Long)
 
 object Shard{
   implicit val format :Format[Shard] = Json.format[Shard]
 }
 
-case class SwathDetail( swathName : String, pointCount : Long, gridCells : List[GridCell] )
+case class SwathDetail( swathName : String, pointCount : Long, swathId : Int, gridCells : List[GridCell] )
 
 object SwathDetail
 {

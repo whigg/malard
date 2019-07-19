@@ -24,7 +24,8 @@ class PointStreamLoader extends LagomApplicationLoader {
 
 abstract class PointStreamApplication(context: LagomApplicationContext)
   extends LagomApplication(context)
-    with AhcWSComponents {
+    with AhcWSComponents
+    {
 
   // Bind the service that this server provides
   override lazy val lagomServer: LagomServer = serverFor[PointStreamService](wire[PointStreamServiceImpl])

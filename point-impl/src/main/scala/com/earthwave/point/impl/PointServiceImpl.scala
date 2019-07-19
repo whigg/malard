@@ -27,8 +27,8 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
   implicit val ec = ExecutionContext.global
   implicit val timeOut = Timeout(30 seconds)
 
-  override def getGeoJson(  parentDSName : String, dsName : String ) : ServiceCall[BoundingBoxFilter,FeatureCollection] ={ bbf =>
-      val future = catalogue.shards(parentDSName, dsName).invoke(bbf)
+  override def getGeoJson(  parentDSName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter,FeatureCollection] ={ bbf =>
+      val future = catalogue.shards(parentDSName, dsName, region).invoke(bbf)
 
       val result = Await.result( future, 10 seconds  )
       val numberOfPoints = result.map(x => x.numberOfPoints).sum
@@ -40,9 +40,9 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       featureCollection
   }
 
-  override def getDataSetColumns(parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, Columns] = { bbf =>
+  override def getDataSetColumns(parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, Columns] = { bbf =>
 
-    val future = catalogue.shards(parentDsName, dsName).invoke(bbf)
+    val future = catalogue.shards(parentDsName, dsName, region).invoke(bbf)
 
     val shards =  Await.result(future, 10 seconds)
 
@@ -53,16 +53,16 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     Future.successful(Columns(columns))
   }
 
-  override def getNetCdfFile( envName : String, parentDsName: String, dsName: String): ServiceCall[BoundingBoxFilter, String] = { bbf =>
+  override def getNetCdfFile( envName : String, parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, String] = { bbf =>
 
     val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
-    var fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT}_${bbf.maxT}.nc"
+    var fileName = s"${outputPath}${parentDsName}_${dsName}_${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${bbf.minT.toLong}_${bbf.maxT.toLong}.nc"
     println(s"Output filename: $fileName")
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
-      val future = catalogue.shards(parentDsName, dsName).invoke(bbf)
+      val future = catalogue.shards(parentDsName, dsName, region).invoke(bbf)
 
       val shards = Await.result(future, 10 seconds)
       if(!shards.isEmpty) {
@@ -102,7 +102,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     Future.successful(fileName)
   }
 
-  override def executeQuery(envName : String, parentDSName : String, dsName : String ) : ServiceCall[Query, String] = { q =>
+  override def executeQuery(envName : String, parentDSName : String, dsName : String, region : String ) : ServiceCall[Query, String] = { q =>
 
     val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
@@ -113,7 +113,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
-      val future = catalogue.shards(parentDSName, dsName).invoke(q.bbf)
+      val future = catalogue.shards(parentDSName, dsName, region).invoke(q.bbf)
 
       val shards = Await.result(future, 10 seconds)
 
@@ -167,7 +167,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     }
   }
 
-  override def publishGridCellPoints(envName : String, parentDsName: String, dsName: String): ServiceCall[Messages.GridCellPoints, String] = { gcp =>
+  override def publishGridCellPoints(envName : String, parentDsName: String, dsName: String, region : String): ServiceCall[Messages.GridCellPoints, String] = { gcp =>
 
     println(s"Received publishGridCellPoints request X=[${gcp.minX}] Y=[${gcp.minY}] Size=[${gcp.size}, FileName=${gcp.fileName}]")
 
@@ -178,7 +178,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     val variablesAndData = reader.getVariables().map(v => (v, v.read()))
 
-    val catalogueElement = createCatalogueElement( variablesAndData, outputBasePath, gcp, parentDsName, dsName )
+    val catalogueElement = createCatalogueElement( variablesAndData, outputBasePath, gcp, parentDsName, dsName, region )
 
     val schema = Map[String, DataType]( "lon" ->	DataType.DOUBLE,
                                                 "lat" ->	DataType.DOUBLE,
@@ -217,7 +217,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     Future.successful(s"Published grid cell points for input ${gcp.fileName} to ${catalogueElement.shardName}")
   }
 
-  private def createCatalogueElement( variablesAndData : List[(Variable, ucar.ma2.Array)], basePath : String, gcp : GridCellPoints, parentDsName : String, dsName : String ): CatalogueElement={
+  private def createCatalogueElement( variablesAndData : List[(Variable, ucar.ma2.Array)], basePath : String, gcp : GridCellPoints, parentDsName : String, dsName : String, region : String ): CatalogueElement={
 
     def getDataForVariable( name : String ): ucar.ma2.Array = {
 
@@ -234,9 +234,8 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
     var xMin,  yMin,  latMin, lonMin = Double.NaN
     var xMax, yMax, latMax, lonMax = Double.NaN
-    var tMin, tMax = Long.MaxValue
+    var tMin, tMax = Double.NaN
 
-    val qualityCount = 0
     val count = x.getSize.toInt
 
     def max( lhs: Double, rhs : Double ):Double={
@@ -252,12 +251,6 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       if(lhs.isNaN){ rhs }else{ Math.min(lhs,rhs)}
     }
 
-    def minL( lhs : Long, rhs : Long):Long={
-
-      if(lhs == Long.MaxValue){ return rhs  }else{Math.min(lhs,rhs)}
-
-    }
-
     println("Starting to calc maxes and mins")
 
     for( i <- 0 until count)
@@ -270,13 +263,13 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       latMax = max(latMax, lat.getDouble(i))
       lonMin = min(lonMin, lon.getDouble(i))
       lonMax = max(lonMax, lon.getDouble(i))
-      tMin = minL(tMin, t.getLong(i))
-      tMax = maxL(tMax, t.getLong(i))
+      tMin = min(tMin, t.getDouble(i))
+      tMax = max(tMax, t.getDouble(i))
     }
 
     println("Completed calculating maxes and mins")
 
-    val date = LocalDateTime.ofEpochSecond(tMin, 0, ZoneOffset.UTC)
+    val date = LocalDateTime.ofEpochSecond(tMin.toLong, 0, ZoneOffset.UTC)
 
     val now = LocalDateTime.now(ZoneOffset.UTC)
     // LocalDateTime to epoch seconds
@@ -296,6 +289,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     createDir(shardPath)
 
     CatalogueElement( dsName,
+      region,
       shardName,
       gcp.projection,
       date.getYear,
@@ -313,10 +307,9 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       latMax,
       lonMin,
       lonMax,
-      new Date( 1000 * tMin),
-      new Date(1000 * tMax),
-      count,
-      qualityCount
+      tMin,
+      tMax,
+      count
     )
   }
 }

@@ -11,7 +11,7 @@ val mongo = "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0"
 
 
 lazy val `malard` = (project in file("."))
-  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-stream-api`,`validation-stream-impl`,`point-stream-api`,`point-stream-impl`)
+  .aggregate(`catalogue-api`, `catalogue-impl`,`point-api`,`point-impl`,`environment-api`,`environment-impl`/*,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-stream-api`,`validation-stream-impl`*/,`point-stream-api`,`point-stream-impl`)
 
 lazy val `catalogue-api` = (project in file("catalogue-api"))
   .settings(

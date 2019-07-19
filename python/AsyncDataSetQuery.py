@@ -8,8 +8,27 @@ import json
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
         timestamp = datetime.datetime.timestamp(o) 
-        print("Converter " + str(timestamp))
+        print("Date Converter " + str(timestamp))
         return timestamp
+    
+class QueryResultInfo:
+    def __init__(self,resultFileName,status):
+            self._resultFileName = resultFileName
+            self._status = status;
+            self._json = json.dumps({'resultFileName':resultFileName,'status':status})
+            
+    @property
+    def resultFileName(self):
+        return self._resultFileName
+        
+    @property
+    def status(self):
+        return self._status
+    
+    @property
+    def json(self):
+        return self._json
+            
 
 class AsyncDataSetQuery:    
     def __init__(self, serverUrl, envName = "DEV" ):
@@ -17,10 +36,9 @@ class AsyncDataSetQuery:
             self.envName = envName
             self.headers = {'Content-Type':'application/json'}
 
-    async def validate(self, uri, request):
+    async def asyncServerRequest(self, uri, request):
         async with websockets.connect(uri) as websocket:
             await websocket.send(request)
-            i = 1
             data = []
             while True:
                 try:
@@ -28,51 +46,35 @@ class AsyncDataSetQuery:
                     data.append(response)
                 except websockets.ConnectionClosed:
                     return data
-                #print('Receiving... ' + response + ' [' + str(i) + ']')
-                i = i + 1
-
-    async def validateNetCdf( self, path, startsWith, endsWith, columns ):
-        
+    
+    def syncServerRequest( self, requestJson, endPoint ):
         loop = asyncio.get_running_loop()
         nest_asyncio.apply(loop)
-        # Create a new Future object.
-        fut = loop.create_future()
-
+        
+        results = loop.run_until_complete(self.asyncServerRequest( self.serverUrl + endPoint, requestJson))
+        
+        return results
+        
+    def validateNetCdf( self, path, startsWith, endsWith, columns ):
         request = { 'dir' : path, 'startsWith' : startsWith, 'endsWith' : endsWith, 'expectedColumns' : columns } 
-        j = json.dumps(request)
-
-        fut.set_result(await self.validate(self.serverUrl + '/validateasync', j))
-
-        return await fut
-
-    async def query(self, uri, request):
-        print(uri)
-        async with websockets.connect(uri) as websocket:
-            await websocket.send(request)
-            i = 1
-            data = []
-            while True:
-                try:
-                    response = await websocket.recv()
-                    data.append(response)
-                except websockets.ConnectionClosed:
-                    return data
-                print('Receiving... ' + response + ' [' + str(i) + ']')
-                i = i + 1
+        requestJson = json.dumps(request)
+        return self.syncServerRequest(requestJson, '/validateasync')
         
-    async def executeQuery( self, parentDs, dataSetName, minX, maxX, minY, maxY, minT, maxT, projections, filters ):
+    def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters ):             
+        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT}, 'projections':projections,'filters': filters}
         
-        loop = asyncio.get_running_loop()
-        nest_asyncio.apply(loop)
-        # Create a new Future object.
-        fut = loop.create_future()
-
-        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName ,'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT}, 'projections':projections,'filters': filters}
+        requestJson = json.dumps(request,default=dateconverter)
+           
+        results = self.syncServerRequest(requestJson, '/query')     
         
-        j = json.dumps(request,default=dateconverter)
+        resultJson = json.loads(results[len(results)-1])
+        return QueryResultInfo( resultJson['cacheName'],resultJson['status'] )
+    
+    def publishGridCellPoints(self, parentDataSet, dataSet, region, minX, minY, size, sourceFileName, projection):
+        request = { 'envName' : self.envName, 'parentDsName' : parentDataSet, 'dsName' :dataSet, 'region' : region , 'gcps' : { 'minX':minX, 'minY':minY, 'size': size, 'fileName' : sourceFileName, 'projection':projection }}
         
-        print(j)
+        requestJson = json.dumps(request,default=dateconverter)   
+        results = self.syncServerRequest(requestJson, '/publish')  
         
-        fut.set_result(await self.query( self.serverUrl + '/query' , j))
-
-        return await fut
+        return results
+       

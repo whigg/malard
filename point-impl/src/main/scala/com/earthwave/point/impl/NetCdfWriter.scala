@@ -94,7 +94,9 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], val schema
   }
 
   def close() ={
-
+    println("Flush called")
+    writer.flush()
+    println("Flush finished")
     writer.close()
   }
 }

@@ -15,8 +15,8 @@ def getDataFrameFromNetCDF(filePath):
     nc.close()
     return df
 
-def getSwathDetailsAsDataFrame(parentDsName, dsName, query):
-    swaths = query.getSwathDetails(parentDsName, dsName)
+def getSwathDetailsAsDataFrame(parentDsName, dsName, region, query):
+    swaths = query.getSwathDetails(parentDsName, dsName, region)
     
     jsonObj = json.loads(swaths)
 
@@ -25,6 +25,7 @@ def getSwathDetailsAsDataFrame(parentDsName, dsName, query):
     for rec in jsonObj:
         gridCells = pd.DataFrame(rec['gridCells'])
         gridCells['swathName'] = rec['swathName']
+        gridCells['swathId'] = rec['swathId']
         gridCells['pointCount'] = rec['pointCount']
         data.append(gridCells)
 

@@ -35,38 +35,38 @@ class DataSetQuery:
         dsUrl = self.serverUrl + '/api/datasets/' + parentName 
         response = requests.get(dsUrl, headers=self.headers)
         return response.text
-    def getDataSetBoundingBox(self, parentDsName, dsName):
-        dsUrl = self.serverUrl + '/api/boundingbox/' + parentDsName + '/' + dsName
+    def getDataSetBoundingBox(self, parentDsName, dsName, region):
+        dsUrl = self.serverUrl + '/api/boundingbox/' + parentDsName + '/' + dsName + '/' + region
         response = requests.get(dsUrl, headers=self.headers)
         return response.text
-    def getGridCells(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/api/boundingbox/' + parentDsName + '/' + dsName
+    def getGridCells(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
+        gcUrl = self.serverUrl + '/api/boundingbox/' + parentDsName + '/' + dsName+ '/' + region
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     #similar to getGridCells except a result for each time slice is also returned.
-    def getShards(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/api/shards/' + parentDsName + '/' + dsName
+    def getShards(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
+        gcUrl = self.serverUrl + '/api/shards/' + parentDsName + '/' + dsName + '/' + region
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
-    def getNetCdfFile(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/point/netcdffile/' + self.envName + "/" + parentDsName + '/' + dsName
+    def getNetCdfFile(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
+        gcUrl = self.serverUrl + '/point/netcdffile/' + self.envName + "/" + parentDsName + '/' + dsName+ '/' + region
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
-    def getDataSetColumns(self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/point/datasetcolumns/' + parentDsName + '/' + dsName
+    def getDataSetColumns(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
+        gcUrl = self.serverUrl + '/point/datasetcolumns/' + parentDsName + '/' + dsName+ '/' + region
         print(gcUrl)
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
-    def executeQuery( self, parentDsName, dsName, minX, maxX, minY, maxY, minT, maxT, projection, filters ):
-        gcUrl = self.serverUrl + '/point/query/' + self.envName + "/" + parentDsName + '/' + dsName
+    def executeQuery( self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, projection, filters ):
+        gcUrl = self.serverUrl + '/point/query/' + self.envName + "/" + parentDsName + '/' + dsName+ '/' + region
         query = { 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }, 'projection':projection,'filters': filters}
         jsonStr = json.dumps(query,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
@@ -77,16 +77,16 @@ class DataSetQuery:
         j = json.dumps(h)
         r = requests.post(url,data=j, headers=self.headers)
         return r.text
-    def getSwathDetailsFromId(self, parentDsName, dsName, swathId):
-        url = self.serverUrl + '/api/swathdetailsfromid/' + parentDsName + '/' + dsName + '/' + str(swathId)
+    def getSwathDetailsFromId(self, parentDsName, dsName, region, swathId):
+        url = self.serverUrl + '/api/swathdetailsfromid/' + parentDsName + '/' + dsName + '/' + region + '/' + str(swathId)
+        response = requests.get(url, headers=self.headers)
+        return response.text 
+    def getSwathDetailsFromName(self, parentDsName, dsName, region, name):
+        url = self.serverUrl + '/api/swathdetailsfromname/' + parentDsName + '/' + dsName + '/' + region + '/' + name
         response = requests.get(url, headers=self.headers)
         return response.text
-    def getSwathDetailsFromName(self, parentDsName, dsName, name):
-        url = self.serverUrl + '/api/swathdetailsfromname/' + parentDsName + '/' + dsName + '/' + name
-        response = requests.get(url, headers=self.headers)
-        return response.text
-    def getSwathDetails(self, parentDsName, dsName):
-        url = self.serverUrl + '/api/swathdetails/' + parentDsName + '/' + dsName
+    def getSwathDetails(self, parentDsName, dsName, region):
+        url = self.serverUrl + '/api/swathdetails/' + parentDsName + '/' + dsName + '/' + region 
         response = requests.get(url, headers=self.headers)
         return response.text
     def publishMask(self, sourcePath, fileName, parentDsName, dataSet, maskType, region, minX, minY, size ):
@@ -139,9 +139,9 @@ class DataSetQuery:
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
-    def publishGridCellPoints(self, parentDataSet, dataSet, minX, minY, size, sourceFileName, projection):
+    def publishGridCellPoints(self, parentDataSet, dataSet, region, minX, minY, size, sourceFileName, projection):
         #":envName/:parent/:dsname"
-        url = self.serverUrl + '/point/publishgridcellpoints/' + self.envName + '/' + parentDataSet + '/' + dataSet
+        url = self.serverUrl + '/point/publishgridcellpoints/' + self.envName + '/' + parentDataSet + '/' + dataSet+ '/' + region
         request = { 'minX':minX, 'minY':minY, 'size': size, 'fileName' : sourceFileName, 'projection':projection }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)

@@ -1,7 +1,5 @@
 package com.earthwave.point.impl
 
-import java.util.Date
-
 import com.earthwave.catalogue.api.BoundingBoxFilter
 import ucar.ma2.DataType
 
@@ -19,7 +17,10 @@ object ArrayHelper {
     {
       val x = xArr.getDouble(i)
       val y = yArr.getDouble(i)
-      val t = tArr.getLong(i)
+      val t = tArr.getDouble(i)
+
+      if( i == 0)
+        println( s"x=$x MinMaxX=${bbf.minX},${bbf.maxX} y=$y MinMaxY=${bbf.minY},${bbf.maxY} t=$t minMaxT=${bbf.minT},${bbf.maxT}")
 
       if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t >= bbf.minT && t <= bbf.maxT ) {
         val filterRes = f.map(x => x._1.op(x._2.getDouble(i))).filter(res => res == true)
@@ -94,13 +95,13 @@ object ArrayHelper {
 
       return ucar.ma2.Array.factory(array)
     }
-    else if( dt == DataType.STRING ) {
+    else if( dt == DataType.STRING || dt == DataType.OBJECT) {
       val array = new Array[String](mask.length)
 
       for (j <- 0 until length) {
         array(j) = src.getObject(mask(j)).toString
       }
-      return ucar.ma2.Array.factory(DataType.STRING, origin, array)
+      return ucar.ma2.Array.makeArray(DataType.STRING, array)
     }
 
     throw new Exception(s"Unexpected column type: ${dt.toString}")

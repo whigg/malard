@@ -10,6 +10,7 @@ object ShardDetailImpl
   def fromDocument( doc : Document ): CatalogueElement= {
 
     val dsName: String = doc.getString("dsName")
+    val region: String = doc.getString("region")
     val shardName: String = doc.getString("shardName")
     val projection: String = doc.getString("projection")
     val year: Int = doc.getInteger("year")
@@ -27,12 +28,12 @@ object ShardDetailImpl
     val maxLat: Double = doc.getDouble("maxLat")
     val minLon: Double = doc.getDouble("minLon")
     val maxLon: Double = doc.getDouble("maxLon")
-    val minTime: Date = doc.getDate("minTime")
-    val maxTime: Date = doc.getDate("maxTime")
+    val minTime: Double = doc.getDouble("minTime")
+    val maxTime: Double = doc.getDouble("maxTime")
     val count: Long = doc.getLong("count")
-    val qualityCount: Long = doc.getLong("qualityCount")
 
     CatalogueElement(dsName
+      , region
       , shardName
       , projection
       , year
@@ -53,13 +54,14 @@ object ShardDetailImpl
       , minTime
       , maxTime
       , count
-      , qualityCount)
+      )
   }
 
   def toDocument( element : CatalogueElement) : Document ={
 
     Document(
       "dsName" -> element.dsName,
+      "region" -> element.region,
       "shardName" -> element.shardName,
       "projection" -> element.projection,
       "month" -> element.month,
@@ -79,7 +81,6 @@ object ShardDetailImpl
       "maxLon" -> element.maxLon,
       "minTime" -> element.minTime ,
       "maxTime" -> element.maxTime,
-      "count" -> element.count,
-      "qualityCount" -> element.qualityCount)
+      "count" -> element.count)
   }
 }
