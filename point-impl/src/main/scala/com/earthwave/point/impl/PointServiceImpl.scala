@@ -27,8 +27,8 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
   implicit val ec = ExecutionContext.global
   implicit val timeOut = Timeout(30 seconds)
 
-  override def getGeoJson(  parentDSName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter,FeatureCollection] ={ bbf =>
-      val future = catalogue.shards(parentDSName, dsName, region).invoke(bbf)
+  override def getGeoJson( envName :String, parentDSName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter,FeatureCollection] ={ bbf =>
+      val future = catalogue.shards(envName, parentDSName, dsName, region).invoke(bbf)
 
       val result = Await.result( future, 10 seconds  )
       val numberOfPoints = result.map(x => x.numberOfPoints).sum
@@ -40,9 +40,9 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
       featureCollection
   }
 
-  override def getDataSetColumns(parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, Columns] = { bbf =>
+  override def getDataSetColumns(envName :String, parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, Columns] = { bbf =>
 
-    val future = catalogue.shards(parentDsName, dsName, region).invoke(bbf)
+    val future = catalogue.shards(envName, parentDsName, dsName, region).invoke(bbf)
 
     val shards =  Await.result(future, 10 seconds)
 
@@ -62,7 +62,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
-      val future = catalogue.shards(parentDsName, dsName, region).invoke(bbf)
+      val future = catalogue.shards(envName, parentDsName, dsName, region).invoke(bbf)
 
       val shards = Await.result(future, 10 seconds)
       if(!shards.isEmpty) {
@@ -113,7 +113,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     val cacheCheck = new File(fileName)
 
     if( !cacheCheck.exists() ) {
-      val future = catalogue.shards(parentDSName, dsName, region).invoke(q.bbf)
+      val future = catalogue.shards(envName, parentDSName, dsName, region).invoke(q.bbf)
 
       val shards = Await.result(future, 10 seconds)
 
@@ -212,7 +212,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
     reader.close()
     writer.close()
 
-    Await.result(catalogue.publishCatalogueElement(parentDsName,dsName).invoke(catalogueElement), 10 seconds )
+    Await.result(catalogue.publishCatalogueElement(envName, parentDsName,dsName).invoke(catalogueElement), 10 seconds )
 
     Future.successful(s"Published grid cell points for input ${gcp.fileName} to ${catalogueElement.shardName}")
   }

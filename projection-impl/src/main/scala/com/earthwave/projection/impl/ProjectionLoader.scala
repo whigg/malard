@@ -1,5 +1,6 @@
 package com.earthwave.projection.impl
 
+import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.projection.api.ProjectionService
 import com.lightbend.lagom.scaladsl.api.ServiceLocator
 import com.lightbend.lagom.scaladsl.api.ServiceLocator.NoServiceLocator
@@ -36,5 +37,6 @@ abstract class GridCellStatsApplication(context: LagomApplicationContext)
   // Register the JSON serializer registry
   override lazy val jsonSerializerRegistry: JsonSerializerRegistry = ProjectionSerializerRegistry
 
+  lazy val environmentService = serviceClient.implement[EnvironmentService]
 
 }

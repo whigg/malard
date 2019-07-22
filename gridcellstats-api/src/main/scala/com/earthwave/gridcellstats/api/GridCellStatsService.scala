@@ -13,23 +13,23 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
   */
 trait GridCellStatsService extends Service {
 
-  def publishGridCellStats( parentDataSet : String, runName : String ) : ServiceCall[GridCellStatistics, String]
+  def publishGridCellStats(envName : String,  parentDataSet : String, runName : String  ) : ServiceCall[GridCellStatistics, String]
 
-  def getAvailableStatistics( parentDataSet : String ) : ServiceCall[NotUsed, List[String] ]
+  def getAvailableStatistics( envName : String, parentDataSet : String ) : ServiceCall[NotUsed, List[String] ]
 
-  def getGridCellStatistics( parentDataSet : String, runName : String ) : ServiceCall[GridCell,Map[String,Double]]
+  def getGridCellStatistics( envName : String, parentDataSet : String, runName : String) : ServiceCall[GridCell,Map[String,Double]]
 
-  def getRunStatistics( parentDataSet : String, runName : String ) : ServiceCall[NotUsed,List[GridCellStatistics]]
+  def getRunStatistics( envName : String, parentDataSet : String, runName : String ) : ServiceCall[NotUsed,List[GridCellStatistics]]
 
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
     named("gridcellstats")
       .withCalls(
-        pathCall("/gridcellstats/publishgridcellstats/:parentdataset/:runName", publishGridCellStats _ ),
-        pathCall("/gridcellstats/getavailablestatistics/:parentdataset", getAvailableStatistics _ ),
-        pathCall("/gridcellstats/getgridcellstatistics/:parentdataset/:runName", getGridCellStatistics _),
-        pathCall("/gridcellstats/getrunstatistics/:parentdataset/:runName", getRunStatistics _)
+        pathCall("/gridcellstats/publishgridcellstats/:envName/:parentdataset/:runName", publishGridCellStats _ ),
+        pathCall("/gridcellstats/getavailablestatistics/:envName/:parentdataset", getAvailableStatistics _ ),
+        pathCall("/gridcellstats/getgridcellstatistics/:envName/:parentdataset/:runName", getGridCellStatistics _),
+        pathCall("/gridcellstats/getrunstatistics/:envName/:parentdataset/:runName", getRunStatistics _)
       )
       .withAutoAcl(true)
     // @formatter:on

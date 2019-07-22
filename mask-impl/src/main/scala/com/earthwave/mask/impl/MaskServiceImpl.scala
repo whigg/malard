@@ -20,13 +20,13 @@ import scala.concurrent.duration._
   */
 class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
-  private val client = MongoClient()
   implicit val ec = ExecutionContext.global
 
   override def publishMask( envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String] = { x =>
 
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks" )
 
@@ -84,6 +84,9 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   override def getMasks(envName : String, parentDataSet : String, dataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
 
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
@@ -105,6 +108,9 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   override def getGridCellMasks(envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]] ={ _ =>
 
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
@@ -119,6 +125,9 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   override def getGridCellMask(envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
 
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
 
     val collection = db.getCollection("masks")

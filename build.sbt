@@ -33,7 +33,7 @@ lazy val `catalogue-impl` = (project in file("catalogue-impl"))
     )
   )
   .settings(lagomForkedTestSettings)
-  .dependsOn(`catalogue-api`)
+  .dependsOn(`catalogue-api`,`environment-api`)
 
 lazy val `point-api` = (project in file("point-api"))
   .settings(
@@ -120,7 +120,7 @@ lazy val `mask-impl` = (project in file("mask-impl"))
     )
   )
   .settings(lagomForkedTestSettings)
-  .dependsOn(`gridcellstats-api`)
+  .dependsOn(`gridcellstats-api`,`environment-api`)
   
    lazy val `projection-api` = (project in file("projection-api"))
   .settings(
@@ -142,7 +142,7 @@ lazy val `mask-impl` = (project in file("mask-impl"))
     )
   )
   .settings(lagomForkedTestSettings)
-  .dependsOn(`projection-api`)
+  .dependsOn(`projection-api`,`environment-api`)
 
 lazy val `validation-stream-api` = (project in file("validation-stream-api"))
   .settings(

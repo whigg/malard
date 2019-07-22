@@ -11,16 +11,16 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
   */
 trait ProjectionService extends Service {
 
-  def getProjection( shortName : String ) : ServiceCall[NotUsed, Projection]
-  def publishProjection() : ServiceCall[Projection, String]
+  def getProjection( envName : String , shortName : String ) : ServiceCall[NotUsed, Projection]
+  def publishProjection( envName : String) : ServiceCall[Projection, String]
 
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
     named("projection")
       .withCalls(
-        pathCall("/projection/getprojection/:shortName", getProjection _ ),
-        pathCall("/projection/publishprojection", publishProjection _ )
+        pathCall("/projection/getprojection/:envName/:shortName", getProjection _ ),
+        pathCall("/projection/publishprojection/:envName", publishProjection _ )
       )
       .withAutoAcl(true)
     // @formatter:on

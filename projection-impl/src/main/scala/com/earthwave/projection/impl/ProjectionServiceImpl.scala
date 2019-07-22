@@ -1,6 +1,7 @@
 package com.earthwave.projection.impl
 
 import akka.NotUsed
+import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.projection.api.{Projection, ProjectionService}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 import org.mongodb.scala.{Completed, Document, MongoClient, Observer}
@@ -12,13 +13,14 @@ import scala.concurrent.duration._
 /**
   * Implementation of the CatalogueService.
   */
-class ProjectionServiceImpl() extends ProjectionService {
+class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService {
 
-  private val client = MongoClient()
   implicit val ec = ExecutionContext.global
 
-  override def getProjection(shortName: String): ServiceCall[NotUsed, Projection] = { _ =>
+  override def getProjection(shortName: String, envName : String): ServiceCall[NotUsed, Projection] = { _ =>
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase("Configuration")
     val collection = db.getCollection("Projections")
 
@@ -34,7 +36,10 @@ class ProjectionServiceImpl() extends ProjectionService {
     Future.successful(Projection(shortName, proj4))
   }
 
-  override def publishProjection(): ServiceCall[Projection, String] = { proj =>
+  override def publishProjection(envName : String): ServiceCall[Projection, String] = { proj =>
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase("Configuration")
     val collection = db.getCollection("Projections")
 

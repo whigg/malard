@@ -95,7 +95,7 @@ class QueryProcessor( catalogueService: CatalogueService ) extends Actor {
 
       try {
         val q = pq.streamQuery
-        val future = catalogueService.shards(q.parentDSName, q.dsName, q.region).invoke(q.bbf)
+        val future = catalogueService.shards(pq.streamQuery.envName, q.parentDSName, q.dsName, q.region).invoke(q.bbf)
         val shards = Await.result(future, 10 seconds)
 
         println(s"Found [${shards.length}]")

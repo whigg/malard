@@ -135,7 +135,7 @@ class Publisher( catalogueService: CatalogueService, val processNr : Int) extend
       reader.close()
       writer.close()
 
-      Await.result(catalogueService.publishCatalogueElement(p.publishRequest.parentDsName,p.publishRequest.dsName).invoke(catalogueElement), 10 seconds )
+      Await.result(catalogueService.publishCatalogueElement(p.publishRequest.envName, p.publishRequest.parentDsName,p.publishRequest.dsName).invoke(catalogueElement), 10 seconds )
 
       sender ! PublisherMessages.Completed(PublisherStatus(true, p.publishRequest.gcps.fileName, s"Successfully published: [${catalogueElement.shardName}] " ))
     }

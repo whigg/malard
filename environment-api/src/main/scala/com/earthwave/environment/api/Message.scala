@@ -5,7 +5,7 @@ import play.api.libs.json.{Format, Json}
 /**
   * The CatalogueFilter message class.
   */
-case class Environment( name : String, maskPublisherPath : String, cacheCdfPath : String, pointCdfPath : String )
+case class Environment( name : String, maskPublisherPath : String, cacheCdfPath : String, pointCdfPath : String, mongoConnection : String )
 
 object Environment
 {

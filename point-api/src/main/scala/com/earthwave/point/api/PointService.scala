@@ -14,7 +14,7 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
   */
 trait PointService extends Service {
 
-  def getGeoJson( parentDSName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter,Messages.FeatureCollection]
+  def getGeoJson( envName : String, parentDSName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter,Messages.FeatureCollection]
 
   def getNetCdfFile( envName : String, parentDsName : String, dsName : String, region : String ) : ServiceCall[BoundingBoxFilter,String]
 
@@ -22,7 +22,7 @@ trait PointService extends Service {
 
   def releaseCache() : ServiceCall[Cache,String]
 
-  def getDataSetColumns(parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, Messages.Columns]
+  def getDataSetColumns(envName : String, parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, Messages.Columns]
 
   def publishGridCellPoints( envName : String, parentDsName : String, dsName : String, region : String ) : ServiceCall[GridCellPoints, String]
 
@@ -31,9 +31,9 @@ trait PointService extends Service {
     // @formatter:off
     named("point")
       .withCalls(
-        pathCall("/point/getgeojson/:parent/:dsname/:region", getGeoJson _ ),
+        pathCall("/point/getgeojson/:envname/:parent/:dsname/:region", getGeoJson _ ),
         pathCall("/point/netcdffile/:envName/:parent/:dsname/:region", getNetCdfFile _ ),
-        pathCall("/point/datasetcolumns/:parent/:dsname/:region", getDataSetColumns _ ),
+        pathCall("/point/datasetcolumns/:envName/:parent/:dsname/:region", getDataSetColumns _ ),
         pathCall("/point/query/:envName/:parent/:dsname/:region", executeQuery _),
         pathCall("/point/releasecache", releaseCache()),
         pathCall("/point/publishgridcellpoints/:envName/:parent/:dsname/:region", publishGridCellPoints _ )

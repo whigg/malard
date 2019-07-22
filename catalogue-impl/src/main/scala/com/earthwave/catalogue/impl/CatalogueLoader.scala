@@ -7,6 +7,7 @@ import com.lightbend.lagom.scaladsl.server._
 import com.lightbend.lagom.scaladsl.devmode.LagomDevModeComponents
 import play.api.libs.ws.ahc.AhcWSComponents
 import com.earthwave.catalogue.api.CatalogueService
+import com.earthwave.environment.api.EnvironmentService
 import com.lightbend.lagom.scaladsl.broker.kafka.LagomKafkaComponents
 import com.lightbend.lagom.scaladsl.playjson.JsonSerializerRegistry
 import com.softwaremill.macwire._
@@ -33,6 +34,7 @@ abstract class CatalogueApplication(context: LagomApplicationContext)
   // Bind the service that this server provides
   override lazy val lagomServer: LagomServer = serverFor[CatalogueService](wire[CatalogueServiceImpl])
 
+  lazy val environmentService = serviceClient.implement[EnvironmentService]
   // Register the JSON serializer registry
   override lazy val jsonSerializerRegistry: JsonSerializerRegistry = CatalogueSerializerRegistry
 

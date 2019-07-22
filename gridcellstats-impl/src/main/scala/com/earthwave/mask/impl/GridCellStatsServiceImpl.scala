@@ -1,6 +1,7 @@
 package com.earthwave.gridcellstats.impl
 
 import akka.NotUsed
+import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.gridcellstats.api.{GridCellStatistics, GridCellStatsService}
 import com.earthwave.mask.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -15,13 +16,15 @@ import scala.concurrent.duration._
 /**
   * Implementation of the CatalogueService.
   */
-class GridCellStatsServiceImpl() extends GridCellStatsService {
+class GridCellStatsServiceImpl(env : EnvironmentService) extends GridCellStatsService {
 
-  private val client = MongoClient()
   implicit val ec = ExecutionContext.global
 
-  override def publishGridCellStats( parentDataSet : String, runName : String ) : ServiceCall[GridCellStatistics, String] = { gcs =>
+  override def publishGridCellStats( envName : String,parentDataSet : String, runName : String ) : ServiceCall[GridCellStatistics, String] = { gcs =>
 
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("statistics" )
 
@@ -48,8 +51,10 @@ class GridCellStatsServiceImpl() extends GridCellStatsService {
     Future.successful(s"Published")
   }
 
-  override def getAvailableStatistics(parentDataSet: String): ServiceCall[NotUsed, List[String]] = { _ =>
+  override def getAvailableStatistics(envName : String,parentDataSet: String): ServiceCall[NotUsed, List[String]] = { _ =>
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("statistics" )
 
@@ -65,8 +70,10 @@ class GridCellStatsServiceImpl() extends GridCellStatsService {
     Future.successful(runNames)
   }
 
-  override def getGridCellStatistics(parentDataSet: String, runName: String): ServiceCall[GridCell, Map[String, Double]] = { gc =>
+  override def getGridCellStatistics(envName : String, parentDataSet: String, runName: String): ServiceCall[GridCell, Map[String, Double]] = { gc =>
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
 
     val collection = db.getCollection("statistics")
@@ -87,8 +94,10 @@ class GridCellStatsServiceImpl() extends GridCellStatsService {
     Future.successful(statsMap.toMap)
   }
 
-  override def getRunStatistics(parentDataSet: String, runName: String): ServiceCall[NotUsed, List[GridCellStatistics]] = { _ =>
+  override def getRunStatistics(envName : String, parentDataSet: String, runName: String): ServiceCall[NotUsed, List[GridCellStatistics]] = { _ =>
+    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
+    val client = MongoClient(environment.mongoConnection)
     val db = client.getDatabase(parentDataSet)
 
     val collection = db.getCollection("statistics")

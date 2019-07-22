@@ -74,9 +74,8 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
       val doc = Await.result( collection.find(f).toFuture(), 10 seconds ).head
 
-      Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath") )
+      Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath"), doc.getString("mongoConnection") )
     }
-
     val res = getEnvFromDb()
 
     def createDir( path : String): Unit =
