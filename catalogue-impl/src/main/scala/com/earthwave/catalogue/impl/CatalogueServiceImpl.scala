@@ -39,7 +39,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     Future.successful( res.map(d=> DataSet(d)).filterNot( p => ignoreDataSets.contains(p.name) ).toList )
   }
 
-  override def dataSets( parentName : String, envName : String): ServiceCall[NotUsed,List[DataSetRegion]] = {_ =>
+  override def dataSets( envName : String,  parentName : String): ServiceCall[NotUsed,List[DataSetRegion]] = {_ =>
 
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
@@ -65,7 +65,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     Future.successful((dataSets.toList))
   }
 
-  override def boundingBox( parentName : String, dsName : String, region : String, envName : String  ) : ServiceCall[NotUsed, BoundingBox] = { _ => {
+  override def boundingBox( envName : String, parentName : String, dsName : String, region : String  ) : ServiceCall[NotUsed, BoundingBox] = { _ => {
 
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
@@ -102,7 +102,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     }
   }
 
-  override def boundingBoxQuery(parentDsName: String, dsName: String, region : String, envName : String): ServiceCall[BoundingBoxFilter, List[BoundingBox]] = { bbf =>
+  override def boundingBoxQuery(envName : String, parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, List[BoundingBox]] = { bbf =>
     {
       val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
@@ -151,7 +151,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     }
   }
 
-  override def shards(parentDsName: String, dsName: String, region : String, envName : String): ServiceCall[BoundingBoxFilter, List[Shard]] = { bbf =>
+  override def shards( envName : String, parentDsName: String, dsName: String, region : String): ServiceCall[BoundingBoxFilter, List[Shard]] = { bbf =>
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
     val client = MongoClient(environment.mongoConnection)
@@ -191,7 +191,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     Future.successful(docs)
   }
 
-  override def getSwathDetailsFromName( parentDsName : String, dsName : String, region : String, name : String, envName : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
+  override def getSwathDetailsFromName( envName : String, parentDsName : String, dsName : String, region : String, name : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
     val f : Bson = and(equal("region",region),and(equal("datasetName",dsName), equal("swathName", name)))
 
     val results = getSwathDetailsWithFilter( parentDsName, f, envName )
@@ -217,7 +217,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     Future.successful(results.head)
   }
 
-  override def getSwathDetails( parentDsName : String, dsName : String,region : String, envName : String ) : ServiceCall[NotUsed,List[SwathDetail]] ={ _ =>
+  override def getSwathDetails(envName : String , parentDsName : String, dsName : String,region : String) : ServiceCall[NotUsed,List[SwathDetail]] ={ _ =>
 
     val f : Bson = and(equal("datasetName",dsName),equal("region", region))
 
@@ -253,7 +253,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     docs.map(d => convertResults(d))
   }
 
-  override def publishCatalogueElement(parentDsName: String, dsName: String, envName : String): ServiceCall[CatalogueElement, String] = { ce =>
+  override def publishCatalogueElement( envName : String, parentDsName: String, dsName: String) : ServiceCall[CatalogueElement, String] = { ce =>
 
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 

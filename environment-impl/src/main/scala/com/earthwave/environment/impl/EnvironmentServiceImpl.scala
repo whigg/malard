@@ -38,7 +38,8 @@ class EnvironmentServiceImpl() extends EnvironmentService {
     val doc = Document( "name" -> name
                       , "publisherPath" -> x.maskPublisherPath
                       , "outputCdfPath" -> x.cacheCdfPath
-                      , "pointCdfPath" -> x.pointCdfPath)
+                      , "pointCdfPath" -> x.pointCdfPath
+                      , "mongoConnection" -> x.mongoConnection)
 
     val obs = collection.insertOne(doc)
 

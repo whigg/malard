@@ -17,7 +17,7 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
 
   implicit val ec = ExecutionContext.global
 
-  override def getProjection(shortName: String, envName : String): ServiceCall[NotUsed, Projection] = { _ =>
+  override def getProjection(envName: String, shortName : String): ServiceCall[NotUsed, Projection] = { _ =>
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
     val client = MongoClient(environment.mongoConnection)

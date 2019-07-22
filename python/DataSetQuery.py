@@ -9,16 +9,17 @@ def dateconverter(o):
         return timestamp
 
 class DataSetQuery:
-    def __init__(self, serverUrl, envName = "DEV" ):
+    def __init__(self, serverUrl, envName = "DEVv2" ):
         self.serverUrl = serverUrl
         self.envName = envName
         self.headers = {'Content-Type':'application/json'}
-    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath ):
+    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath, mongoConnection ):
         data = { 'name': name
                 , 'cacheCdfPath': cacheCdfPath
                 , 'maskPublisherPath': maskPublisherPath
-                , 'pointCdfPath': pointCdfPath }
-
+                , 'pointCdfPath': pointCdfPath 
+                , 'mongoConnection' : mongoConnection }
+                    
         jsonStr = json.dumps(data)
         setUrl = self.serverUrl + '/env/createenvironment/' + name 
         response = requests.post(setUrl, data=jsonStr, headers=self.headers)
