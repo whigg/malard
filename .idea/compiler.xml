@@ -4,7 +4,12 @@
     <bytecodeTargetLevel>
       <module name="catalogue-impl" target="1.8" />
       <module name="environment-impl" target="1.8" />
+      <module name="gridcellstats-impl" target="1.8" />
+      <module name="mask-impl" target="1.8" />
       <module name="point-impl" target="1.8" />
+      <module name="point-stream-impl" target="1.8" />
+      <module name="projection-impl" target="1.8" />
+      <module name="validation-stream-impl" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

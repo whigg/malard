@@ -12,9 +12,19 @@
             <option value="$PROJECT_DIR$/catalogue-impl" />
             <option value="$PROJECT_DIR$/environment-api" />
             <option value="$PROJECT_DIR$/environment-impl" />
+            <option value="$PROJECT_DIR$/gridcellstats-api" />
+            <option value="$PROJECT_DIR$/gridcellstats-impl" />
+            <option value="$PROJECT_DIR$/mask-api" />
+            <option value="$PROJECT_DIR$/mask-impl" />
             <option value="$PROJECT_DIR$/point-api" />
             <option value="$PROJECT_DIR$/point-impl" />
+            <option value="$PROJECT_DIR$/point-stream-api" />
+            <option value="$PROJECT_DIR$/point-stream-impl" />
             <option value="$PROJECT_DIR$/project" />
+            <option value="$PROJECT_DIR$/projection-api" />
+            <option value="$PROJECT_DIR$/projection-impl" />
+            <option value="$PROJECT_DIR$/validation-stream-api" />
+            <option value="$PROJECT_DIR$/validation-stream-impl" />
           </set>
         </option>
         <option name="sbtVersion" value="1.2.8" />

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <profile name="sbt 1" modules="catalogue-api,catalogue-impl,environment-api,environment-impl,malard,malard_7960,point-api,point-impl" />
+    <profile name="sbt 1" modules="catalogue-api,catalogue-impl,environment-api,environment-impl,gridcellstats-api,gridcellstats-impl,malard,malard_7960,mask-api,mask-impl,point-api,point-impl,point-stream-api,point-stream-impl,projection-api,projection-impl,validation-stream-api,validation-stream-impl" />
   </component>
 </project>

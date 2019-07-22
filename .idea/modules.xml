@@ -6,10 +6,20 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/catalogue-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/catalogue-impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/environment-api.iml" filepath="$PROJECT_DIR$/.idea/modules/environment-api.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/environment-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/environment-impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gridcellstats-api.iml" filepath="$PROJECT_DIR$/.idea/modules/gridcellstats-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gridcellstats-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/gridcellstats-impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/malard.iml" filepath="$PROJECT_DIR$/.idea/modules/malard.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/malard-build.iml" filepath="$PROJECT_DIR$/.idea/modules/malard-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mask-api.iml" filepath="$PROJECT_DIR$/.idea/modules/mask-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mask-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/mask-impl.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/point-api.iml" filepath="$PROJECT_DIR$/.idea/modules/point-api.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/point-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/point-impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/point-stream-api.iml" filepath="$PROJECT_DIR$/.idea/modules/point-stream-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/point-stream-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/point-stream-impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/projection-api.iml" filepath="$PROJECT_DIR$/.idea/modules/projection-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/projection-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/projection-impl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/validation-stream-api.iml" filepath="$PROJECT_DIR$/.idea/modules/validation-stream-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/validation-stream-impl.iml" filepath="$PROJECT_DIR$/.idea/modules/validation-stream-impl.iml" />
     </modules>
   </component>
 </project>

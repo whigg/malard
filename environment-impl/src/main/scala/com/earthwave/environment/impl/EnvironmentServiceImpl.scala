@@ -22,10 +22,11 @@ import scala.concurrent.duration._
   */
 class EnvironmentServiceImpl() extends EnvironmentService {
 
-  val client = MongoClient()
+  val mongoConnectionOverrides = Map("DEVv2"-> "mongodb://localhost:27018")
 
   override def createEnvironment( name : String ): ServiceCall[Environment, String] = { x =>
 
+    val client = MongoClient(x.mongoConnection)
     val insertCheck = equal("name", name )
     val db = client.getDatabase("Configuration")
     val collection = db.getCollection("Environment")
@@ -68,6 +69,10 @@ class EnvironmentServiceImpl() extends EnvironmentService {
   override def getEnvironment( name : String): ServiceCall[NotUsed, Environment] = { _ =>
 
     def getEnvFromDb(): Environment = {
+
+      val connectionString = mongoConnectionOverrides.getOrElse(name,"mongodb://localhost:27017")
+      val client = MongoClient(connectionString)
+
       val db = client.getDatabase("Configuration")
       val collection = db.getCollection("Environment")
 
