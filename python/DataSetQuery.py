@@ -130,13 +130,23 @@ class DataSetQuery:
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
-    def getProjection(self, shortName ):
-        url = self.serverUrl + '/projection/getprojection/' + self.envName + '/' + shortName
+    def getProjectionFromShortName(self, shortName ):
+        url = self.serverUrl + '/projection/getprojectionfromshortname/' + self.envName + '/' + shortName
+        response = requests.get(url, headers=self.headers)
+        return response.text
+    def getProjection(self, parentDataSetName, region ):
+        url = self.serverUrl + '/projection/getprojection/' + self.envName + '/' + parentDataSetName + '/' + region
         response = requests.get(url, headers=self.headers)
         return response.text
     def publishProjection(self, shortName, proj4):
         url = self.serverUrl + '/projection/publishprojection/' + self.envName
         request = { 'shortName':shortName, 'proj4':proj4 }
+        j = json.dumps(request)
+        response = requests.post(url, data=j, headers=self.headers)
+        return response.text
+    def publishProjectionRegionMapping(self, parentDataSetName, region, shortName ):
+        url = self.serverUrl + '/projection/publishregionmapping/' + self.envName
+        request = { 'parentDataSetName': parentDataSetName, 'region':region, 'shortName':shortName }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
