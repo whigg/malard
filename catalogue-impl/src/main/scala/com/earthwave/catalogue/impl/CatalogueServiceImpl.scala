@@ -205,20 +205,21 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
   }
 
   override def getSwathDetailsFromId( envName : String, parentDsName : String, dsName : String, region : String, id : Long ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
+    println(s"SwathDetailsFromId $envName, $parentDsName, $dsName, $region $id")
     val f : Bson = and(equal("region",region),and(equal("datasetName",dsName), equal("swathId",id)))
 
     val results = getSwathDetailsWithFilter( parentDsName, f, envName )
 
     if( results.isEmpty )
-      throw new Exception(s"No results returned for id=[$id].")
+      throw new Exception(s"No results returned for Env=[$envName] PDS=[$parentDsName] ds=[$dsName] region=[$region]  id=[$id]")
     if( results.length > 1)
-      throw new Exception(s"Duplicate swath details found for id=[$id].")
+      throw new Exception(s"Duplicate swath details found for Env=[$envName] PDS=[$parentDsName] ds=[$dsName] region=[$region]  id=[$id].")
 
     Future.successful(results.head)
   }
 
   override def getSwathDetails(envName : String , parentDsName : String, dsName : String,region : String) : ServiceCall[NotUsed,List[SwathDetail]] ={ _ =>
-
+    println(s"SwathDetails $envName, $parentDsName, $dsName, $region")
     val f : Bson = and(equal("datasetName",dsName),equal("region", region))
 
     Future.successful(getSwathDetailsWithFilter( parentDsName, f, envName))
