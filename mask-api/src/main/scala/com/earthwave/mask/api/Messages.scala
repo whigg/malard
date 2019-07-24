@@ -23,7 +23,7 @@ object MaskFile
   implicit val format : Format[MaskFile] = Json.format[MaskFile]
 }
 
-case class Mask( `type` : String, region : String )
+case class Mask( dataSet : String, `type` : String, region : String )
 
 object Mask
 {

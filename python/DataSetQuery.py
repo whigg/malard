@@ -96,8 +96,8 @@ class DataSetQuery:
         j = json.dumps(request)
         response = requests.post(url,data=j, headers=self.headers)
         return response.text
-    def getMasks(self, parentDsName, dataSet ):
-        url = self.serverUrl + '/mask/gridmasks/' + self.envName + "/" + parentDsName + '/' + dataSet
+    def getMasks(self, parentDsName ):
+        url = self.serverUrl + '/mask/gridmasks/' + self.envName + "/" + parentDsName
         response = requests.get(url, headers=self.headers)
         return response.text
     def getGridCellMasks(self, parentdataset, dataSet, maskType, region):

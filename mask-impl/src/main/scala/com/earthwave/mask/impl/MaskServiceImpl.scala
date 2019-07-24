@@ -82,7 +82,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     Future.successful(s"Published: ${outputFile}")
   }
 
-  override def getMasks(envName : String, parentDataSet : String, dataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
+  override def getMasks(envName : String, parentDataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
 
     val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
 
@@ -90,17 +90,18 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
-    val f = filter(and(equal("dataSet",dataSet),equal("envName",envName)))
+    val f = filter(equal("envName",envName))
 
-    val groupByCols = Document( "type" -> "$type"
+    val groupByCols = Document( "dataSet"-> "$dataSet"
+                               , "type" -> "$type"
                               , "region" -> "$region" )
 
-    val g = group( groupByCols, sum("type", 1), sum("region", 1))
+    val g = group( groupByCols, sum("dataSet",1 ), sum("type", 1), sum("region", 1))
 
     val results = Await.result(collection.aggregate(List(f,g)).toFuture(), 10 seconds ).toList
 
     val masks = results.map( d => { val id = d.get("_id").get.asDocument()
-                                    Mask( id.getString("type").getValue, id.getString("region").getValue  )
+                                    Mask( id.getString("dataSet").getValue, id.getString("type").getValue, id.getString("region").getValue  )
                                   })
 
     Future.successful(masks)
