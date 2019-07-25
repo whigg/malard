@@ -5,7 +5,6 @@ import datetime
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
         timestamp = datetime.datetime.timestamp(o) 
-        print(timestamp)
         return timestamp
 
 class DataSetQuery:
@@ -61,7 +60,6 @@ class DataSetQuery:
         return response.text
     def getDataSetColumns(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
         gcUrl = self.serverUrl + '/point/datasetcolumns/'+ self.envName + '/' + parentDsName + '/' + dsName+ '/' + region
-        print(gcUrl)
         bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
