@@ -164,9 +164,9 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
     val f: Bson =  and(equal("dsName",dsName)
       ,and(equal("region", region)
-      ,and(gte( "gridCellMaxX", bbf.minX )
+      ,and(gt( "gridCellMaxX", bbf.minX )
         ,and(lte( "gridCellMinX", bbf.maxX)
-          ,and(gte( "gridCellMaxY", bbf.minY)
+          ,and(gt( "gridCellMaxY", bbf.minY)
             ,and(lte("gridCellMinY", bbf.maxY)
               ,and(gte( "maxTime", bbf.minT )
                 , lte( "minTime", bbf.maxT ))))))))
