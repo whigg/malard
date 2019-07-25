@@ -19,9 +19,6 @@ object ArrayHelper {
       val y = yArr.getDouble(i)
       val t = tArr.getDouble(i)
 
-      if( i == 0)
-        println( s"x=$x MinMaxX=${bbf.minX},${bbf.maxX} y=$y MinMaxY=${bbf.minY},${bbf.maxY} t=$t minMaxT=${bbf.minT},${bbf.maxT}")
-
       if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t >= bbf.minT && t <= bbf.maxT ) {
         val filterRes = f.map(x => x._1.op(x._2.getDouble(i))).filter(res => res == true)
         if( numberOfFilters == filterRes.length ) {
