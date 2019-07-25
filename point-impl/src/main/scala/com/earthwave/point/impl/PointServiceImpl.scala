@@ -104,6 +104,7 @@ class PointServiceImpl( catalogue : CatalogueService, env : EnvironmentService, 
 
   override def executeQuery(envName : String, parentDSName : String, dsName : String, region : String ) : ServiceCall[Query, String] = { q =>
 
+    println(s"Execute Query Env=[${envName}] Parent=[${parentDSName}], dsName=[$dsName] Region=[${region}]")
     val outputPath = Await.result(env.getEnvironment(envName).invoke(), 10 seconds ).cacheCdfPath
 
     val projection = q.projection.foldLeft[String]("")( (x,y) => x + "_" + y )
