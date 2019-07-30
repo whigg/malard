@@ -1,7 +1,5 @@
 package com.earthwave.catalogue.impl
 
-import java.util.Date
-
 import akka.NotUsed
 import com.earthwave.catalogue.api._
 import com.earthwave.environment.api.{Environment, EnvironmentService}
