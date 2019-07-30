@@ -24,7 +24,7 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
   val mongoConnectionOverrides = Map("DEVv2"-> "mongodb://localhost:27018")
 
-  var envCache = Map[String, Environment]()
+  var envCache = scala.collection.mutable.Map[String, Environment]()
 
   override def createEnvironment( name : String ): ServiceCall[Environment, String] = { x =>
 
