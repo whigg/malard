@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
 import akka.NotUsed
-import com.earthwave.environment.api.EnvironmentService
+import com.earthwave.environment.api.{Environment, EnvironmentService}
 import com.earthwave.mask.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 import org.mongodb.scala.model.Accumulators.sum
@@ -22,15 +22,28 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   implicit val ec = ExecutionContext.global
 
+  var envCache = scala.collection.mutable.Map[String,(Environment,MongoClient)]()
+
+  private def getEnvironmentAndMongoClient( envName : String ) : (Environment,MongoClient) =
+  {
+    val client = envCache.getOrElse( envName, { val environment =  Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+      val client = MongoClient(environment.mongoConnection)
+      envCache = envCache.+=((envName, (environment, client)))
+      ( environment, client)})
+
+    client
+  }
+
+
   override def publishMask( envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[MaskFile, String] = { x =>
 
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+    val envCache = getEnvironmentAndMongoClient(envName)
 
-    val client = MongoClient(environment.mongoConnection)
+    val client = envCache._2
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks" )
 
-    val outputDir = s"${environment.maskPublisherPath}/${parentDataSet}/static/$dataSet/${`type`}/$region/cell_x${x.gridCell.minX}_y${x.gridCell.minY}_s${x.gridCell.size}/"
+    val outputDir = s"${envCache._1.maskPublisherPath}/${parentDataSet}/static/$dataSet/${`type`}/$region/cell_x${x.gridCell.minX}_y${x.gridCell.minY}_s${x.gridCell.size}/"
 
     val dir = new File(outputDir)
     if(!dir.exists()) {
@@ -84,9 +97,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   override def getMasks(envName : String, parentDataSet : String): ServiceCall[NotUsed,List[Mask]] = { _ =>
 
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
-
-    val client = MongoClient(environment.mongoConnection)
+    val client = getEnvironmentAndMongoClient(envName)._2
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
@@ -109,9 +120,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   override def getGridCellMasks(envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ): ServiceCall[NotUsed,List[GridCellMask]] ={ _ =>
 
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
-
-    val client = MongoClient(environment.mongoConnection)
+    val client = getEnvironmentAndMongoClient(envName)._2
     val db = client.getDatabase(parentDataSet)
     val collection = db.getCollection("masks")
 
@@ -126,9 +135,7 @@ class MaskServiceImpl( env : EnvironmentService) extends MaskService {
 
   override def getGridCellMask(envName : String, parentDataSet : String, dataSet : String, `type` : String, region : String ) : ServiceCall[GridCell, GridCellMask] = { gc =>
 
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
-
-    val client = MongoClient(environment.mongoConnection)
+    val client = getEnvironmentAndMongoClient(envName)._2
     val db = client.getDatabase(parentDataSet)
 
     val collection = db.getCollection("masks")

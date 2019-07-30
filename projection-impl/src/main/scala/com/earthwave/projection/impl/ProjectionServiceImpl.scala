@@ -1,7 +1,7 @@
 package com.earthwave.projection.impl
 
 import akka.NotUsed
-import com.earthwave.environment.api.EnvironmentService
+import com.earthwave.environment.api.{Environment, EnvironmentService}
 import com.earthwave.projection.api.{Projection, ProjectionMapping, ProjectionService}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 import org.mongodb.scala.{Completed, Document, MongoClient, Observer}
@@ -17,10 +17,20 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
 
   implicit val ec = ExecutionContext.global
 
-  override def getProjectionFromShortName(envName: String, shortName: String): ServiceCall[NotUsed, Projection] = { _ =>
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds)
+  var envCache = scala.collection.mutable.Map[String,(Environment,MongoClient)]()
 
-    val client = MongoClient(environment.mongoConnection)
+  private def getMongoClient( envName : String ) : MongoClient =
+  {
+    val client = envCache.getOrElse( envName, { val environment =  Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
+      val client = MongoClient(environment.mongoConnection)
+      envCache = envCache.+=((envName, (environment, client)))
+      ( environment, client)})
+
+    client._2
+  }
+
+  override def getProjectionFromShortName(envName: String, shortName: String): ServiceCall[NotUsed, Projection] = { _ =>
+    val client = getMongoClient(envName)
     val db = client.getDatabase("Configuration")
     val collection = db.getCollection("Projections")
 
@@ -39,10 +49,7 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
   override def getProjection(envName: String, parentDsName: String, region: String): ServiceCall[NotUsed, Projection] = {
     _ => {
 
-      val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds)
-
-      val client = MongoClient(environment.mongoConnection)
-
+      val client = getMongoClient(envName)
       val db = client.getDatabase(parentDsName)
       val collection = db.getCollection("ProjectionMappings")
 
@@ -63,9 +70,7 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
 
 
   override def publishProjection(envName: String): ServiceCall[Projection, String] = { proj =>
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds)
-
-    val client = MongoClient(environment.mongoConnection)
+    val client = getMongoClient(envName)
     val db = client.getDatabase("Configuration")
     val collection = db.getCollection("Projections")
 
@@ -87,9 +92,7 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
 
   override def publishRegionMapping(envName: String): ServiceCall[ProjectionMapping, String] = { pm =>
     println(s"Received publish mapping request.")
-    val environment = Await.result(env.getEnvironment(envName).invoke(), 10 seconds)
-
-    val client = MongoClient(environment.mongoConnection)
+    val client = getMongoClient(envName)
     val db = client.getDatabase(pm.parentDataSetName)
     val collection = db.getCollection("ProjectionMappings")
 
