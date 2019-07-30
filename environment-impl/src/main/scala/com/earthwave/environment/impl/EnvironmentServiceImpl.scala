@@ -24,6 +24,8 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
   val mongoConnectionOverrides = Map("DEVv2"-> "mongodb://localhost:27018")
 
+  var envCache = Map[String, Environment]()
+
   override def createEnvironment( name : String ): ServiceCall[Environment, String] = { x =>
 
     val client = MongoClient(x.mongoConnection)
@@ -80,21 +82,25 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
       val doc = Await.result( collection.find(f).toFuture(), 10 seconds ).head
 
-      Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath"), doc.getString("mongoConnection") )
-    }
-    val res = getEnvFromDb()
+      val res = Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath"), doc.getString("mongoConnection") )
 
-    def createDir( path : String): Unit =
-    {
-      val dir = new File(path)
-      if(!dir.exists()) {
-        dir.mkdirs()
+      def createDir( path : String): Unit =
+      {
+        val dir = new File(path)
+        if(!dir.exists()) {
+          dir.mkdirs()
+        }
       }
+
+      createDir(res.pointCdfPath)
+      createDir(res.maskPublisherPath)
+      createDir(res.cacheCdfPath)
+
+      envCache = envCache.+=((name, res))
+      res
     }
 
-    createDir(res.pointCdfPath)
-    createDir(res.maskPublisherPath)
-    createDir(res.cacheCdfPath)
+    val res = envCache.getOrElse(name, getEnvFromDb())
 
     Future.successful( res )
   }
