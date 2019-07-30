@@ -31,10 +31,11 @@ class QueryResultInfo:
             
 
 class AsyncDataSetQuery:    
-    def __init__(self, serverUrl, envName = "DEV" ):
+    def __init__(self, serverUrl, envName = "DEV", notebook = True ):
             self.serverUrl = serverUrl
             self.envName = envName
             self.headers = {'Content-Type':'application/json'}
+            self.notebook = notebook
 
     async def asyncServerRequest(self, uri, request):
         async with websockets.connect(uri) as websocket:
@@ -48,7 +49,13 @@ class AsyncDataSetQuery:
                     return data
     
     def syncServerRequest( self, requestJson, endPoint ):
-        loop = asyncio.get_running_loop()
+        
+        loop = None
+        if self.notebook == True:
+            loop = asyncio.get_running_loop()
+        else:
+            loop = asyncio.new_event_loop()
+    
         nest_asyncio.apply(loop)
         
         results = loop.run_until_complete(self.asyncServerRequest( self.serverUrl + endPoint, requestJson))
