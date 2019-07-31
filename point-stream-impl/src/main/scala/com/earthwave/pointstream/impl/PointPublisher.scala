@@ -25,7 +25,7 @@ object PublisherMessages
 
 class PointPublisher( catalogueService: CatalogueService) extends Actor {
 
-  val publisherProcesses = List.range[Int](0,4,1).map( x => context.actorOf(Props(new Publisher(catalogueService, x)),s"PublisherProcessor_$x"))
+  val publisherProcesses = List.range[Int](0,1,1).map( x => context.actorOf(Props(new Publisher(catalogueService, x)),s"PublisherProcessor_$x"))
 
   var availableProcessors = publisherProcesses
 
