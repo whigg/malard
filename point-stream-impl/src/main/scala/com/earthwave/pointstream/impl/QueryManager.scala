@@ -20,7 +20,7 @@ object QueryManagerMessages
 
 class QueryManager( catalogueService : CatalogueService) extends Actor {
 
-  val queryProcessors = List.range[Int](0,4,1).map( x => context.actorOf(Props(new QueryProcessor(catalogueService)),s"Processor_$x"))
+  val queryProcessors = List.range[Int](0,1,1).map( x => context.actorOf(Props(new QueryProcessor(catalogueService)),s"Processor_$x"))
 
   var availableProcessors = queryProcessors
 
