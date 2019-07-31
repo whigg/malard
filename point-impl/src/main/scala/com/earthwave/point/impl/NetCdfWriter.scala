@@ -63,7 +63,7 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], val schema
               }
           })
 
-    rowcount = rowcount + mask.length
+    rowcount = rowcount + mask.length - 1
 }
   def write(variables : List[(Variable, ucar.ma2.Array)]) = {
     val origin = Array.ofDim[Int](1)
