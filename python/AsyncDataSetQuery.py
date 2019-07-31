@@ -8,7 +8,6 @@ import json
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
         timestamp = datetime.datetime.timestamp(o) 
-        print("Date Converter " + str(timestamp))
         return timestamp
     
 class QueryResultInfo:
