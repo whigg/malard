@@ -46,7 +46,7 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], val schema
   def writeWithFilter(variables : List[(Variable,ucar.ma2.Array)], mask : Array[Int]) = {
 
     val origin = Array.ofDim[Int](1)
-    origin(0) = rowcount//if( rowcount == 0 ){ 0 }else{(rowcount)-1}
+    origin(0) = rowcount
 
     //put the packing code in here
     val variablePairs = srcVariables.zip(variables)
@@ -63,11 +63,11 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], val schema
               }
           })
 
-    rowcount = rowcount + mask.length
+    rowcount = rowcount + mask.length + 1
 }
   def write(variables : List[(Variable, ucar.ma2.Array)]) = {
     val origin = Array.ofDim[Int](1)
-    origin(0) = if( rowcount == 0 ){ 0 }else{(rowcount)-1}
+    origin(0) = rowcount
 
     val variablePairs = srcVariables.zip(variables)
 
