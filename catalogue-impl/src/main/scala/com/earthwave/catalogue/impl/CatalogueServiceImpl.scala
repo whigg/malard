@@ -123,7 +123,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
                   ,and(lt( "gridCellMinX", bbf.maxX - 1e-9)
                   ,and(gt( "gridCellMaxY", bbf.minY)
                   ,and(lt("gridCellMinY", bbf.maxY - 1e-9)
-                  ,and(gt( "maxTime", bbf.minT )
+                  ,and(gte( "maxTime", bbf.minT )
                   , lte( "minTime", bbf.maxT )))))))))
 
      val g = group( groupByCols
