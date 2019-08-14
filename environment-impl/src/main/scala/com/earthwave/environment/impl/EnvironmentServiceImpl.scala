@@ -42,7 +42,11 @@ class EnvironmentServiceImpl() extends EnvironmentService {
                       , "publisherPath" -> x.maskPublisherPath
                       , "outputCdfPath" -> x.cacheCdfPath
                       , "pointCdfPath" -> x.pointCdfPath
-                      , "mongoConnection" -> x.mongoConnection)
+                      , "mongoConnection" -> x.mongoConnection
+                      , "swathIntermediatePath" -> x.swathIntermediatePath
+                      , "deflateLevel" -> x.deflateLevel
+                      , "serverVersion" -> x.serverVersion
+                      )
 
     val obs = collection.insertOne(doc)
 
@@ -80,9 +84,11 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
       val f = equal( "name", name )
 
-      val doc = Await.result( collection.find(f).toFuture(), 10 seconds ).head
+      val docOption = Await.result( collection.find(f).toFuture(), 10 seconds ).headOption
 
-      val res = Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath"), doc.getString("mongoConnection") )
+      val doc = docOption.getOrElse( throw new Exception(s"Environment name ${name} does not exist."))
+
+      val res = Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath"), doc.getString("mongoConnection"), doc.getString("swathIntermediatePath"), doc.getInteger("deflateLevel"), doc.getString("serverVersion") )
 
       def createDir( path : String): Unit =
       {

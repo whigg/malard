@@ -7,6 +7,7 @@ import com.lightbend.lagom.scaladsl.server._
 import com.lightbend.lagom.scaladsl.devmode.LagomDevModeComponents
 import play.api.libs.ws.ahc.AhcWSComponents
 import com.earthwave.pointstream.api.PointStreamService
+import com.earthwave.projection.api.ProjectionService
 import com.softwaremill.macwire._
 
 class PointStreamLoader extends LagomApplicationLoader {
@@ -33,4 +34,5 @@ abstract class PointStreamApplication(context: LagomApplicationContext)
   // Bind the Catalogue and EnvironmentServices.
   lazy val catalogueService = serviceClient.implement[CatalogueService]
   lazy val environmentService = serviceClient.implement[EnvironmentService]
+      lazy val projectionService = serviceClient.implement[ProjectionService]
 }

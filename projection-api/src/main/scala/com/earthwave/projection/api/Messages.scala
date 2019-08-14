@@ -2,7 +2,9 @@ package com.earthwave.projection.api
 
 import play.api.libs.json.{Format, Json}
 
-case class Projection( shortName : String, proj4 : String  )
+case class Condition( condition : String )
+
+case class Projection( shortName : String, proj4 : String, conditions : List[String]  )
 
 object Projection
 {

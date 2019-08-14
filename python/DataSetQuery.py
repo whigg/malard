@@ -12,12 +12,15 @@ class DataSetQuery:
         self.serverUrl = serverUrl
         self.envName = envName
         self.headers = {'Content-Type':'application/json'}
-    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath, mongoConnection ):
+    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath, mongoConnection, swathIntermediatePath, deflateLevel = 1, serverVersion = 'v3' ):
         data = { 'name': name
                 , 'cacheCdfPath': cacheCdfPath
                 , 'maskPublisherPath': maskPublisherPath
                 , 'pointCdfPath': pointCdfPath 
-                , 'mongoConnection' : mongoConnection }
+                , 'mongoConnection' : mongoConnection
+                , 'swathIntermediatePath' : swathIntermediatePath 
+                , 'deflateLevel' : deflateLevel 
+                , 'serverVersion' : serverVersion}
                     
         jsonStr = json.dumps(data)
         setUrl = self.serverUrl + '/env/createenvironment/' + name 
@@ -52,30 +55,6 @@ class DataSetQuery:
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
-    def getNetCdfFile(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/point/netcdffile/' + self.envName + "/" + parentDsName + '/' + dsName+ '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
-        jsonStr = json.dumps(bbox,default=dateconverter)
-        response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
-        return response.text
-    def getDataSetColumns(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
-        gcUrl = self.serverUrl + '/point/datasetcolumns/'+ self.envName + '/' + parentDsName + '/' + dsName+ '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
-        jsonStr = json.dumps(bbox,default=dateconverter)
-        response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
-        return response.text
-    def executeQuery( self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, projection, filters ):
-        gcUrl = self.serverUrl + '/point/query/' + self.envName + "/" + parentDsName + '/' + dsName+ '/' + region
-        query = { 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }, 'projection':projection,'filters': filters}
-        jsonStr = json.dumps(query,default=dateconverter)
-        response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
-        return response.text
-    def releaseCache(self, handle):
-        url = self.serverUrl + '/point/releasecache'
-        h = { 'handle': handle }
-        j = json.dumps(h)
-        r = requests.post(url,data=j, headers=self.headers)
-        return r.text
     def getSwathDetailsFromId(self, parentDsName, dsName, region, swathId):
         url = self.serverUrl + '/api/swathdetailsfromid/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region + '/' + str(swathId)
         response = requests.get(url, headers=self.headers)
@@ -136,22 +115,15 @@ class DataSetQuery:
         url = self.serverUrl + '/projection/getprojection/' + self.envName + '/' + parentDataSetName + '/' + region
         response = requests.get(url, headers=self.headers)
         return response.text
-    def publishProjection(self, shortName, proj4):
+    def publishProjection(self, shortName, proj4, conditions):
         url = self.serverUrl + '/projection/publishprojection/' + self.envName
-        request = { 'shortName':shortName, 'proj4':proj4 }
+        request = { 'shortName':shortName, 'proj4':proj4, 'conditions' : conditions }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
     def publishProjectionRegionMapping(self, parentDataSetName, region, shortName ):
         url = self.serverUrl + '/projection/publishregionmapping/' + self.envName
         request = { 'parentDataSetName': parentDataSetName, 'region':region, 'shortName':shortName }
-        j = json.dumps(request)
-        response = requests.post(url, data=j, headers=self.headers)
-        return response.text
-    def publishGridCellPoints(self, parentDataSet, dataSet, region, minX, minY, size, sourceFileName, projection):
-        #":envName/:parent/:dsname"
-        url = self.serverUrl + '/point/publishgridcellpoints/' + self.envName + '/' + parentDataSet + '/' + dataSet+ '/' + region
-        request = { 'minX':minX, 'minY':minY, 'size': size, 'fileName' : sourceFileName, 'projection':projection }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text

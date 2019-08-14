@@ -1,4 +1,4 @@
-package com.earthwave.point.impl
+package com.earthwave.pointstream.impl
 
 import com.earthwave.catalogue.api.BoundingBoxFilter
 import ucar.ma2.DataType

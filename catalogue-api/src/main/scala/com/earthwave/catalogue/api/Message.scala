@@ -1,5 +1,6 @@
 package com.earthwave.catalogue.api
 
+import java.time.{LocalDate, LocalDateTime}
 import java.util.Date
 
 import play.api.libs.json.{Format, Json}
@@ -94,7 +95,17 @@ object Shard{
   implicit val format :Format[Shard] = Json.format[Shard]
 }
 
-case class SwathDetail( swathName : String, pointCount : Long, swathId : Int, gridCells : List[GridCell] )
+case class SwathDetail(   datasetName :String
+                        , region : String
+                        , catalogueName : String
+                        , swathName : String
+                        , swathId : Int
+                        , year : Int
+                        , month : Int
+                        , swathPointCount : Int
+                        , filteredSwathPointCount : Int
+                        , insertTime : LocalDateTime
+                        , gridCells : List[GridCellFile])
 
 object SwathDetail
 {
@@ -107,3 +118,11 @@ object GridCell
 {
   implicit val format : Format[GridCell] = Json.format[GridCell]
 }
+
+case class GridCellFile(t : Long, projection : String, x : Long, y : Long, pointCount : Long, fileName : String)
+
+object GridCellFile
+{
+  implicit val format : Format[GridCellFile] = Json.format[GridCellFile]
+}
+

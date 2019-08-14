@@ -26,7 +26,8 @@ def getSwathDetailsAsDataFrame(parentDsName, dsName, region, query):
         gridCells = pd.DataFrame(rec['gridCells'])
         gridCells['swathName'] = rec['swathName']
         gridCells['swathId'] = rec['swathId']
-        gridCells['pointCount'] = rec['pointCount']
+        gridCells['swathPointCount'] = rec['swathPointCount']
+        gridCells['filteredSwathPointCount'] = rec['filteredSwathPointCount']
         data.append(gridCells)
 
     return pd.concat(data, ignore_index=True)

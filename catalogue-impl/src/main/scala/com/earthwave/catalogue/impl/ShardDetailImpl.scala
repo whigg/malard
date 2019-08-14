@@ -1,7 +1,5 @@
 package com.earthwave.catalogue.impl
 
-import java.util.Date
-
 import com.earthwave.catalogue.api.CatalogueElement
 import org.mongodb.scala.Document
 

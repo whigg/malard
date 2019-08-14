@@ -4,14 +4,12 @@ import akka.NotUsed
 import com.earthwave.catalogue.api._
 import com.earthwave.environment.api.{Environment, EnvironmentService}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
-import org.bson.BsonArray
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.{Completed, Document, MongoClient, Observer}
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Aggregates._
 import org.mongodb.scala.model.Accumulators._
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
@@ -238,19 +236,7 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
     val docs = results.toList
 
-    def convertResults( doc : Document ) : SwathDetail = {
-      val gcsDocs: BsonArray = doc.get("gridCells").get.asArray()
-
-      val buffer = new ListBuffer[GridCell]()
-
-      for (i <- 0 until gcsDocs.size()) {
-        val doc = gcsDocs.get(i).asDocument()
-        buffer.append(GridCell(doc.getString("projection").getValue, doc.getInt64("x").longValue(), doc.getInt64("y").longValue(), doc.getInt32("pointCount").longValue()))
-      }
-
-      SwathDetail(doc.getString("swathName"), doc.getInteger("pointCount").toLong, doc.getInteger("swathId"), buffer.toList)
-    }
-    docs.map(d => convertResults(d))
+    docs.map(d => SwathDetailImpl.fromDocument(d))
   }
 
   override def publishCatalogueElement( envName : String, parentDsName: String, dsName: String) : ServiceCall[CatalogueElement, String] = { ce =>
@@ -273,6 +259,30 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
       }})
 
     Future.successful(s"Published catalogue element for GridCell X=[${ce.gridCellMinX}] Y=[${ce.gridCellMinY}]")
+  }
+
+  override def publishSwathDetails( envName : String, parentDsName : String ) : ServiceCall[SwathDetail, String] ={ sd =>
+
+    val client = getMongoClient(envName)
+    val db = client.getDatabase(parentDsName)
+    val coll = db.getCollection("swathDetails")
+
+    val doc = SwathDetailImpl.toDocument(sd)
+
+    val obs = coll.insertOne(doc)
+
+    obs.subscribe(new Observer[Completed] {
+      override def onNext(result: Completed): Unit = println(s"onNext: $result")
+
+      override def onError(e: Throwable): Unit = throw new Exception("Error writing results to Mongo")
+
+      override def onComplete(): Unit = {
+        println(s"Published catalogue entry successfully to Mongo")
+      }})
+
+    Future.successful(s"Published swath detail for file ${sd.swathName}]")
+
+
   }
 }
 

@@ -19,13 +19,20 @@ trait PointStreamService extends Service {
 
   def doPublishGridCellPoints() : ServiceCall[PublishRequest, Source[PublisherStatus,NotUsed]]
 
+  def publishSwathToGridCells() : ServiceCall[SwathToGridCellsRequest, Source[SwathProcessorStatus, NotUsed]]
+
+  def releaseCache() : ServiceCall[List[Cache], Source[String, NotUsed]]
+
   override final def descriptor: Descriptor = {
     import Service._
 
     named("point-stream")
       .withCalls(
         namedCall("query", doQuery),
-        namedCall( "publish", doPublishGridCellPoints)
+        namedCall( "publish", doPublishGridCellPoints),
+        namedCall( "publishswath", publishSwathToGridCells),
+        namedCall("releasecache", releaseCache())
+
       ).withAutoAcl(true)
   }
 }

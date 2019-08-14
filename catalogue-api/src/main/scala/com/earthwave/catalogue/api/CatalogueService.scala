@@ -69,6 +69,9 @@ trait CatalogueService extends Service {
 
   def publishCatalogueElement(  envName : String, parentDsName : String, dsName : String) : ServiceCall[CatalogueElement, String]
 
+  def publishSwathDetails(  envName : String, parentDsName : String) : ServiceCall[SwathDetail, String]
+
+
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
@@ -82,7 +85,8 @@ trait CatalogueService extends Service {
         pathCall("/api/swathdetailsfromid/:envName/:parent/:dsname/:region/:id", getSwathDetailsFromId _ ),
         pathCall("/api/swathdetailsfromname/:envName/:parent/:dsname/:region/:name", getSwathDetailsFromName _ ),
         pathCall( "/api/swathdetails/:envName/:parent/:dsname/:region", getSwathDetails _),
-        pathCall( "/api/publishcatalogueelement/:envName/:parent/:dsname", publishCatalogueElement _)
+        pathCall( "/api/publishcatalogueelement/:envName/:parent/:dsname", publishCatalogueElement _),
+        pathCall( "/api/publishswathdetail/:envName/:parent", publishSwathDetails _)
       )
       .withAutoAcl(true)
     // @formatter:on

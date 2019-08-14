@@ -18,50 +18,73 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.earthwave.pointstream.impl.PublisherMessages.PublishGridCellPoints
 import com.earthwave.pointstream.impl.QueryManagerMessages.{IsCompleted, ProcessQuery}
+import com.earthwave.pointstream.impl.SwathGridCellPublisher.WorkerSwathToGridCellRequest
+import com.earthwave.projection.api.ProjectionService
+import org.slf4j.LoggerFactory
 
+import scala.util.Try
 
 /**
   * Implementation of the PointStreamService.
   */
-class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentService, implicit val system : ActorSystem) extends PointStreamService {
+class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentService, projectionService : ProjectionService, implicit val system : ActorSystem) extends PointStreamService {
 
-  val queryManager = system.actorOf(Props(new QueryManager(catalogue)), "QueryManager")
-  val pointPublisher = system.actorOf(Props(new PointPublisher(catalogue)), "PointPublisher")
+  val queryManager = system.actorOf(Props(new QueryManager(catalogue, system)), "QueryManager")
+  val pointPublisher = system.actorOf(Props(new PointPublisher(catalogue, system)), "PointPublisher")
+  val swathProcessor = system.actorOf(Props(new SwathProcessor(catalogue, system)), "SwathProcessor")
 
+  private val log = LoggerFactory.getLogger(PointStreamServiceImpl.super.getClass)
 
   implicit val ec = ExecutionContext.global
 
   def runQuery(ref: ActorRef, q: StreamQuery): Future[NotUsed] = {
     Future {
       implicit val timeout = Timeout(10 seconds)
-      println(s"ParentDS=[${q.parentDSName}], DataSet=[${q.dsName}] MinTime=[${q.bbf.minT}] MaxTime=[${q.bbf.maxT}]")
+      log.info(s"ParentDS=[${q.parentDSName}], DataSet=[${q.dsName}] MinTime=[${q.bbf.minT}] MaxTime=[${q.bbf.maxT}]")
 
-      val outputPath = Await.result(env.getEnvironment(q.envName).invoke(), 10 seconds).cacheCdfPath
+      try {
+        val outputPath = Await.result(env.getEnvironment(q.envName).invoke(), 10 seconds).cacheCdfPath
 
-      println(s"From environment ${q.envName} output path is $outputPath.")
+        log.info(s"From environment ${q.envName} output path is $outputPath.")
 
-      val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
-      val filters = q.filters.foldLeft[String]("")((x, y) => x + "_" + y.column + y.op + y.threshold)
-      val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}".hashCode
-      val fileName = s"${outputPath}${q.parentDSName}_${q.dsName}_${fileNameHash}.nc"
-      val cacheCheck = new File(fileName)
+        val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
+        val filters = q.filters.foldLeft[String]("")((x, y) => x + "_" + y.column + y.op + y.threshold)
+        val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}".hashCode
+        val fileName = s"${outputPath}${q.parentDSName}_${q.dsName}_${fileNameHash}.nc"
+        val cacheCheck = new File(fileName)
 
-      println(s"doQuery $fileName")
+        val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(q.bbf)
+        val shards = Await.result(future, 10 seconds)
 
-      if (!cacheCheck.exists()) {
-        queryManager ! ProcessQuery(fileName, q)
+        log.info(s"doQuery $fileName")
 
-        var completed = false
-        while (!completed) {
-          Thread.sleep(1000)
-          val status = Await.result((queryManager ? IsCompleted(fileName)).mapTo[QueryStatus], 10 seconds)
-          println(s"Sending status to client")
-          ref ! status
-          completed = status.completed
+        if (!cacheCheck.exists() && !shards.isEmpty) {
+          queryManager ! ProcessQuery(fileName, q, shards)
+
+          var completed = false
+          while (!completed) {
+            Thread.sleep(1000)
+            val status = Await.result((queryManager ? IsCompleted(fileName)).mapTo[QueryStatus], 10 seconds)
+            log.info(s"Sending status to client [$fileName] Status=[${status.status}] ")
+            ref ! status
+            completed = status.completed
+          }
+        }
+        else if (shards.isEmpty) {
+          val msg = s"No shards found for bounding box ParentDS=[${q.parentDSName}], DataSet=[${q.dsName}] X=[${q.bbf.minX}] Y=[${q.bbf.minY}] MinTime=[${q.bbf.minT}] MaxTime=[${q.bbf.maxT}]"
+          log.error( msg )
+          ref ! QueryStatus(true, "Error: No file", "Error", msg )
+        }
+        else {
+          ref ! QueryStatus(true, fileName, "Success","Published Successfully")
         }
       }
-      else {
-        ref ! QueryStatus(true, fileName, "Success")
+      catch {
+        case e : Exception => {
+          val msg = s"Error querying bounding box ${e.getMessage}"
+          log.error( msg )
+          ref ! QueryStatus(true, "Error: No file", "Error", msg)
+        }
       }
       ref ! Success()
       NotUsed
@@ -82,17 +105,26 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     Future {
       implicit val timeout = Timeout(10 seconds)
 
-      val environment = Await.result( env.getEnvironment(request.envName).invoke(), 10 seconds)
+      try {
+        val environment = Await.result(env.getEnvironment(request.envName).invoke(), 10 seconds)
 
-      pointPublisher ! PublishGridCellPoints(request, environment)
+        pointPublisher ! PublishGridCellPoints(request, environment)
 
-      var completed = false
-      while (!completed) {
-        Thread.sleep(1000)
-        val status = Await.result((pointPublisher ? PublisherMessages.IsCompleted(request)).mapTo[PublisherStatus], 10 seconds)
-        println(s"Publish points sending status to client")
-        resultStream ! status
-        completed = status.completed
+        var completed = false
+        while (!completed) {
+          Thread.sleep(1000)
+          val status = Await.result((pointPublisher ? PublisherMessages.IsCompleted(request)).mapTo[PublisherStatus], 10 seconds)
+          println(s"Publish points sending status to client")
+          resultStream ! status
+          completed = status.completed
+        }
+      }
+      catch {
+        case e : Exception => {
+          val msg = s"Publish of ${request.gcps.fileName.head} failed with ${e.getMessage}"
+          log.error(msg)
+          resultStream ! PublisherStatus(true, msg, "Failure", request.hash)
+        }
       }
       resultStream ! Success()
       NotUsed
@@ -108,5 +140,88 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     Future.successful(source._2)
   }
 
+  override def publishSwathToGridCells(): ServiceCall[SwathToGridCellsRequest, Source[SwathProcessorStatus, NotUsed]] = { request =>
+
+    implicit val mat = ActorMaterializer()
+    val source: (ActorRef, Source[SwathProcessorStatus, NotUsed]) = Source.actorRef[SwathProcessorStatus](1000, OverflowStrategy.fail).preMaterialize()
+
+    doPublishSwathToGridCells(source._1, request)
+
+    Future.successful(source._2)
+  }
+
+  def doPublishSwathToGridCells( resultStream : ActorRef, request : SwathToGridCellsRequest ) = {
+    Future{
+      implicit val timeout = Timeout(10 seconds)
+
+      try {
+        val environment = Await.result(env.getEnvironment(request.envName).invoke(), 10 seconds)
+
+        val projections = Await.result(projectionService.getProjection(request.envName, request.parentDataSet, request.region).invoke(), 10 seconds)
+
+        val fileId = request.inputFileName.hashCode()
+
+        val workerRequest = WorkerSwathToGridCellRequest(fileId, request, environment, List(projections))
+
+        log.info(s"Creating worker request for ${request.inputFileName} with fileId ${fileId}")
+
+        swathProcessor ! workerRequest
+
+        var completed = false
+        while (!completed) {
+          Thread.sleep(1000)
+          log.info("Checking for status")
+          val status = Await.result((swathProcessor ? SwathProcessorMessages.IsCompleted(workerRequest.userRequest.inputFileName, workerRequest.userRequest.hash)).mapTo[SwathProcessorStatus], 10 seconds)
+          log.info(s"Swath Processor sending status to client ${workerRequest.userRequest.inputFileName} [${status.status}] [${status.message}] ")
+          if (status.completed && status.status.contentEquals("Success")) {
+            val catalogueWrite = Try(Await.result(catalogue.publishSwathDetails(request.envName, request.parentDataSet).invoke(status.swathDetails.head), 10 seconds))
+
+            catalogueWrite match {
+              case scala.util.Success(_) => {
+                log.info(s"Swath Details published to Mongo successfully for ${request.inputFileName}.")
+                resultStream ! status
+              }
+              case scala.util.Failure(e) => {
+                val msg = s"Swath details failed to publish to Mongo for ${request.inputFileName} with error ${e.getMessage}."
+                log.error(s"Swath details failed to publish to Mongo for ${request.inputFileName} with error ${e.getMessage}.")
+                resultStream ! SwathProcessorStatus(true, request.inputFileName, "Error", msg, None, request.hash)
+              }
+            }
+          }
+          else {
+            resultStream ! status
+          }
+          completed = status.completed
+        }
+      }
+      catch {
+        case e : Exception => {
+          log.error(s"Exception occurred processing file ${request.inputFileName} ${e.getMessage}")
+          resultStream ! SwathProcessorStatus(true, request.inputFileName, "Error", e.getMessage, None, request.hash)
+        }
+      }
+
+      log.info(s"Completing stream for ${request.inputFileName}.")
+      resultStream ! Success()
+      NotUsed
+    }
+  }
+
+  override def releaseCache() : ServiceCall[List[Cache], Source[String, NotUsed]] = { c =>
+
+    def deleteFile( fileName : String ) = {
+      Future {
+        val file = new java.io.File(fileName)
+
+        if (file.exists()) {
+          println(s"Attempting to delete ${fileName}")
+          file.delete()
+        }
+        s"File deleted successfully [${fileName}]"
+      }
+    }
+
+    Future.successful(Source.apply(c).mapAsync(8)( f => deleteFile(f.handle) ))
+  }
 
 }

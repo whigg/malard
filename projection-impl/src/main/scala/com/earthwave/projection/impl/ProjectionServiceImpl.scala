@@ -4,12 +4,13 @@ import akka.NotUsed
 import com.earthwave.environment.api.{Environment, EnvironmentService}
 import com.earthwave.projection.api.{Projection, ProjectionMapping, ProjectionService}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
+import org.bson.BsonArray
 import org.mongodb.scala.{Completed, Document, MongoClient, Observer}
 import org.mongodb.scala.model.Filters._
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
-
+import scala.collection.JavaConverters._
 /**
   * Implementation of the CatalogueService.
   */
@@ -23,6 +24,7 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
   {
     val client = envCache.getOrElse( envName, { val environment =  Await.result(env.getEnvironment(envName).invoke(), 10 seconds )
       val client = MongoClient(environment.mongoConnection)
+      println(s"Projection Service MongoClient ${environment.mongoConnection} for ${envName}.")
       envCache = envCache.+=((envName, (environment, client)))
       ( environment, client)})
 
@@ -43,7 +45,11 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
 
     val proj4 = results.head.getString("proj4")
 
-    Future.successful(Projection(shortName, proj4))
+    val conditionsArray: BsonArray = results.head.get("conditions").get.asArray()
+
+    val conditions = conditionsArray.getValues.asScala.toList.map(v => v.asString().getValue)
+
+    Future.successful(Projection(shortName, proj4, conditions))
   }
 
   override def getProjection(envName: String, parentDsName: String, region: String): ServiceCall[NotUsed, Projection] = {
@@ -62,9 +68,9 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
 
       val shortName = results.head.getString("shortName")
 
-      val result = Await.result(getProjectionFromShortName(envName, shortName).invoke(), 10 seconds)
+      val result: Projection = Await.result(getProjectionFromShortName(envName, shortName).invoke(), 10 seconds)
 
-      Future.successful(Projection(shortName, result.proj4))
+      Future.successful(result)
     }
   }
 
@@ -75,7 +81,7 @@ class ProjectionServiceImpl(env : EnvironmentService) extends ProjectionService 
     val collection = db.getCollection("Projections")
 
     val obs = collection.insertOne(Document("shortName" -> proj.shortName,
-      "proj4" -> proj.proj4))
+      "proj4" -> proj.proj4, "conditions" -> proj.conditions ))
 
     obs.subscribe(new Observer[Completed] {
       override def onNext(result: Completed): Unit = println(s"onNext: $result")

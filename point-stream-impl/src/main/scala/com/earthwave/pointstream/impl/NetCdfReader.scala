@@ -1,6 +1,6 @@
-package com.earthwave.point.impl
+package com.earthwave.pointstream.impl
 
-import com.earthwave.point.api.Messages.Query
+import com.earthwave.pointstream.api.Query
 
 import scala.collection.JavaConverters._
 import ucar.nc2.{NetcdfFile, Variable}
@@ -56,7 +56,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
 
   def getVariablesAndData( withColumns : Set[String]) : List[(Variable, ucar.ma2.Array)] ={
 
-    val vars = variables.filter( v => withColumns.contains(v.getShortName) )
+    val vars = if(!withColumns.isEmpty){ variables.filter( v => withColumns.contains(v.getShortName) )}else{variables}
     vars.map(v => (v,v.read()))
   }
 
