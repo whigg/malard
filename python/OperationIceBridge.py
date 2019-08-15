@@ -13,69 +13,65 @@ import pandas as pd
 import numpy as np
 import netCDF4
 import json
-
+from os import listdir
 import AsyncDataSetQuery
+import DataSetLoader
 
 def main(argv):
 
-    file =  'ILATM2_20160419_132625_smooth_nadir3seg_50pt.csv'
-    filePath = 'C:\\Users\\s_j_a\\Dropbox\\Earthwave\\jon\\'
-    environmentName = 'JALOCALv3'
+    argv = sys.argv[1:]
+    
+    filePath = '/data/slug1/store/rawdata/oib/' + argv[0] +'/'
+    print(filePath)
+    environmentName = 'DEVv2'
   
     parentDataSet = 'cryotempo'
     dataSet = 'oib'
-    region = 'greenland'
     gridCellSize = 100000
     
-    matchObj = re.findall(r'ILATM2_(\d+_\d+)_', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%d_%H%M%S')
+    swathfiles = [f for f in listdir(filePath)]
     
-    df = pd.read_csv(filePath+file, skiprows=9)
+    greenland = []
+    antarctic = []
     
-    df = df.rename(columns=lambda x: x.strip())    
-    df['lat'] =df['Latitude(deg)']
-    df['lon'] =df['Longitude(deg)']
+    for file in swathfiles:
+        matchObj = re.findall(r'ILATM2_(\d+_\d+)_', file)
+        dataTime = datetime.strptime(matchObj[0], '%Y%m%d_%H%M%S')
     
-    tempfilepath = 'C:\\Earthwave\\malard\\data\\'
-    tempfilename = 'icebridge12.nc'
+        df = pd.read_csv(filePath+file, skiprows=9)
     
-    ds = netCDF4.Dataset(tempfilepath + tempfilename,'w',format='NETCDF4')
-    ds.createDimension( 'row', None )
-    
-    for column, dtype in zip(df.columns, df.dtypes):
-        columnStr = column.replace('# ','',)                    
-        col = ds.createVariable(columnStr, dtype, ('row',))
-        col[:] = np.array(df[column])
-    
-    ds.close()
-    
-    query = AsyncDataSetQuery.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,True)
-    
-    results = query.publishSwathToGridCells( parentDataSet, dataSet, region, tempfilename, tempfilepath, dataTime, {}, [], 100000 ) 
-
-    if results.status == 'Success':     
-        data = []
-        swathDetails = results.swathDetails
-        gridCells = pd.DataFrame(swathDetails['gridCells'])
-        gridCells['swathName'] = swathDetails['swathName']
-        gridCells['swathId'] = swathDetails['swathId']
-        gridCells['swathPointCount'] = swathDetails['swathPointCount']
-        gridCells['filteredSwathPointCount'] = swathDetails['filteredSwathPointCount']
-        data.append(gridCells)
-
-        griddf = pd.concat(data, ignore_index=True)
-
-        groupBy = griddf.groupby(['x','y','t','projection'])
-
-        for k,v in groupBy:
-            x,y,t,projection = k
-            files = list(v['fileName'])
-            results = query.publishGridCellPoints( parentDataSet, dataSet, region, x, y, t, gridCellSize, files, projection)
-            print(results.message)
-            query.releaseCache(files)
-    else:
-        print( 'Swath File [%s] failed to load with status [%s] and message [%s]' % (tempfilename, results.status, results.message ) )
+        df = df.rename(columns=lambda x: x.strip())    
+        df['lat'] =df['Latitude(deg)']
+        df['lon'] =df['Longitude(deg)']
         
+        
+        tempfilepath = '/data/puma1/scratch/v2/malard/tempnetcdfs/'
+        tempfilename = file.replace('.csv','.nc')
+        
+        if float(df['lat'][0:1]) >= 52.0:
+            greenland.append((tempfilename,dataTime))
+        elif float(df['lat'][0:1]) < -60.0:
+            antarctic.append((tempfilename,dataTime))
+        else:
+            println('File %d will not be processed. Unexpected location.'%(tempfilename))
+            
+        ds = netCDF4.Dataset(tempfilepath + tempfilename,'w',format='NETCDF4')
+        ds.createDimension( 'row', None )
+    
+        for column, dtype in zip(df.columns, df.dtypes):
+            columnStr = column.replace('# ','',)                    
+            col = ds.createVariable(columnStr, dtype, ('row',))
+            col[:] = np.array(df[column])
+    
+        ds.close()
+ 
+    print('Found Greenland files[%d] Antarctic Files [%d]' %(len(greenland), len(antarctic)))
+
+    if len(greenland) > 0:
+        DataSetLoader.publishData(environmentName, greenland, parentDataSet, dataSet, 'greenland', tempfilepath, {}, [], gridCellSize )
+        
+    if len(antarctic) > 0:    
+        DataSetLoader.publishData(environmentName, antarctic, parentDataSet, dataSet, 'antarctic', tempfilepath, {}, [], gridCellSize )
 
 if __name__ == "__main__":
     main(sys.argv)

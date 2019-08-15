@@ -46,10 +46,10 @@ def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swa
     query = AsyncDataSetQuery.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
      
     results = []    
-    for file in swathfiles:
+    for file,dataTime in swathfiles:
         print(file)
-        matchObj = re.findall(r'2S_(\d+T\d+)', file)
-        dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
+        #matchObj = re.findall(r'2S_(\d+T\d+)', file)
+        #dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
         result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize )
         if result.status == 'Success':
             results.append(result.swathDetails)
