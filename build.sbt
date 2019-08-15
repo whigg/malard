@@ -13,7 +13,7 @@ val akkaRemote = "com.typesafe.akka" %% "akka-remote" % "2.5.22"
 
 
 lazy val `malard` = (project in file("."))
-  .aggregate(`catalogue-api`, `catalogue-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`validation-stream-api`,`validation-stream-impl`,`point-stream-api`,`point-stream-impl`)
+  .aggregate(`catalogue-api`, `catalogue-impl`,`environment-api`,`environment-impl`,`mask-api`,`mask-impl`,`gridcellstats-api`,`gridcellstats-impl`,`projection-api`,`projection-impl`,`point-stream-api`,`point-stream-impl`)
 
 lazy val `catalogue-api` = (project in file("catalogue-api"))
   .settings(
@@ -124,24 +124,6 @@ lazy val `mask-impl` = (project in file("mask-impl"))
   )
   .settings(lagomForkedTestSettings)
   .dependsOn(`projection-api`,`environment-api`)
-
-lazy val `validation-stream-api` = (project in file("validation-stream-api"))
-  .settings(
-    libraryDependencies ++= Seq(
-      lagomScaladslApi
-    )
-  )
-
-lazy val `validation-stream-impl` = (project in file("validation-stream-impl"))
-  .enablePlugins(LagomScala)
-  .settings(
-    libraryDependencies ++= Seq(
-      lagomScaladslTestKit,
-      macwire,
-      scalaTest
-    )
-  )
-  .dependsOn(`validation-stream-api`)
 
 lazy val `point-stream-api` = (project in file("point-stream-api"))
   .settings(
