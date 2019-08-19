@@ -43,8 +43,8 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
 
     val tempVariables = variables.map(v => (v,v.read()))
 
-    val x = tempVariables.filter( x => x._1.getShortName.contentEquals("x") ).head._2
-    val y = tempVariables.filter( y => y._1.getShortName.contentEquals("y") ).head._2
+    val x = tempVariables.filter( x => x._1.getShortName.contentEquals(q.bbf.xCol.toLowerCase()) ).head._2
+    val y = tempVariables.filter( y => y._1.getShortName.contentEquals(q.bbf.yCol.toLowerCase()) ).head._2
     val t = tempVariables.filter( t => t._1.getShortName.contentEquals( "time")).head._2
 
     val filters = q.filters.map( f => { (Operators.getOperator(f.op,f.threshold), tempVariables.filter( v => v._1.getShortName.contentEquals( f.column )).head._2 ) } )

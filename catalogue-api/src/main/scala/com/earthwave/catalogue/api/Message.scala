@@ -70,19 +70,21 @@ case class BoundingBox( gridCellMinX : Long
                         , minTime : Double
                         , maxTime : Double
                         , totalPoints : Long
-                        , numberOfShards : Long )
+                        , numberOfShards : Long)
 
 object BoundingBox
 {
   implicit val format : Format[BoundingBox] = Json.format[BoundingBox]
 }
 
-case class BoundingBoxFilter( minX : Long
-                              , maxX : Long
-                              , minY : Long
-                              , maxY : Long
+case class BoundingBoxFilter( minX : Double
+                              , maxX : Double
+                              , minY : Double
+                              , maxY : Double
                               , minT : Double
-                              , maxT : Double)
+                              , maxT : Double
+                              , xCol: String
+                              , yCol: String)
 
 object BoundingBoxFilter
 {

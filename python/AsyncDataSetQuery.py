@@ -142,8 +142,8 @@ class AsyncDataSetQuery:
         requestJson = json.dumps(request)
         return self.syncServerRequest(requestJson, '/validateasync')
         
-    def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters ):             
-        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT}, 'projections':projections,'filters': filters}
+    def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters, xCol='x', yCol='y' ):             
+        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol}, 'projections':projections,'filters': filters}
         
         requestJson = json.dumps(request,default=dateconverter)
            

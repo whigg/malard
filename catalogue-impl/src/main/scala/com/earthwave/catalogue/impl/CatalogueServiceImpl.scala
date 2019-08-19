@@ -162,12 +162,22 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
     println(s"Shard request [${parentDsName}] [$dsName] [${bbf.minX}] [${bbf.minY}] [${bbf.minT}] [${bbf.maxT}] ")
 
+
+    val minMaxX = if (bbf.xCol.toLowerCase().contentEquals("x")){("gridCellMinX","gridCellMaxX")}
+                  else if (bbf.xCol.toLowerCase().contentEquals("lon")){("minLon","maxLon")}
+                  else {throw new Exception(s"Unexpected Column Type: ${bbf.xCol}")}
+
+    val minMaxY = if (bbf.yCol.toLowerCase().contentEquals("y")){("gridCellMinY","gridCellMaxY")}
+                  else if (bbf.yCol.toLowerCase().contentEquals("lat")){("minLat","maxLat")}
+                  else {throw new Exception(s"Unexpected Column Type: ${bbf.yCol}")}
+        
+
     val f: Bson =  and(equal("dsName",dsName)
       ,and(equal("region", region)
-      ,and(gt( "gridCellMaxX", bbf.minX )
-        ,and(lt( "gridCellMinX", bbf.maxX - 1e-9)
-          ,and(gt( "gridCellMaxY", bbf.minY)
-            ,and(lt("gridCellMinY", bbf.maxY - 1e-9)
+      ,and(gt( minMaxX._2, bbf.minX )
+        ,and(lt( minMaxX._1, bbf.maxX - 1e-9)
+          ,and(gt( minMaxY._2, bbf.minY)
+            ,and(lt(minMaxY._1, bbf.maxY - 1e-9)
               ,and(gte( "maxTime", bbf.minT )
                 , lte( "minTime", bbf.maxT ))))))))
 
