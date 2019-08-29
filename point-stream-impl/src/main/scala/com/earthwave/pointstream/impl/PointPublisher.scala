@@ -4,6 +4,7 @@ import java.io.File
 import java.time.{LocalDateTime, ZoneOffset}
 
 import akka.actor.{Actor, ActorPath, ActorSystem, Props, Terminated}
+import akka.remote.DisassociatedEvent
 import com.earthwave.catalogue.api.{CatalogueElement, CatalogueService}
 import com.earthwave.environment.api.Environment
 import com.earthwave.pointstream.api.{GridCellPoints, PublishRequest, PublisherStatus}
@@ -181,12 +182,21 @@ class Publisher( val processNr : Int) extends Actor {
 
   private val log = LoggerFactory.getLogger(Publisher.super.getClass)
 
+  override def preStart(): Unit = {
+    context.system.eventStream.subscribe(self, DisassociatedEvent.getClass)
+  }
+
   override def receive ={
 
     case Messages.InitiatingConnection() =>
     {
       log.info(s"Worker [$processNr] Received Initiating connection.")
       sender ! Messages.WorkerConnected()
+    }
+    case d : DisassociatedEvent=>
+    {
+      log.warn(s"SwathGridCellPublisher disassociated event received.")
+      context.system.terminate()
     }
     case p : PublishGridCellPoints =>{
       val gcp = p.publishRequest.gcps
@@ -375,6 +385,11 @@ class Publisher( val processNr : Int) extends Actor {
       0
     )
 
+  }
+
+  override def postStop(): Unit = {
+    log.info("Stop called.")
+    context.system.terminate()
   }
 
 }

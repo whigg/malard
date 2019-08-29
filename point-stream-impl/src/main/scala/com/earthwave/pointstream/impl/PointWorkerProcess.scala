@@ -14,8 +14,8 @@ object PointWorkerProcess {
     val systemName = s"${worker}_$instance"
 
     println(s"Creating system name $systemName")
-
     val actorSystem = ActorSystem(systemName)
+
 
   }
 

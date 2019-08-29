@@ -1,6 +1,7 @@
 package com.earthwave.pointstream.impl
 
 import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Props, Terminated}
+import akka.remote.DisassociatedEvent
 import com.earthwave.catalogue.api.{CatalogueService, Shard}
 import com.earthwave.pointstream.api.{Query, QueryStatus, StreamQuery}
 import com.earthwave.pointstream.impl.Messages.InitiatingConnection
@@ -169,6 +170,11 @@ class QueryProcessor( instance : Int ) extends Actor {
   private var shards = List[Shard]()
   private var queryHeader : Option[InitiateQueryRequest]= None
 
+  override def preStart(): Unit = {
+    context.system.eventStream.subscribe(self, DisassociatedEvent.getClass)
+  }
+
+
   override def receive ={
     case Messages.InitiatingConnection() =>
     {
@@ -187,6 +193,11 @@ class QueryProcessor( instance : Int ) extends Actor {
     case CompleteRequest() =>{
       log.info(s"Received complete request.")
       processQuery( ProcessQuery(queryHeader.get.cacheName, queryHeader.get.streamQuery, shards ) )
+    }
+    case d : DisassociatedEvent=>
+    {
+      log.warn(s"SwathGridCellPublisher disassociated event received.")
+      context.system.terminate()
     }
 
     case _ => { log.error(s"QueryProcessor Unsupported message type received. ${sender.path.name} ") }
@@ -255,5 +266,10 @@ class QueryProcessor( instance : Int ) extends Actor {
       log.info(s"Request complete in failed state.")
       sender ! Completed(QueryStatus(true, "Error: No File", "Error", requestStatus))
     }
+  }
+
+  override def postStop(): Unit = {
+    log.info("Stop called.")
+    context.system.terminate()
   }
 }

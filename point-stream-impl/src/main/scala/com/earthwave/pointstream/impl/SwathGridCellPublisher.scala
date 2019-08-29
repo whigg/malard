@@ -3,7 +3,8 @@ package com.earthwave.pointstream.impl
 import java.time.{LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
 
-import akka.actor.Actor
+import akka.actor.{Actor, Terminated}
+import akka.remote.DisassociatedEvent
 import com.earthwave.catalogue.api.{GridCellFile, SwathDetail}
 import com.earthwave.environment.api.Environment
 import com.earthwave.pointstream.api.{GridCellPoints, SwathProcessorStatus, SwathToGridCellsRequest}
@@ -32,9 +33,11 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
   import org.slf4j.LoggerFactory
   private val log = LoggerFactory.getLogger(SwathGridCellPublisher.getClass)
 
+  override def preStart(): Unit = {
+    context.system.eventStream.subscribe(self, DisassociatedEvent.getClass)
+  }
 
   override def receive = {
-
     case _ : Messages.InitiatingConnection =>
     {
       log.info(s"Worker [$idx] Received Initiating connection.")
@@ -166,10 +169,21 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
         }
       }
     }
+    case d : DisassociatedEvent=>
+    {
+      log.warn(s"SwathGridCellPublisher disassociated event received.")
+      context.system.terminate()
+    }
     case _ => {
       log.error("Unexpected message received.")
     }
   }
+
+  override def postStop(): Unit = {
+    log.info("Stop called.")
+    context.system.terminate()
+  }
+
 
 
 }
