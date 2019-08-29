@@ -4,7 +4,7 @@ import datetime
 
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
-        timestamp = datetime.datetime.timestamp(o) 
+        timestamp = datetime.datetime.timestamp(o)
         return timestamp
 
 class DataSetQuery:
@@ -16,16 +16,16 @@ class DataSetQuery:
         data = { 'name': name
                 , 'cacheCdfPath': cacheCdfPath
                 , 'maskPublisherPath': maskPublisherPath
-                , 'pointCdfPath': pointCdfPath 
+                , 'pointCdfPath': pointCdfPath
                 , 'mongoConnection' : mongoConnection
-                , 'swathIntermediatePath' : swathIntermediatePath 
-                , 'deflateLevel' : deflateLevel 
+                , 'swathIntermediatePath' : swathIntermediatePath
+                , 'deflateLevel' : deflateLevel
                 , 'serverVersion' : serverVersion}
-                    
+
         jsonStr = json.dumps(data)
-        setUrl = self.serverUrl + '/env/createenvironment/' + name 
+        setUrl = self.serverUrl + '/env/createenvironment/' + name
         response = requests.post(setUrl, data=jsonStr, headers=self.headers)
-        return response.text 
+        return response.text
     def getEnvironment(self, name):
         getUrl = self.serverUrl + '/env/getenvironment/' + name
         response = requests.get(getUrl, headers=self.headers)
@@ -42,23 +42,23 @@ class DataSetQuery:
         dsUrl = self.serverUrl + '/api/boundingbox/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region
         response = requests.get(dsUrl, headers=self.headers)
         return response.text
-    def getGridCells(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
+    def getGridCells(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y' ):
         gcUrl = self.serverUrl + '/api/boundingbox/' + self.envName + '/' + parentDsName + '/' + dsName+ '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
+        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     #similar to getGridCells except a result for each time slice is also returned.
-    def getShards(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT):
+    def getShards(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y' ):
         gcUrl = self.serverUrl + '/api/shards/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT }
+        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     def getSwathDetailsFromId(self, parentDsName, dsName, region, swathId):
         url = self.serverUrl + '/api/swathdetailsfromid/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region + '/' + str(swathId)
         response = requests.get(url, headers=self.headers)
-        return response.text 
+        return response.text
     def getSwathDetailsFromName(self, parentDsName, dsName, region, name):
         url = self.serverUrl + '/api/swathdetailsfromname/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region + '/' + name
         response = requests.get(url, headers=self.headers)
@@ -129,7 +129,7 @@ class DataSetQuery:
         return response.text
     def validateDataFiles(self, inputDir, startsWith, endsWith, columns ):
         url = self.serverUrl + '/validation/validate'
-        request = { 'dir' : inputDir, 'startsWith' : startsWith, 'endsWith' : endsWith, 'expectedColumns' : columns } 
+        request = { 'dir' : inputDir, 'startsWith' : startsWith, 'endsWith' : endsWith, 'expectedColumns' : columns }
         j = json.dumps(request)
         response = requests.post(url, data=j, headers=self.headers)
         return response.text
