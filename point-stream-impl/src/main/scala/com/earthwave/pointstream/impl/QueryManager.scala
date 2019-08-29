@@ -1,10 +1,10 @@
 package com.earthwave.pointstream.impl
 
-import akka.actor.{Actor, ActorPath, ActorSystem, Props, Terminated}
+import akka.actor.{Actor, ActorPath, ActorRef, ActorSystem, Props, Terminated}
 import com.earthwave.catalogue.api.{CatalogueService, Shard}
 import com.earthwave.pointstream.api.{Query, QueryStatus, StreamQuery}
 import com.earthwave.pointstream.impl.Messages.InitiatingConnection
-import com.earthwave.pointstream.impl.QueryManagerMessages.{Completed, IsCompleted, ProcessQuery}
+import com.earthwave.pointstream.impl.QueryManagerMessages.{CompleteRequest, Completed, InitiateQueryRequest, IsCompleted, ProcessQuery, ShardToProcess}
 import com.earthwave.pointstream.impl.WriterColumn.Column
 import ucar.ma2.DataType
 import org.slf4j.LoggerFactory
@@ -16,6 +16,10 @@ object QueryManagerMessages
   case class ProcessQuery( cacheName : String, streamQuery : StreamQuery, shards : List[Shard] )
   case class IsCompleted( cacheName : String  )
   case class Completed( s : QueryStatus)
+
+  case class InitiateQueryRequest( cacheName : String, streamQuery : StreamQuery)
+  case class ShardToProcess( shard : Shard )
+  case class CompleteRequest()
 }
 
 class QueryManager( catalogueService : CatalogueService,system : ActorSystem) extends Actor {
@@ -34,6 +38,13 @@ class QueryManager( catalogueService : CatalogueService,system : ActorSystem) ex
   var completedRequests = List[QueryStatus]()
   var retries = Map[String,Int]()
 
+  def processQuery( q : ProcessQuery, processor : ActorRef ) ={
+    processor ! InitiateQueryRequest( q.cacheName, q.streamQuery )
+    q.shards.foreach( s => processor ! ShardToProcess(s) )
+    processor ! CompleteRequest()
+  }
+
+
   override def receive={
     case Messages.WorkerConnected() =>{
       if( retries.contains( sender.path.name))
@@ -51,7 +62,8 @@ class QueryManager( catalogueService : CatalogueService,system : ActorSystem) ex
         val processor = availableProcessors.head
         availableProcessors = availableProcessors.tail
         processingRequests = (q, processor.path) :: processingRequests
-        processor ! q
+
+        processQuery( q, processor)
       }
     }
     case c : IsCompleted => {
@@ -74,7 +86,7 @@ class QueryManager( catalogueService : CatalogueService,system : ActorSystem) ex
           availableProcessors = availableProcessors.tail
           processingRequests = (request, processor.path) :: processingRequests
 
-          processor ! request
+          processQuery( request, processor)
         }
 
         sender ! QueryStatus(false, c.cacheName, s"Queued", "Ok.")
@@ -102,7 +114,7 @@ class QueryManager( catalogueService : CatalogueService,system : ActorSystem) ex
         val nextRequest = queuedRequests.head
         queuedRequests = queuedRequests.tail
         processingRequests = (nextRequest,sender.path) :: processingRequests
-        sender ! nextRequest
+        processQuery(nextRequest,sender)
       }
       else
       {
@@ -154,75 +166,94 @@ class QueryProcessor( instance : Int ) extends Actor {
 
   private val log = LoggerFactory.getLogger( QueryProcessor.super.getClass )
 
+  private var shards = List[Shard]()
+  private var queryHeader : Option[InitiateQueryRequest]= None
+
   override def receive ={
     case Messages.InitiatingConnection() =>
     {
       log.info(s"Worker [$instance] Received Initiating connection.")
       sender ! Messages.WorkerConnected()
     }
-    case pq : ProcessQuery => {
+    case qr : InitiateQueryRequest =>{
+      shards = List[Shard]()
+      log.info(s"Received initiate request for ${qr.cacheName}.")
+      queryHeader = Some(qr)
+    }
+    case ShardToProcess(s) =>{
+      log.info(s"Received shard name ${s.shardName}")
+      shards = s :: shards
+    }
+    case CompleteRequest() =>{
+      log.info(s"Received complete request.")
+      processQuery( ProcessQuery(queryHeader.get.cacheName, queryHeader.get.streamQuery, shards ) )
+    }
 
-      var requestStatus = ""
+    case _ => { log.error(s"QueryProcessor Unsupported message type received. ${sender.path.name} ") }
+  }
 
-      try {
-        val q = pq.streamQuery
-        log.info(s"QueryProcessor [$instance]. Received ${q.envName}, ${q.region}, ${q.parentDSName}, ${q.dsName} ")
+  def processQuery( pq : ProcessQuery) {
+    var requestStatus = ""
 
-        val shards = pq.shards
-        log.info(s"Found [${shards.length}]")
+    try {
+      val q = pq.streamQuery
+      log.info(s"QueryProcessor [$instance]. Received ${q.envName}, ${q.region}, ${q.parentDSName}, ${q.dsName} ")
 
-        val cols = if (q.projections.isEmpty) {
-          scala.collection.mutable.Set()
-        } else {
-          val c = scala.collection.mutable.Set("x", "y", "time")
-          q.projections.foreach(p => c.+=(p))
-          c
-        }
+      val shards = pq.shards
+      log.info(s"Found [${shards.length}]")
 
-        requestStatus = if (!shards.isEmpty) {
-          val tempReader = new NetCdfReader(shards.head.shardName, cols.toSet)
-          val columns = tempReader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
-          tempReader.close()
-          log.info(s"Now have ${shards.length}")
-          val writer = new NetCdfWriter(pq.cacheName, columns, List[Column](), List[Column](), Map[String, DataType]())
-          try {
-            shards.foreach(x => {
-              val reader = new NetCdfReader(x.shardName, cols.toSet)
-              try {
-                val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters))
-                log.info(s"Writing ${data._2.length} rows.")
-                if (data._2.length != 0) {
-                  writer.writeWithFilter(data._1, data._2)
-                }
+      val cols = if (q.projections.isEmpty) {
+        scala.collection.mutable.Set()
+      } else {
+        val c = scala.collection.mutable.Set("x", "y", "time")
+        q.projections.foreach(p => c.+=(p))
+        c
+      }
+
+      requestStatus = if (!shards.isEmpty) {
+        val tempReader = new NetCdfReader(shards.head.shardName, cols.toSet)
+        val columns = tempReader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
+        tempReader.close()
+        log.info(s"Now have ${shards.length}")
+        val writer = new NetCdfWriter(pq.cacheName, columns, List[Column](), List[Column](), Map[String, DataType]())
+        try {
+          shards.foreach(x => {
+            val reader = new NetCdfReader(x.shardName, cols.toSet)
+            try {
+              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters))
+              log.info(s"Writing ${data._2.length} rows.")
+              if (data._2.length != 0) {
+                writer.writeWithFilter(data._1, data._2)
               }
-              finally {
-                reader.close()
-              }
-            })
-          }
-          finally {
-            writer.close()
-          }
-          "Success"
+            }
+            finally {
+              reader.close()
+            }
+          })
         }
-        else {
-          "Error: Empty resultset."
+        finally {
+          writer.close()
         }
+        "Success"
       }
-      catch {
-        case e: Exception => {
-          val msg = s"Error: Failed to query results. ${e.getMessage}"
-          log.error(msg)
-          requestStatus = msg
-        }
+      else {
+        "Error: Empty resultset."
       }
-      if (requestStatus.contentEquals("Success")) {
-        sender ! Completed(QueryStatus(true, pq.cacheName, "Success",requestStatus))
+    }
+    catch {
+      case e: Exception => {
+        val msg = s"Error: Failed to query results. ${e.getMessage}"
+        log.error(msg)
+        requestStatus = msg
       }
-      else
-      {
-        sender ! Completed(QueryStatus(true, "Error: No File", "Error",requestStatus))
-      }
+    }
+    if (requestStatus.contentEquals("Success")) {
+      log.info(s"Request complete with success")
+      sender ! Completed(QueryStatus(true, pq.cacheName, "Success", requestStatus))
+    }
+    else {
+      log.info(s"Request complete in failed state.")
+      sender ! Completed(QueryStatus(true, "Error: No File", "Error", requestStatus))
     }
   }
 }
