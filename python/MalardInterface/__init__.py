@@ -1,5 +1,7 @@
+
 from .MalardClient import MalardClient
-from .DataSet import DataSet
-from .BoundingBox import BoundingBox
-from .DataSetQuery import DataSetQuery
-from .AsyncDataSetQuery import AsyncDataSetQuery
+from .MalardClient import DataSetQuery
+from .MalardClient import AsyncDataSetQuery
+from .MalardClient import BoundingBox
+from .MalardClient import DataSet
+

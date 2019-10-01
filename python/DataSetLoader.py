@@ -16,31 +16,29 @@ def main(argv):
     # Get the arguments from the command-line except the filename
     argv = sys.argv[1:]
     
-    print('Args {} are these.'.format(argv[0]))
-    
-    parentDataSet = 'mtngla'
-    dataSet = 'tdx3'
-    region = 'himalayas'
-    swathdir = 'C:\\Earthwave\\MountainGlaciers\\f2010\\'
+    parentDataSet = 'cryotempo'
+    dataSet = 'AIS_BaselineC_FilteredPC'
+    region = 'antarctic'
+    swathdir = '/data/slug1/store/rawdata/initialSwath/AntarcticForAnna/'
     year = int(argv[0])
+    month = int(argv[1])
     columnFilters = {'coh':0.3,'power':100.0}
     includeColumns =[]
     gridCellSize = 100000
-    environmentName = 'JALOCALv3'
+    environmentName = 'DEVv2'
 
-    swathfiles = [f for f in listdir(swathdir) if isyear( f, year )]
+    swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if isyearandmonth( f, year, month )]
     
-    print(len(swathfiles))
+    print('Processing Year Month %d-%d. Num Swaths %d' % (year,month,len(swathfiles) ))
     
-    months = [1,2,3,4,5,6,7,8,9,10,11,12]
-    
-    for month in months:
-        filesByMonth = [f for f in swathfiles if ismonth( f, month )]
-        print('Processing Year Month %d-%d. Num Swaths %d' % (year,month,len(filesByMonth) ))
-        if len(filesByMonth) > 0: 
-            publishData(environmentName, filesByMonth, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize )
+    if len(swathfiles) > 0:
+        publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize )
            
-
+def dateFromFileName( file ):
+    matchObj = re.findall(r'2S_(\d+T\d+)', file)
+    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
+    return dataTime
+        
 def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize ):
     
     query = AsyncDataSetQuery.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
@@ -48,8 +46,6 @@ def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swa
     results = []    
     for file,dataTime in swathfiles:
         print(file)
-        #matchObj = re.findall(r'2S_(\d+T\d+)', file)
-        #dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
         result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize )
         if result.status == 'Success':
             results.append(result.swathDetails)
@@ -77,7 +73,16 @@ def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swa
         print('Result status %s' %(result.message))
         query.releaseCache(files)
     
+def isyearandmonth(file, year, month ):
+    matchObj = re.findall(r'2S_(\d+T\d+)', file)
+    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
+    
+    if dataTime.year == year and dataTime.month == month:
+        return True
+    else:
+        return False
 
+    
 def isyear( file, year ):
     matchObj = re.findall(r'2S_(\d+T\d+)', file)
     dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from math import floor
 
-inputPath = '/home/jonathan/data/fuse/'
+inputPath = '/data/mouse1/team/jon/fuse/'
 
 largeFile = 'cryotempo_GRIS_BaseC_Q2.nc'
 smallFile = 'cryotempo_oib.nc'
@@ -95,7 +95,7 @@ minYArray.fill(minY)
 maxYArray = cp.array(np.empty(len(largeY)))
 maxYArray.fill(maxY)
 
-numBucketsPerRow = 4
+numBucketsPerRow = 5
 
 bucketsArray = cp.array(np.empty(len(largeX)))
 bucketsArray.fill(numBucketsPerRow)
