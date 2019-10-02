@@ -20,6 +20,16 @@ class MalardClient:
         self.query = DataSetQuery( "http" + self.serverUrl, self.environmentName )
         self.asyncQuery = AsyncDataSetQuery( "ws" + self.serverUrl, self.environmentName, notebook )    
 
+    def getParentDataSets(self):
+        pds = self.query.getParentDataSets()
+        j_obj = json.loads( pds )
+        return [ n['name'] for n in j_obj ]
+    
+    def getDataSets(self, parentDataSet):
+        listOfDatasets = self.query.getDataSets(parentDataSet)
+
+        return [DataSet(parentDataSet, ds['name'], ds['region'] ) for ds in json.loads(listOfDatasets) ]
+    
     def boundingBox(self, dataSet ):
         
         bbox = json.loads(self.query.getDataSetBoundingBox( dataSet.parentDataSet, dataSet.dataSet, dataSet.region ))
@@ -32,20 +42,28 @@ class MalardClient:
         minT = datetime.fromtimestamp( bbox['minTime'] )
         maxT = datetime.fromtimestamp( bbox['maxTime'] )
         numberOfPoints = bbox['totalPoints']
-        return BoundingBox( dataSet, minX, maxX, minY, maxY, minT, maxT, numberOfPoints )
+        return BoundingBox( minX, maxX, minY, maxY, minT, maxT, numberOfPoints )
 
-    def gridCells( self, boundingBox):
+    def gridCells( self, dataSet, boundingBox):
         bb = boundingBox
-        gcs = json.loads(self.query.getGridCells(bb.dataSet.parentDataSet, bb.dataSet.dataSet, bb.dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT))
+        gcs = json.loads(self.query.getGridCells(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT))
         
-        return [BoundingBox( bb.dataSet, gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
+        return [BoundingBox( gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
         
-    def executeQuery( self, boundingBox, projections=[], filters=[], xCol='x', yCol='y' ):
+    def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y' ):
         bb = boundingBox
-        return self.asyncQuery.executeQuery(bb.dataSet.parentDataSet, bb.dataSet.dataSet, bb.dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol)
+        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol)
         
-    def publishGridCellStats(self, boundingBox, runName , statistics):
-        return self.query.publishGridCellStats(boundingBox.dataSet.parentDataSet, runName, boundingBox.minX, boundingBox.minY, boundingBox.maxX - boundingBox.minX, statistics )
+    def publishGridCellStats(self, dataSet, boundingBox, runName , statistics):
+        return self.query.publishGridCellStats(dataSet.parentDataSet, runName, boundingBox.minX, boundingBox.minY, boundingBox.maxX - boundingBox.minX, statistics )
+    
+    def getSwathNamesFromIds( self, dataset, file_ids ):
+        results = {}
+        for f in file_ids:
+            swathName = json.loads(self.query.getSwathDetailsFromId(dataset.parentDataSet, dataset.dataSet, dataset.region, f))['swathName']
+            results[swathName] = f
+        return results
     
     def releaseCacheHandle(self, cacheHandle ):
         return self.asyncQuery.releaseCache( cacheHandle  )
+    

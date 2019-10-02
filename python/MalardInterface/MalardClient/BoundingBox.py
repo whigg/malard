@@ -1,6 +1,5 @@
 class BoundingBox:
-    def __init__( self, dataSet, minX, maxX, minY, maxY, minT, maxT, numberOfPoints ):
-        self._dataSet = dataSet
+    def __init__( self, minX, maxX, minY, maxY, minT, maxT, numberOfPoints = 0):
         self._minX = minX
         self._maxX = maxX
         self._minY = minY
@@ -10,11 +9,8 @@ class BoundingBox:
         self._numberOfPoints = numberOfPoints
     
     def __str__(self):
-        return "{}, minX={}, maxX={}, minY={}, maxY={}, minT={}, maxT={} N={}".format(str(self.dataSet),self._minX, self._maxX, self._minY, self._maxY, self._minT, self._maxT, self._numberOfPoints)
+        return "minX={}, maxX={}, minY={}, maxY={}, minT={}, maxT={} N={}".format(self._minX, self._maxX, self._minY, self._maxY, self._minT, self._maxT, self._numberOfPoints)
     
-    @property
-    def dataSet(self):
-        return self._dataSet
     @property
     def minX(self):
         return self._minX

@@ -3,6 +3,7 @@ import websockets
 import nest_asyncio
 import datetime
 
+import MalardClient.MalardHelpers as mh
 import json
 
 def dateconverter(o):
@@ -16,7 +17,8 @@ class QueryResultInfo:
             self._status = status
             self._message = message
             self._json = json.dumps({'resultFileName':resultFileName,'status':status})
-    
+            self._df = None
+            
     def __str__(self):
         return "Status={} Message={} ResultFileName={}".format(self._status, self._message, self._resultFileName)
     
@@ -35,6 +37,14 @@ class QueryResultInfo:
     @property
     def json(self):
         return self._json
+    
+    @property
+    def to_df(self):
+        if self._df == None:
+            self._df = mh.getDataFrameFromNetCDF( self.resultFileName ) 
+        
+        return self._df
+        
 
 class SwathPublisherInfo:
     def __init__(self, completed, inputFileName, status, message, swathDetails = None):

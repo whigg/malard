@@ -10,7 +10,7 @@ setuptools.setup(
 
      name='MalardInterface',  
 
-     version='0.3',
+     version='0.4',
 
      scripts=['MalardInterface'] ,
 
@@ -27,7 +27,7 @@ setuptools.setup(
      url="https://github.com/earthwave/malard/tree/master/python/MalardInterface",
 
      packages=setuptools.find_packages(),
-     py_modules=['MalardClient.MalardClient', 'MalardClient.DataSetQuery', 'MalardClient.AsyncDataSetQuery','MalardClient.DataSet','MalardClient.BoundingBox'],
+     py_modules=['MalardClient.MalardClient', 'MalardClient.DataSetQuery', 'MalardClient.AsyncDataSetQuery','MalardClient.DataSet','MalardClient.BoundingBox', 'MalardClient.Helpers'],
      classifiers=[
 
          "Programming Language :: Python :: 3",
