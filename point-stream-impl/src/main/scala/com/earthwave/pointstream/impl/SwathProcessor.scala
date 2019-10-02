@@ -19,7 +19,7 @@ class SwathProcessor( catalogueService : CatalogueService,system : ActorSystem) 
   import org.slf4j.LoggerFactory
   private val log = LoggerFactory.getLogger(SwathProcessor.super.getClass)
 
-  val swathProcessors = List.range[Int](1,5,1).map( x => system.actorOf(Props(new SwathGridCellPublisher(x)),s"SwathProcessor_$x"))
+  val swathProcessors = List.range[Int](1,3,1).map( x => system.actorOf(Props(new SwathGridCellPublisher(x)),s"SwathProcessor_$x"))
 
   //watch the remote actors
   swathProcessors.foreach( sp =>  context.watch(sp) )

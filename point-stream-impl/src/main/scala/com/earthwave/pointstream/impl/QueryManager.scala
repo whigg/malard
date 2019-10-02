@@ -27,7 +27,7 @@ class QueryManager( catalogueService : CatalogueService,system : ActorSystem) ex
 
   private val log = LoggerFactory.getLogger(QueryManager.super.getClass)
 
-  val queryProcessors = List.range[Int](1,5,1).map( x => system.actorOf(Props(new QueryProcessor(x)),s"QueryProcessor_$x"))
+  val queryProcessors = List.range[Int](1,3,1).map( x => system.actorOf(Props(new QueryProcessor(x)),s"QueryProcessor_$x"))
 
   queryProcessors.foreach( qp => context.watch(qp) )
 

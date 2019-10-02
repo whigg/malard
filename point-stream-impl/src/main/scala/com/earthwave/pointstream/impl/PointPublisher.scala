@@ -29,7 +29,7 @@ class PointPublisher( catalogueService: CatalogueService, system : ActorSystem) 
 
   private val log = LoggerFactory.getLogger(PointPublisher.super.getClass)
 
-  val publisherProcesses = List.range[Int](1,5,1).map( x => system.actorOf(Props(new Publisher(x)),s"PublisherProcessor_$x"))
+  val publisherProcesses = List.range[Int](1,3,1).map( x => system.actorOf(Props(new Publisher(x)),s"PublisherProcessor_$x"))
 
   publisherProcesses.foreach( pp => context.watch(pp) )
 
