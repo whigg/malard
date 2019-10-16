@@ -51,9 +51,9 @@ class MalardClient:
         
         return [BoundingBox( gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
         
-    def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y' ):
+    def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y', shapeFile='' ):
         bb = boundingBox
-        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol)
+        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol, shapeFile)
         
     def publishGridCellStats(self, dataSet, boundingBox, runName , statistics):
         return self.query.publishGridCellStats(dataSet.parentDataSet, runName, boundingBox.minX, boundingBox.minY, boundingBox.maxX - boundingBox.minX, statistics )
