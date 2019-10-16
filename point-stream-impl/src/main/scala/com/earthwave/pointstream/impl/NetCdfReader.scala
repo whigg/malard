@@ -1,6 +1,7 @@
 package com.earthwave.pointstream.impl
 
 import com.earthwave.pointstream.api.Query
+import org.gdal.ogr.Layer
 
 import scala.collection.JavaConverters._
 import ucar.nc2.{NetcdfFile, Variable}
@@ -39,7 +40,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
     variables
   }
 
-  def getVariablesAndData(q : Query) : (List[(Variable, ucar.ma2.Array)],Array[Int]) ={
+  def getVariablesAndData(q : Query, layer : Option[Layer]) : (List[(Variable, ucar.ma2.Array)],Array[Int]) ={
 
     val tempVariables = variables.map(v => (v,v.read()))
 
@@ -49,7 +50,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
 
     val filters = q.filters.map( f => { (Operators.getOperator(f.op,f.threshold), tempVariables.filter( v => v._1.getShortName.contentEquals( f.column )).head._2 ) } )
 
-    val mask = ArrayHelper.buildMask(x, y, t, q.bbf, filters )
+    val mask = ArrayHelper.buildMask(x, y, t, q.bbf, filters, layer )
 
     (tempVariables, mask)
   }

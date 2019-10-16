@@ -7,6 +7,7 @@ import com.earthwave.pointstream.api.{Query, QueryStatus, StreamQuery}
 import com.earthwave.pointstream.impl.Messages.InitiatingConnection
 import com.earthwave.pointstream.impl.QueryManagerMessages.{CompleteRequest, Completed, InitiateQueryRequest, IsCompleted, ProcessQuery, ShardToProcess}
 import com.earthwave.pointstream.impl.WriterColumn.Column
+import org.gdal.ogr.ogr
 import ucar.ma2.DataType
 import org.slf4j.LoggerFactory
 
@@ -165,6 +166,9 @@ class QueryManager( catalogueService : CatalogueService,system : ActorSystem) ex
 
 class QueryProcessor( instance : Int ) extends Actor {
 
+  ogr.RegisterAll()
+  val driver = ogr.GetDriverByName("ESRI Shapefile")
+
   private val log = LoggerFactory.getLogger( QueryProcessor.super.getClass )
 
   private var shards = List[Shard]()
@@ -228,10 +232,13 @@ class QueryProcessor( instance : Int ) extends Actor {
         log.info(s"Now have ${shards.length}")
         val writer = new NetCdfWriter(pq.cacheName, columns, List[Column](), List[Column](), Map[String, DataType]())
         try {
+          val shapeFile = !q.bbf.shapeFile.isEmpty
+          val source = if( shapeFile ){Some( driver.Open(q.bbf.shapeFile) )}else{None}
+          val layer = if( shapeFile ){Some( source.get.GetLayer(0))}else{None}
           shards.foreach(x => {
             val reader = new NetCdfReader(x.shardName, cols.toSet)
             try {
-              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters))
+              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters), layer)
               log.info(s"Writing ${data._2.length} rows.")
               if (data._2.length != 0) {
                 writer.writeWithFilter(data._1, data._2)
@@ -241,6 +248,11 @@ class QueryProcessor( instance : Int ) extends Actor {
               reader.close()
             }
           })
+          if(shapeFile)
+          {
+            source.get.delete()
+            layer.get.delete()
+          }
         }
         finally {
           writer.close()

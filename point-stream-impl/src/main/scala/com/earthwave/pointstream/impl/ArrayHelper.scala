@@ -1,15 +1,31 @@
 package com.earthwave.pointstream.impl
 
 import com.earthwave.catalogue.api.BoundingBoxFilter
+import org.gdal.ogr.{Geometry, Layer, ogrConstants}
 import ucar.ma2.DataType
 
 import scala.collection.mutable.ListBuffer
 
 object ArrayHelper {
 
+  def checkInMask( layer : Layer, x : Double, y : Double ) : Boolean={
+    val pt : Geometry = new Geometry( ogrConstants.wkbPoint )
+    pt.SetPoint_2D(0, x, y)
 
-  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)] ) : Array[Int]={
+    //Set up a spatial filter such that the only features we see when we
+    //loop through "lyr_in" are those which overlap the point defined above
+    layer.SetSpatialFilter(pt)
 
+    //Loop through the overlapped features and display the field of interest
+    val ret = if( layer.GetFeatureCount() > 0){ true }else{false}
+    pt.delete()
+    ret
+
+  }
+
+  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)], layer : Option[Layer] ) : Array[Int]={
+
+    val shapeFile = !bbf.shapeFile.isEmpty()
     val mask = new ListBuffer[Int]()
     val numberOfFilters = f.length
 
@@ -22,7 +38,16 @@ object ArrayHelper {
       if( x >= bbf.minX && x <= bbf.maxX && y >= bbf.minY && y <= bbf.maxY && t >= bbf.minT && t <= bbf.maxT ) {
         val filterRes = f.map(x => x._1.op(x._2.getDouble(i))).filter(res => res == true)
         if( numberOfFilters == filterRes.length ) {
-          mask.append(i)
+          if( shapeFile )
+          {
+            if( checkInMask(layer.get, x, y)) {
+              mask.append(i)
+            }
+          }
+          else
+          {
+            mask.append(i)
+          }
         }
       }
     }

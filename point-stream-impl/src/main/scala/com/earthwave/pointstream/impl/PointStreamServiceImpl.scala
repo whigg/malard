@@ -7,7 +7,7 @@ import akka.actor.Status.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.Source
-import com.earthwave.catalogue.api.CatalogueService
+import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService}
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.pointstream.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -23,11 +23,15 @@ import com.earthwave.projection.api.ProjectionService
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
+import org.gdal.ogr.{Layer, ogr}
 
 /**
   * Implementation of the PointStreamService.
   */
 class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentService, projectionService : ProjectionService, implicit val system : ActorSystem) extends PointStreamService {
+
+  ogr.RegisterAll()
+  val driver = ogr.GetDriverByName("ESRI Shapefile")
 
   val queryManager = system.actorOf(Props(new QueryManager(catalogue, system)), "QueryManager")
   val pointPublisher = system.actorOf(Props(new PointPublisher(catalogue, system)), "PointPublisher")
@@ -53,7 +57,24 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
         val fileName = s"${outputPath}${q.parentDSName}_${q.dsName}_${fileNameHash}.nc"
         val cacheCheck = new File(fileName)
 
-        val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(q.bbf)
+        val bbf = if( q.bbf.shapeFile.isEmpty )
+                  {
+                    q.bbf
+                  }
+                  else
+                  {
+                    val source = driver.Open(q.bbf.shapeFile)
+                    val layer = source.GetLayer(0)
+
+                    val extent = layer.GetExtent()
+
+                    source.delete()
+                    layer.delete()
+
+                    BoundingBoxFilter(extent(0),extent(1),extent(2),extent(3),q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.shapeFile)
+                  }
+
+        val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
         val shards = Await.result(future, 10 seconds)
 
         log.info(s"doQuery $fileName")
