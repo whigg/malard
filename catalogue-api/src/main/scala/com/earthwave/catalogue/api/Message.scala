@@ -84,7 +84,8 @@ case class BoundingBoxFilter( minX : Double
                               , minT : Double
                               , maxT : Double
                               , xCol: String
-                              , yCol: String)
+                              , yCol: String
+			      , shapeFile : String )
 
 object BoundingBoxFilter
 {
