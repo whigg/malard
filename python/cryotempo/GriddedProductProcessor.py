@@ -5,10 +5,6 @@ Created on Wed Sep 25 15:26:36 2019
 
 @author: jon
 """
-
-import MalardInterface as mi
-import MalardInterface.MalardHelpers as m
-
 import netCDF4 as n
 
 import pandas as pd
@@ -18,17 +14,22 @@ from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from math import floor
 
+from MalardClient.MalardClient import MalardClient
+from MalardClient.DataSet import DataSet
+from MalardClient.BoundingBox import BoundingBox
+
 import sys
+import os
  
 import numpy as np
 
 def bucket_series( series, resolution ):
     res = np.empty(len(series))
     for i, x in enumerate(series):
-        res[i] =  resolution * floor( x / resolution )
+        res[i] =  resolution * floor( x / resolution ) + resolution * 0.5
     return res      
 
-def statistics( x, y, t, process_time, g_count, p_count ):
+def statistics( x, y, t, process_time, g_count, p_count, inmask_count, masked_pcount ):
     res ={}        
     res['x'] = x
     res['y'] = y
@@ -36,19 +37,26 @@ def statistics( x, y, t, process_time, g_count, p_count ):
     res['process_time'] = process_time
     res['gridded_count'] = g_count
     res['point_count'] = p_count
+    res['inmask_count'] = inmask_count
+    res['masked_pcount'] = masked_pcount
     
     return pd.DataFrame(res, index=['x'])
-    
 
-def processGridCell(client, queryInfo, gridCellSize, startX, startY, resolution, fillValue = -2147483647):
+def ensure_dir(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+def processGridCell(client, queryInfo, gridCellSize, startX, startY, resolution, mask, fillValue = -2147483647):
     
-    resultDf = m.getDataFrameFromNetCDF(queryInfo.resultFileName)
+    resultDf = queryInfo.to_df
     client.releaseCacheHandle( queryInfo.resultFileName )
     
     resultDf['x_b'] = bucket_series( resultDf['x'], resolution )
     resultDf['y_b'] = bucket_series( resultDf['y'], resolution )
     
     pointCount = len(resultDf)
+    maskedCount = 0
          
     n = floor(gridCellSize / resolution)
     r = range(0, n)
@@ -71,24 +79,31 @@ def processGridCell(client, queryInfo, gridCellSize, startX, startY, resolution,
         i = index(x, startX, resolution)
         j = index(y, startY, resolution)
         
-        if data[i][j][0] == fillValue:
-            griddedCount = griddedCount + 1
-            data[i][j][0] = e
-            dataN[i][j][0] = 1
-        else:
-            data[i][j][0] = data[i][j][0] + e
-            dataN[i][j][0] = dataN[i][j][0] + 1
+        p = (x,y)
+        if p in mask:
+            maskedCount = maskedCount + 1
+            if data[i][j][0] == fillValue:
+                griddedCount = griddedCount + 1
+                data[i][j][0] = e
+                dataN[i][j][0] = 1
+            else:
+                data[i][j][0] = data[i][j][0] + e
+                dataN[i][j][0] = dataN[i][j][0] + 1
             
     for i,x in enumerate( xcoords ):
         for j,y in enumerate( ycoords ):
             if data[i][j][0] != fillValue:
                 data[i][j][0] = data[i][j][0] / dataN[i][j][0] 
     
-    return (xcoords, ycoords, data, griddedCount, pointCount)
+    return (xcoords, ycoords, data, griddedCount, pointCount, maskedCount)
 
-def writeGriddedProduct(output_path, bbox, xcoords, ycoords, data, resolution ):
+def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution ):
     
-    dataset = n.Dataset("{}/GriddedProduct_{}_y{}_m{}_{}_{}.nc".format(output_path, bbox.dataSet.region, bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY ),'w',format='NETCDF4')
+    fullPath = "{}/GriddedProduct_{}_y{}_m{}_{}_{}.nc".format(output_path, dataSet.region, bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY )
+    
+    ensure_dir(fullPath)
+    
+    dataset = n.Dataset(fullPath,'w',format='NETCDF4')
             
     x = dataset.createDimension('x', len(xcoords))
     y = dataset.createDimension('y', len(ycoords))
@@ -130,43 +145,61 @@ def writeGriddedProduct(output_path, bbox, xcoords, ycoords, data, resolution ):
     elevations[:,:,:] = data
             
     dataset.close()
+
+def loadMasks( client, dataSet, gridCell,resolution):
+    import json
     
+    maskTypes = ["LRM_{}m".format(resolution),"SARIN_{}m".format(resolution),"ICE_{}m".format(resolution)]
+    
+    mask_dataframes = [  pd.read_csv(json.loads(client.query.getGridCellMask(dataSet.parentDataSet, dataSet.dataSet, maskType, dataSet.region, gridCell.minX, gridCell.minY, gridCell.maxX - gridCell.minX ))["fileName"]  ) for maskType in maskTypes] 
+        
+    inmask = {}
+
+    for x, y, lrm, sarin, ice in zip(  mask_dataframes[0]["x"], mask_dataframes[0]["y"], mask_dataframes[0]["within_LRM"], mask_dataframes[1]["within_SARIN"], mask_dataframes[2]["within_ICE"]):
+        if lrm == 0 and sarin == 1 and ice == 1:
+            inmask[(x,y)] = 1
+            
+    return inmask
+
 def main( argv ):
     
     argv = argv[1:]
     
-    year = int(argv[0])
+    year = 2011
     
     environmentName = 'DEVv2'
-    interval = '70days'
+    ndays = int(argv[0])
+    resolution = int(argv[1])
+    print(resolution)
+    interval = "{}days".format(ndays)
     
     output_path = '/home/jon/data/{}/y{}'.format(interval, year)
     gridCellSize = 100000
-    resolution = 500
     fillValue = -2147483647
     
-    client = mi.MalardClient( environmentName, False )
+    client = MalardClient( environmentName, False )
     
-    dataSet = mi.DataSet( 'cryotempo', 'GRIS_BaseC_Q2', 'greenland')
+    dataSet = DataSet( 'cryotempo', 'GRIS_BaselineC_Q2', 'greenland')
     
     bbox = client.boundingBox(dataSet)
     
     print(str(bbox))
     
-    gridcells = client.gridCells(bbox)
+    gridcells = client.gridCells(dataSet, bbox)
     
     processing_dates = []
-    publication_dt = datetime( year, 3, 31,23,59,59)
+    publication_dt = datetime( year, 6, 30,23,59,59)
     
-    end_dt = datetime( year, 12, 31, 23,59,59)
+    end_dt = datetime( year, 6 , 30, 23,59,59)
     
     while publication_dt <=  end_dt :
         next_publication_dt = publication_dt + relativedelta(months=1)
-        processing_dates.append( ( publication_dt - relativedelta(days=70) , publication_dt ) )
+        processing_dates.append( ( publication_dt - relativedelta(days=ndays) , publication_dt ) )
         publication_dt = next_publication_dt - timedelta(seconds=1)
     
     print(processing_dates)
     projections = ['x','y','time','elev']
+    #maskTypes = ["ICE_{}m".format(resolution),"SARIN_{}m".format(resolution),"Glacier_{}m".format(resolution)]
     
     stats = []
     total = len(gridcells)
@@ -174,26 +207,30 @@ def main( argv ):
     for i, gc in enumerate(gridcells):
         gc_start = datetime.now()
         for from_dt, to_dt in processing_dates:
-            month_gc = mi.BoundingBox(gc.dataSet, gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt, 0)
-            queryInfo = client.executeQuery(month_gc, projections)
+            month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
+            queryInfo = client.executeQuery(dataSet, month_gc, projections)
             
             if queryInfo.status == "Success":
                 start_time = datetime.now()
-                xc, yc, d, g_count, i_count = processGridCell(client, queryInfo, gridCellSize, gc.minX, gc.minY, resolution, fillValue )
-                writeGriddedProduct(output_path, month_gc, xc, yc, d, resolution )
+                mask_dict = loadMasks(client, dataSet, month_gc, resolution  ) 
+                xc, yc, d, g_count, i_count, m_count = processGridCell(client, queryInfo, gridCellSize, gc.minX, gc.minY, resolution, mask_dict, fillValue )
+                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution )
                 end_time = datetime.now()
                 
+                inmask_count = len(mask_dict.keys())
                 elapsed_time = (end_time - start_time).total_seconds()
-                #client.publishGridCellsStats( gc, "GriddedProductProcessor_{}".format(dataSet.region), { "CalcTime" : elapsed_time, "PointCount" : count } )
-                stats.append( statistics(gc.minX, gc.minY, from_dt, elapsed_time, g_count, i_count ) )
+                stats.append( statistics(gc.minX, gc.minY, from_dt, elapsed_time, g_count, i_count, inmask_count, m_count ) )
             else:
-                stats.append( statistics(gc.minX, gc.minY, from_dt, 0, 0, 0 ) )
+                stats.append( statistics(gc.minX, gc.minY, from_dt, 0, 0, 0, 0, 0 ) )
         gc_elapsed = ( datetime.now() - gc_start).total_seconds() 
         print('Processed [{}] grid cells. Total=[{}] Took=[{}]s'.format(i+1, total, gc_elapsed ))
         
     stats_df = pd.concat( stats, ignore_index=True )
+    stats_path = '/home/jon/data/stats/{}/{}_{}_{}m.csv'.format(interval,dataSet.region,year,resolution)
     
-    stats_df.to_csv( '/home/jon/data/stats/{}/{}_{}.csv'.format(interval,dataSet.region,year) )
+    ensure_dir(stats_path)
+    
+    stats_df.to_csv( stats_path )
 
 if __name__ == "__main__":
     main(sys.argv)

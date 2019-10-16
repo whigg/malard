@@ -1,4 +1,3 @@
-import MalardHelpers
 import logging
 import pandas as pd
 import geopandas as gp
@@ -10,17 +9,18 @@ import numpy as np
 import affine
 import statsmodels.api as sm
 from scipy.interpolate import griddata
-import pandas as  pd
 import json
 import math
 from pandas.io.json import json_normalize
-from shapely.geometry import Polygon, Point
 import os
-import numpy as np
 import datetime
 from dateutil.relativedelta import *
 
 
+from MalardClient.MalardClient import MalardClient 
+from MalardClient.DataSet import DataSet
+from MalardClient.BoundingBox import BoundingBox
+import MalardClient.MalardHelpers as mc
 
 
 class PointDataSet:
@@ -39,7 +39,7 @@ class PointDataSet:
 
     def _readData(self, filename):
         if os.path.isfile(filename):
-            self.data = MalardHelpers.getDataFrameFromNetCDF(filename)
+            self.data = mc.getDataFrameFromNetCDF(filename)
         else:
             self.logger.info('File=%s empty. Empty dataframe is created', filename)
             self.data = pd.DataFrame()
@@ -231,8 +231,10 @@ class PointGeoDataSet(PointDataSet):
             self.logger.info("Read %s mask file... " % maskType)
             if os.path.exists(maskPath):
                 mask = gp.read_file(maskPath)
+                
+                print(mask)
 
-                self.stats['%sMaskArea'%maskType] = float(mask['area'].sum())
+                #self.stats['%sMaskArea'%maskType] = float(mask['area'].sum())
                 # drop all columns except geometry
                 mask.drop(mask.columns.difference(['geometry']), 1, inplace=True)
 
@@ -273,11 +275,11 @@ class PointGeoDataSet(PointDataSet):
     def _withinMaskPolys(self, maskPath, maskType):
         self.logger.info("Read polygon mask file... ")
         mask = gp.read_file(maskPath)
-
-        self.stats['%sMaskArea'%maskType] = float(mask['area'].sum())
+        
+        #self.stats['%sMaskArea'%maskType] = float(mask['area'].sum())
         # drop all columns except geometry
         mask.drop(mask.columns.difference(['geometry']), 1, inplace=True)
-
+        
         self.logger.info("Apply %s mask (adds a column to points describing if they within mask)... " % maskType)
         masked = gp.sjoin(self.data, mask, how='left', op='within')
 
@@ -288,7 +290,7 @@ class PointGeoDataSet(PointDataSet):
         # summary
         count = masked.loc[(masked['within_%s' % maskType] == 1)].shape[0]
         self.stats['pointsWithin%sMask' % maskType] = float(count)
-        self.logger.info("Points within %s mask: count [%d]" % (maskType, count))
+        self.logger.info("Points within %s mask: count [%d] Total Points [%d]" % (maskType, count, len(self.data)))
         self.data = masked
         return ''
 
@@ -416,28 +418,65 @@ class RasterDataSet:
 
 if __name__ ==  '__main__':
     logging.basicConfig(level=logging.INFO)
-    fp = '/data/puma1/scratch/v2/malard/export/mtngla_tdx_1556569735.nc'
-    dataSet = 'tdx'
-    projection = "+proj=aea +lat_1=25 +lat_2=47 +lat_0=36 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+    
+    client = MalardClient()
+    
+    parentDataSet = 'cryotempo'
+    dataSet = 'GRIS_BaselineC_Q2'
+    region = 'greenland'
+    
+    inputDs = DataSet( parentDataSet, dataSet, region )
+    
+    proj4 = client.getProjection(inputDs).proj4
+    print(proj4)
+    
+    bb = client.boundingBox(inputDs)
+    
+    gridCells = client.gridCells(inputDs, bb)
+    
+    minT = datetime.datetime(2011,3,1,0,0,0)
+    maxT = datetime.datetime(2011,3,31,23,59,59)
+    
+    mask = '/data/puma1/scratch/cryotempo/masks/ice.shp'
+    
+    tmp = gp.read_file(mask)
+    
+    print(tmp)
+    
+    
+    for i, gc in enumerate(gridCells) :
+        #logging.log('Processing GC {} Total {}'.format(i,len(gridCells)))
+        resultInfo = client.executeQuery(inputDs, BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, minT, maxT ) ) 
+        if resultInfo.status == "Success":
+            df = resultInfo.to_df
+            #print("MinLon {} MinLat {}".format(df['lon'].min(), df['lat'].min()))
+            ds = PointDataSet(df, proj4)
+            client.releaseCacheHandle( resultInfo.resultFileName )
+            geoDs = ds.asGeoDataSet()
+            geoDs.withinMask(mask, 'Glacier')
+    
+    #fp = '/data/puma1/scratch/v2/malard/export/mtngla_tdx_1556569735.nc'
+    #dataSet = 'tdx'
+    #projection = "+proj=aea +lat_1=25 +lat_2=47 +lat_0=36 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
-    glacierMask = '/data/puma1/scratch/malard/mask/mtngla/static/RGIv60/Glacier/HMA/cell_x400000_y0_s100000/mask_Glacier_x400000_y0_s100000.gpkg'
-    debrisMask = '/data/puma1/scratch/malard/mask/mtngla/static/SDCv10/Debris/HMA/cell_x400000_y0_s100000/mask_Debris_x400000_y0_s100000.gpkg'
-    minX = 400000
-    maxX = 500000
-    minY = 0
-    maxY = 100000
-    size = 100000
+    #glacierMask = '/data/puma1/scratch/malard/mask/mtngla/static/RGIv60/Glacier/HMA/cell_x400000_y0_s100000/mask_Glacier_x400000_y0_s100000.gpkg'
+    #debrisMask = '/data/puma1/scratch/malard/mask/mtngla/static/SDCv10/Debris/HMA/cell_x400000_y0_s100000/mask_Debris_x400000_y0_s100000.gpkg'
+    #minX = 400000
+    #maxX = 500000
+    #minY = 0
+    #maxY = 100000
+    #size = 100000
 
-    referenceDem = "/data/puma1/scratch/DEMs/srtm_test.tif"
-    demDataSetMask = "/data/puma1/scratch/mtngla/DEMs-coreg/Tdx_Srtm_SurfaceSplit.tiff"
+    #referenceDem = "/data/puma1/scratch/DEMs/srtm_test.tif"
+    #demDataSetMask = "/data/puma1/scratch/mtngla/DEMs-coreg/Tdx_Srtm_SurfaceSplit.tiff"
 
-    raster = RasterDataSet(referenceDem)
-    raster.cutToBbx(0,1000,0,1000)
-    values = raster.getValuesAt([100,200], [1000,700])
+    #raster = RasterDataSet(referenceDem)
+    #raster.cutToBbx(0,1000,0,1000)
+    #values = raster.getValuesAt([100,200], [1000,700])
     #values = raster.getValueAt(100, 700)
-    print(values)
+    #print(values)
 
-    #ds = PointDataSet(fp, projection)
+    
 
     #geoDs = ds.asGeoDataSet()
     #geoDs.applyMask(glacierMask, 'Glacier')
