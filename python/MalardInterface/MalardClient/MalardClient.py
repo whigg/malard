@@ -12,6 +12,7 @@ from MalardClient.DataSetQuery import DataSetQuery
 from MalardClient.AsyncDataSetQuery import AsyncDataSetQuery
 from MalardClient.BoundingBox import BoundingBox
 from MalardClient.DataSet import DataSet
+from MalardClient.Projection import Projection
 
 class MalardClient:
     def __init__(self, environmentName='DEVv2', notebook = True):
@@ -44,9 +45,9 @@ class MalardClient:
         numberOfPoints = bbox['totalPoints']
         return BoundingBox( minX, maxX, minY, maxY, minT, maxT, numberOfPoints )
 
-    def gridCells( self, dataSet, boundingBox):
+    def gridCells( self, dataSet, boundingBox, xCol = "x", yCol="y"):
         bb = boundingBox
-        gcs = json.loads(self.query.getGridCells(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT))
+        gcs = json.loads(self.query.getGridCells(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol))
         
         return [BoundingBox( gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
         
@@ -63,7 +64,12 @@ class MalardClient:
             swathName = json.loads(self.query.getSwathDetailsFromId(dataset.parentDataSet, dataset.dataSet, dataset.region, f))['swathName']
             results[swathName] = f
         return results
-    
+   
+    def getProjection( self, dataSet ):
+        j_obj = json.loads( self.query.getProjection( dataSet.parentDataSet, dataSet.region ) )
+        
+        return Projection( j_obj['shortName'], j_obj['proj4'], j_obj['conditions'] )
+     
     def releaseCacheHandle(self, cacheHandle ):
         return self.asyncQuery.releaseCache( cacheHandle  )
     
