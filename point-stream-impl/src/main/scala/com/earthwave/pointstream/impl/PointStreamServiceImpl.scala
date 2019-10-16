@@ -51,12 +51,6 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
         log.info(s"From environment ${q.envName} output path is $outputPath.")
 
-        val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
-        val filters = q.filters.foldLeft[String]("")((x, y) => x + "_" + y.column + y.op + y.threshold)
-        val fileNameHash = s"${q.bbf.minX}_${q.bbf.maxX}_${q.bbf.minY}_${q.bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}".hashCode
-        val fileName = s"${outputPath}${q.parentDSName}_${q.dsName}_${fileNameHash}.nc"
-        val cacheCheck = new File(fileName)
-
         val bbf = if( q.bbf.shapeFile.isEmpty )
                   {
                     q.bbf
@@ -68,11 +62,19 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
                     val extent = layer.GetExtent()
 
+                    log.info( s"minX=${extent(0)}, maxX=${extent(1)} minY=${extent(2)} maxY=${extent(3)}" )
+
                     source.delete()
                     layer.delete()
 
                     BoundingBoxFilter(extent(0),extent(1),extent(2),extent(3),q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.shapeFile)
                   }
+
+        val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
+        val filters = q.filters.foldLeft[String]("")((x, y) => x + "_" + y.column + y.op + y.threshold)
+        val fileNameHash = s"${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}${q.bbf.shapeFile}${q.bbf.xCol}${q.bbf.yCol}".hashCode
+        val fileName = s"${outputPath}${q.parentDSName}_${q.dsName}_${fileNameHash}.nc"
+        val cacheCheck = new File(fileName)
 
         val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
         val shards = Await.result(future, 10 seconds)
@@ -80,7 +82,10 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
         log.info(s"doQuery $fileName")
 
         if (!cacheCheck.exists() && !shards.isEmpty) {
-          queryManager ! ProcessQuery(fileName, q, shards)
+
+          val qMod = StreamQuery(q.envName,q.parentDSName,q.dsName,q.region,bbf,q.projections,q.filters)
+
+          queryManager ! ProcessQuery(fileName, qMod, shards)
 
           var completed = false
           while (!completed) {
