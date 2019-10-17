@@ -44,14 +44,14 @@ class DataSetQuery:
         return response.text
     def getGridCells(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y' ):
         gcUrl = self.serverUrl + '/api/boundingbox/' + self.envName + '/' + parentDsName + '/' + dsName+ '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol }
+        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'shapeFile' : "" }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     #similar to getGridCells except a result for each time slice is also returned.
     def getShards(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y' ):
         gcUrl = self.serverUrl + '/api/shards/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol }
+        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'shapeFile' : "" }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
