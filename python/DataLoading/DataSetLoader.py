@@ -20,15 +20,15 @@ def main(argv):
     dataSet = 'AntarcticaV2b'
     region = 'antarctic'
     swathdir = '/data/slug1/holding/AntarcticaV2b'
-    year = int(argv[0])
-    month = int(argv[1])
-    columnFilters = {'coh':0.3,'powerscaled':100.0}
+    #year = int(argv[0])
+    #month = int(argv[1])
+    columnFilters = {'coh':0.3,'powerScaled':100.0}
     includeColumns =[]
     gridCellSize = 100000
     environmentName = 'DEVv2'
     
-    years = [year]
-    months = [month]
+    years = [2018]
+    months = [9,10]
     
     for year in years:
         for month in months:
@@ -47,10 +47,11 @@ def dateFromFileName( file ):
 def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize ):
     
     query = aq.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
-     
+    i = 0 
     results = []    
     for file,dataTime in swathfiles:
-        print(file)
+        i = i + 1
+        print("Processing {} Count {}".format(file,i) )
         result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize )
         if result.status == 'Success':
             results.append(result.swathDetails)

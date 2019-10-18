@@ -60,12 +60,12 @@ class MalardClient:
         return [Shard(BoundingBox( gc['minX'], gc['maxX'], gc['minY'], gc['maxY'], gc['minT'], gc['maxT'], gc['numberOfPoints']), gc['shardName']) for gc in gcs ]
         
         
-    def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y', shapeFile='' ):
+    def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y', maskFilters=[] ):
         bb = boundingBox
-        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol, shapeFile)
+        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol, maskFilters)
         
-    def executeQueryPolygon( self, dataSet, minT, maxT, shapeFile, projections=[], filters=[], xCol='x', yCol='y' ):
-        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT, projections, filters, xCol, yCol, shapeFile)
+    def executeQueryPolygon( self, dataSet, minT, maxT, maskFilters, projections=[], filters=[], xCol='x', yCol='y' ):
+        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT, projections, filters, xCol, yCol, maskFilters)
         
     def publishGridCellStats(self, dataSet, boundingBox, runName , statistics):
         return self.query.publishGridCellStats(dataSet.parentDataSet, runName, boundingBox.minX, boundingBox.minY, boundingBox.maxX - boundingBox.minX, statistics )

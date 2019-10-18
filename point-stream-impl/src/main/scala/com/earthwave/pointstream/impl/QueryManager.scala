@@ -236,14 +236,13 @@ class QueryProcessor( instance : Int ) extends Actor {
           val layers = q.bbf.maskFilters.map(f => {
                                                     val source = driver.Open(f.shapeFile)
                                                     val layer = source.GetLayer(0)
-                                                    source.delete()
-                                                    (f.includeWithin, layer)
+                                                    (f.includeWithin, layer, source)
                                                   })
 
           shards.foreach(x => {
             val reader = new NetCdfReader(x.shardName, cols.toSet)
             try {
-              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters), layers)
+              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters), layers.map(l => (l._1, l._2)))
               log.info(s"Writing ${data._2.length} rows.")
               if (data._2.length != 0) {
                 writer.writeWithFilter(data._1, data._2)
@@ -253,7 +252,10 @@ class QueryProcessor( instance : Int ) extends Actor {
               reader.close()
             }
           })
-          layers.foreach( l => l._2.delete() )
+          layers.foreach( l => {
+              l._2.delete()
+              l._3.delete()
+          })
         }
         finally {
           writer.close()
