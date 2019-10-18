@@ -13,6 +13,7 @@ from MalardClient.AsyncDataSetQuery import AsyncDataSetQuery
 from MalardClient.BoundingBox import BoundingBox
 from MalardClient.DataSet import DataSet
 from MalardClient.Projection import Projection
+from MalardClient.Shard import Shard
 
 class MalardClient:
     def __init__(self, environmentName='DEVv2', notebook = True):
@@ -50,6 +51,14 @@ class MalardClient:
         gcs = json.loads(self.query.getGridCells(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol))
         
         return [BoundingBox( gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
+        
+    def shards(self, dataSet, boundingBox, xCol = "x", yCol="y"):
+        
+        bb = boundingBox
+        gcs = json.loads(self.query.getShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol))
+        
+        return [Shard(BoundingBox( gc['minX'], gc['maxX'], gc['minY'], gc['maxY'], gc['minT'], gc['maxT'], gc['numberOfPoints']), gc['shardName']) for gc in gcs ]
+        
         
     def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y', shapeFile='' ):
         bb = boundingBox
