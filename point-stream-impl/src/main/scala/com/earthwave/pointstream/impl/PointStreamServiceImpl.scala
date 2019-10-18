@@ -60,14 +60,22 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                     val source = driver.Open(q.bbf.shapeFile)
                     val layer = source.GetLayer(0)
 
-                    val extent = layer.GetExtent()
+                    val extent : Array[Double] = layer.GetExtent()
 
                     log.info( s"minX=${extent(0)}, maxX=${extent(1)} minY=${extent(2)} maxY=${extent(3)}" )
 
                     source.delete()
                     layer.delete()
 
-                    BoundingBoxFilter(extent(0),extent(1),extent(2),extent(3),q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.shapeFile)
+                    val boxEmpty = if( q.bbf.minX == 0.0 && q.bbf.maxX == 0.0 && q.bbf.minY ==0.0 && q.bbf.maxY == 0.0){true}else{false}
+
+                    val minX = if( q.bbf.minX > extent(0) && !boxEmpty ){q.bbf.minX}else{extent(0)}
+                    val maxX = if( q.bbf.maxX < extent(1) && !boxEmpty){q.bbf.maxX}else{extent(1)}
+                    val minY = if( q.bbf.minY > extent(2) && !boxEmpty){q.bbf.minY}else{extent(2)}
+                    val maxY = if( q.bbf.maxY < extent(3) && !boxEmpty){q.bbf.maxY}else{extent(3)}
+
+
+                    BoundingBoxFilter(minX, maxX, minY,maxY ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.shapeFile)
                   }
 
         val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
