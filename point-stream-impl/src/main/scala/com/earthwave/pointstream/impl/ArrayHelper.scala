@@ -8,24 +8,41 @@ import scala.collection.mutable.ListBuffer
 
 object ArrayHelper {
 
-  def checkInMask( layer : Layer, x : Double, y : Double ) : Boolean={
-    val pt : Geometry = new Geometry( ogrConstants.wkbPoint )
-    pt.SetPoint_2D(0, x, y)
+  def checkInMask( layer : List[(Boolean,Layer)], x : Double, y : Double ) : Boolean={
 
-    //Set up a spatial filter such that the only features we see when we
-    //loop through "lyr_in" are those which overlap the point defined above
-    layer.SetSpatialFilter(pt)
+    def inMask( layer : Layer, includeInMask : Boolean  ) : Boolean= {
+      val pt: Geometry = new Geometry(ogrConstants.wkbPoint)
+      pt.SetPoint_2D(0, x, y)
 
-    //Loop through the overlapped features and display the field of interest
-    val ret = if( layer.GetFeatureCount() > 0){ true }else{false}
-    pt.delete()
-    ret
+      //Set up a spatial filter such that the only features we see when we
+      //loop through "lyr_in" are those which overlap the point defined above
+      layer.SetSpatialFilter(pt)
+
+      //Loop through the overlapped features and display the field of interest
+      val ret = if (layer.GetFeatureCount() > 0 && includeInMask == true) {
+        true
+      }
+      else if( layer.GetFeatureCount() == 0 && includeInMask == false  )
+      {
+        true
+      }
+      else
+      {
+        false
+      }
+      pt.delete()
+      ret
+    }
+
+    val includePoint = layer.map( x => inMask(x._2,x._1) ).reduce( (x,y) => if( x == true && y == true ){true}else{false}  )
+
+    includePoint
 
   }
 
-  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)], layer : Option[Layer] ) : Array[Int]={
+  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)], layer : List[(Boolean,Layer)] ) : Array[Int]={
 
-    val shapeFile = !bbf.shapeFile.isEmpty()
+    val shapeFile = !bbf.maskFilters.isEmpty
     val mask = new ListBuffer[Int]()
     val numberOfFilters = f.length
 
@@ -40,7 +57,7 @@ object ArrayHelper {
         if( numberOfFilters == filterRes.length ) {
           if( shapeFile )
           {
-            if( checkInMask(layer.get, x, y)) {
+            if( checkInMask(layer, x, y)) {
               mask.append(i)
             }
           }

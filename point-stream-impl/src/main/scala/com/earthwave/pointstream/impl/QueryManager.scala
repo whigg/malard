@@ -232,13 +232,18 @@ class QueryProcessor( instance : Int ) extends Actor {
         log.info(s"Now have ${shards.length}")
         val writer = new NetCdfWriter(pq.cacheName, columns, List[Column](), List[Column](), Map[String, DataType]())
         try {
-          val shapeFile = !q.bbf.shapeFile.isEmpty
-          val source = if( shapeFile ){Some( driver.Open(q.bbf.shapeFile) )}else{None}
-          val layer = if( shapeFile ){Some( source.get.GetLayer(0))}else{None}
+
+          val layers = q.bbf.maskFilters.map(f => {
+                                                    val source = driver.Open(f.shapeFile)
+                                                    val layer = source.GetLayer(0)
+                                                    source.delete()
+                                                    (f.includeWithin, layer)
+                                                  })
+
           shards.foreach(x => {
             val reader = new NetCdfReader(x.shardName, cols.toSet)
             try {
-              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters), layer)
+              val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters), layers)
               log.info(s"Writing ${data._2.length} rows.")
               if (data._2.length != 0) {
                 writer.writeWithFilter(data._1, data._2)
@@ -248,11 +253,7 @@ class QueryProcessor( instance : Int ) extends Actor {
               reader.close()
             }
           })
-          if(shapeFile)
-          {
-            source.get.delete()
-            layer.get.delete()
-          }
+          layers.foreach( l => l._2.delete() )
         }
         finally {
           writer.close()

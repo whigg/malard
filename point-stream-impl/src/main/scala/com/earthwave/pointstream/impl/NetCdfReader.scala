@@ -40,7 +40,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
     variables
   }
 
-  def getVariablesAndData(q : Query, layer : Option[Layer]) : (List[(Variable, ucar.ma2.Array)],Array[Int]) ={
+  def getVariablesAndData(q : Query, layer : List[(Boolean,Layer)]) : (List[(Variable, ucar.ma2.Array)],Array[Int]) ={
 
     val tempVariables = variables.map(v => (v,v.read()))
 

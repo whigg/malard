@@ -77,7 +77,7 @@ object BoundingBox
   implicit val format : Format[BoundingBox] = Json.format[BoundingBox]
 }
 
-case class BoundingBoxFilter( minX : Double
+case class BoundingBoxFilter(   minX : Double
                               , maxX : Double
                               , minY : Double
                               , maxY : Double
@@ -85,7 +85,7 @@ case class BoundingBoxFilter( minX : Double
                               , maxT : Double
                               , xCol: String
                               , yCol: String
-			      , shapeFile : String )
+			                        , maskFilters : List[MaskFilter] )
 
 object BoundingBoxFilter
 {
@@ -129,3 +129,9 @@ object GridCellFile
   implicit val format : Format[GridCellFile] = Json.format[GridCellFile]
 }
 
+case class MaskFilter( shapeFile : String, includeWithin : Boolean )
+
+object MaskFilter
+{
+  implicit val format : Format[MaskFilter] = Json.format[MaskFilter]
+}

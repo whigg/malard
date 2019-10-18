@@ -7,7 +7,7 @@ import akka.actor.Status.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.Source
-import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService}
+import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService, MaskFilter}
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.pointstream.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -41,6 +41,30 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   implicit val ec = ExecutionContext.global
 
+
+  private def getExtent( maskFilter: List[MaskFilter] ) : Array[Double] =
+  {
+    val extents = maskFilter.map( f => {  val source = driver.Open(f.shapeFile)
+                                          val layer = source.GetLayer(0)
+
+                                          val extent : Array[Double] = layer.GetExtent()
+
+                                          source.delete()
+                                          layer.delete()
+                                          extent
+                                        }   )
+
+    val extent =  extents.reduce( (x,y) => { val array = new Array[Double](4)
+                                             array(0) = Math.min(x(0),y(0))
+                                             array(1) = Math.max(x(1),y(1))
+                                              array(2) = Math.min(x(2),y(2))
+                                              array(3) = Math.max(x(3),y(3))
+                                              array
+                                } )
+    extent
+  }
+
+
   def runQuery(ref: ActorRef, q: StreamQuery): Future[NotUsed] = {
     Future {
       implicit val timeout = Timeout(10 seconds)
@@ -51,35 +75,29 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
         log.info(s"From environment ${q.envName} output path is $outputPath.")
 
-        val bbf = if( q.bbf.shapeFile.isEmpty )
+        val bbf = if( q.bbf.maskFilters.isEmpty )
                   {
                     q.bbf
                   }
                   else
                   {
-                    val source = driver.Open(q.bbf.shapeFile)
-                    val layer = source.GetLayer(0)
+                    val boxEmpty = if( q.bbf.minX == 0.0 && q.bbf.maxX == 0.0 && q.bbf.minY ==0.0 && q.bbf.maxY == 0.0){true}else{false}
 
-                    val extent : Array[Double] = layer.GetExtent()
+                    val extent = getExtent(q.bbf.maskFilters)
 
                     log.info( s"minX=${extent(0)}, maxX=${extent(1)} minY=${extent(2)} maxY=${extent(3)}" )
-
-                    source.delete()
-                    layer.delete()
-
-                    val boxEmpty = if( q.bbf.minX == 0.0 && q.bbf.maxX == 0.0 && q.bbf.minY ==0.0 && q.bbf.maxY == 0.0){true}else{false}
 
                     val minX = if( !boxEmpty){q.bbf.minX}else{extent(0)}
                     val maxX = if( !boxEmpty){q.bbf.maxX}else{extent(1)}
                     val minY = if( !boxEmpty){q.bbf.minY}else{extent(2)}
                     val maxY = if( !boxEmpty){q.bbf.maxY}else{extent(3)}
 
-                    BoundingBoxFilter(minX, maxX, minY,maxY ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.shapeFile)
+                    BoundingBoxFilter(minX, maxX, minY,maxY ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
                   }
 
         val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
         val filters = q.filters.foldLeft[String]("")((x, y) => x + "_" + y.column + y.op + y.threshold)
-        val fileNameHash = s"${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}${q.bbf.shapeFile}${q.bbf.xCol}${q.bbf.yCol}".hashCode
+        val fileNameHash = s"${bbf.minX}_${bbf.maxX}_${bbf.minY}_${bbf.maxY}_${q.bbf.minT}_${q.bbf.maxT}${projection}${filters}${q.bbf.maskFilters}${q.bbf.xCol}${q.bbf.yCol}".hashCode
         val fileName = s"${outputPath}${q.parentDSName}_${q.dsName}_${fileNameHash}.nc"
         val cacheCheck = new File(fileName)
 
