@@ -69,10 +69,10 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
                     val boxEmpty = if( q.bbf.minX == 0.0 && q.bbf.maxX == 0.0 && q.bbf.minY ==0.0 && q.bbf.maxY == 0.0){true}else{false}
 
-                    val minX = if( q.bbf.minX > extent(0) && !boxEmpty ){q.bbf.minX}else{extent(0)}
-                    val maxX = if( q.bbf.maxX < extent(1) && !boxEmpty){q.bbf.maxX}else{extent(1)}
-                    val minY = if( q.bbf.minY > extent(2) && !boxEmpty){q.bbf.minY}else{extent(2)}
-                    val maxY = if( q.bbf.maxY < extent(3) && !boxEmpty){q.bbf.maxY}else{extent(3)}
+                    val minX = if( !boxEmpty){q.bbf.minX}else{extent(0)}
+                    val maxX = if( !boxEmpty){q.bbf.maxX}else{extent(1)}
+                    val minY = if( !boxEmpty){q.bbf.minY}else{extent(2)}
+                    val maxY = if( !boxEmpty){q.bbf.maxY}else{extent(3)}
 
 
                     BoundingBoxFilter(minX, maxX, minY,maxY ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.shapeFile)
