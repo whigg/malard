@@ -42,25 +42,44 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
   implicit val ec = ExecutionContext.global
 
 
-  private def getExtent( maskFilter: List[MaskFilter] ) : Array[Double] =
+  private def getExtent( bbf: BoundingBoxFilter ) : Array[Double] =
   {
-    val extents = maskFilter.map( f => {  val source = driver.Open(f.shapeFile)
-                                          val layer = source.GetLayer(0)
+    val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
 
-                                          val extent : Array[Double] = layer.GetExtent()
+    val extent = if(!boxEmpty) {
+      val extents = bbf.maskFilters.map(f => {
+        val source = driver.Open(f.shapeFile)
+        val layer = source.GetLayer(0)
 
-                                          source.delete()
-                                          layer.delete()
-                                          extent
-                                        }   )
+        val extent: Array[Double] = layer.GetExtent()
 
-    val extent =  extents.reduce( (x,y) => { val array = new Array[Double](4)
-                                             array(0) = Math.min(x(0),y(0))
-                                             array(1) = Math.max(x(1),y(1))
-                                              array(2) = Math.min(x(2),y(2))
-                                              array(3) = Math.max(x(3),y(3))
-                                              array
-                                } )
+        source.delete()
+        layer.delete()
+        extent
+      })
+
+      val extent = extents.reduce((x, y) => {
+        val array = new Array[Double](4)
+        array(0) = Math.min(x(0), y(0))
+        array(1) = Math.max(x(1), y(1))
+        array(2) = Math.min(x(2), y(2))
+        array(3) = Math.max(x(3), y(3))
+        array
+      })
+      extent
+    }
+    else
+    {
+      val extent = Array[Double](4)
+
+      extent(0) = bbf.minX
+      extent(1) = bbf.maxX
+      extent(2) = bbf.minY
+      extent(3) = bbf.maxY
+
+      extent
+    }
+
     extent
   }
 
@@ -81,18 +100,9 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                   }
                   else
                   {
-                    val boxEmpty = if( q.bbf.minX == 0.0 && q.bbf.maxX == 0.0 && q.bbf.minY ==0.0 && q.bbf.maxY == 0.0){true}else{false}
+                    val extent = getExtent(q.bbf)
 
-                    val extent = getExtent(q.bbf.maskFilters)
-
-                    log.info( s"minX=${extent(0)}, maxX=${extent(1)} minY=${extent(2)} maxY=${extent(3)}" )
-
-                    val minX = if( !boxEmpty){q.bbf.minX}else{extent(0)}
-                    val maxX = if( !boxEmpty){q.bbf.maxX}else{extent(1)}
-                    val minY = if( !boxEmpty){q.bbf.minY}else{extent(2)}
-                    val maxY = if( !boxEmpty){q.bbf.maxY}else{extent(3)}
-
-                    BoundingBoxFilter(minX, maxX, minY,maxY ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
+                    BoundingBoxFilter(extent(0), extent(1), extent(2),extent(3) ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
                   }
 
         val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
@@ -283,7 +293,11 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getShards( q : StreamQuery ) : List[Shard] = {
 
-    val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(q.bbf)
+    val extent = getExtent( q.bbf )
+
+    val bbf = BoundingBoxFilter(extent(0), extent(1), extent(2),extent(3) ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
+
+    val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
     val shards : List[Shard] = Await.result(future, 10 seconds)
 
     val layers = q.bbf.maskFilters.map( mf => {
