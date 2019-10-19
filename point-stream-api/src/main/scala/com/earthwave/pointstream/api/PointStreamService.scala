@@ -6,6 +6,8 @@ import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
 
 import scala.concurrent.Future
 
+import com.earthwave.catalogue.api.Shard
+
 
 /**
   * The point stream interface.
@@ -21,6 +23,8 @@ trait PointStreamService extends Service {
 
   def publishSwathToGridCells() : ServiceCall[SwathToGridCellsRequest, Source[SwathProcessorStatus, NotUsed]]
 
+  def filterShards() : ServiceCall[StreamQuery, Source[Shard , NotUsed]]
+
   def releaseCache() : ServiceCall[List[Cache], Source[String, NotUsed]]
 
   override final def descriptor: Descriptor = {
@@ -31,6 +35,7 @@ trait PointStreamService extends Service {
         namedCall("query", doQuery),
         namedCall( "publish", doPublishGridCellPoints),
         namedCall( "publishswath", publishSwathToGridCells),
+        namedCall( "filtershards", filterShards),
         namedCall("releasecache", releaseCache())
 
       ).withAutoAcl(true)

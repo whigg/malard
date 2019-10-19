@@ -7,7 +7,7 @@ import akka.actor.Status.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.Source
-import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService, MaskFilter}
+import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService, MaskFilter, Shard}
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.pointstream.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -258,6 +258,12 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     }
   }
 
+  override def filterShards() : ServiceCall[StreamQuery, Source[Shard , NotUsed]] = { query =>
+
+    Future.successful(Source.apply(getShards(query)).mapAsync(8)( s => shard(s) ))
+
+  }
+
   override def releaseCache() : ServiceCall[List[Cache], Source[String, NotUsed]] = { c =>
 
     def deleteFile( fileName : String ) = {
@@ -273,6 +279,46 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     }
 
     Future.successful(Source.apply(c).mapAsync(8)( f => deleteFile(f.handle) ))
+  }
+
+  private def getShards( q : StreamQuery ) : List[Shard] = {
+
+    val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(q.bbf)
+    val shards : List[Shard] = Await.result(future, 10 seconds)
+
+    val layers = q.bbf.maskFilters.map( mf => {
+      val source = driver.Open(mf.shapeFile)
+      val layer = source.GetLayer(0)
+      (mf.includeWithin, layer, source )
+    })
+
+    def inMask(minX : Double, maxX : Double, minY : Double, maxY : Double) : Boolean = {
+
+      val ls = layers.map( l => (l._1, l._2) )
+      val bottomLeft = ArrayHelper.checkInMask( ls, minX, minY )
+      val topLeft = ArrayHelper.checkInMask( ls, minX, maxY )
+      val topRight = ArrayHelper.checkInMask( ls, maxX, maxY )
+      val bottomRight = ArrayHelper.checkInMask( ls, maxX, minY )
+
+      val inside = if( bottomLeft == true && topLeft == true && topRight == true && bottomRight == true ){true}else{false}
+
+      inside
+    }
+
+    val filteredShards = shards.filter( s => inMask(s.minX, s.maxX, s.minY, s.maxY))
+
+    layers.foreach( l => {
+      l._2.delete()
+      l._3.delete()
+    } )
+
+    filteredShards
+  }
+
+  private def shard( s : Shard) : Future[Shard] ={
+    Future{
+      s
+    }
   }
 
 }
