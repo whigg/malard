@@ -52,10 +52,23 @@ class MalardClient:
         
         return [BoundingBox( gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
         
-    def shards(self, dataSet, boundingBox, xCol = "x", yCol="y"):
+    def shards(self, dataSet, boundingBox, xCol = "x", yCol="y", maskFilters =[] ):
         
         bb = boundingBox
-        gcs = json.loads(self.query.getShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol))
+        gcs = []
+        if len(maskFilters) == 0:
+            gcs = json.loads(self.query.getShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol))
+        else:
+            gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol, maskFilters)
+            gcs = [json.loads(gc) for gc in gcs]
+        
+        return [Shard(BoundingBox( gc['minX'], gc['maxX'], gc['minY'], gc['maxY'], gc['minT'], gc['maxT'], gc['numberOfPoints']), gc['shardName']) for gc in gcs ]
+        
+    def shardsWithinPolygon(self, dataSet, minT, maxT, maskFilters, xCol = "x", yCol="y"):
+        
+        gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT,xCol=xCol,yCol=yCol, maskFilters=maskFilters)
+       
+        gcs = [ json.loads(gc) for gc in gcs ]
         
         return [Shard(BoundingBox( gc['minX'], gc['maxX'], gc['minY'], gc['maxY'], gc['minT'], gc['maxT'], gc['numberOfPoints']), gc['shardName']) for gc in gcs ]
         

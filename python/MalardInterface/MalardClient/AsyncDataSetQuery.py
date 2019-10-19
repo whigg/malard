@@ -155,6 +155,17 @@ class AsyncDataSetQuery:
         requestJson = json.dumps(request)
         return self.syncServerRequest(requestJson, '/validateasync')
         
+    def filterShards( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y', maskFilters=[] ):
+        
+        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile } for m in maskFilters ]
+        
+        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : filtersAsDict}, 'projections':[],'filters': []}
+        
+        requestJson = json.dumps(request,default=dateconverter)
+       
+        return self.syncServerRequest(requestJson, '/filtershards')     
+        
+    
     def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters, xCol='x', yCol='y', maskFilters=[] ):
         
         filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile } for m in maskFilters ]

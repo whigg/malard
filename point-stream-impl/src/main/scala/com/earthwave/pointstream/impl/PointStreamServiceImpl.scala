@@ -42,11 +42,11 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
   implicit val ec = ExecutionContext.global
 
 
-  private def getExtent( bbf: BoundingBoxFilter ) : Array[Double] =
+  private def getExtent( bbf: BoundingBoxFilter ) : (Double,Double,Double,Double) =
   {
     val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
 
-    val extent = if(!boxEmpty) {
+    val extent = if(boxEmpty) {
       val extents = bbf.maskFilters.map(f => {
         val source = driver.Open(f.shapeFile)
         val layer = source.GetLayer(0)
@@ -66,20 +66,12 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
         array(3) = Math.max(x(3), y(3))
         array
       })
-      extent
+      ( extent(0), extent(1), extent(2), extent(3) )
     }
     else
     {
-      val extent = Array[Double](4)
-
-      extent(0) = bbf.minX
-      extent(1) = bbf.maxX
-      extent(2) = bbf.minY
-      extent(3) = bbf.maxY
-
-      extent
+      ( bbf.minX, bbf.maxX, bbf.minY, bbf.maxY )
     }
-
     extent
   }
 
@@ -102,7 +94,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                   {
                     val extent = getExtent(q.bbf)
 
-                    BoundingBoxFilter(extent(0), extent(1), extent(2),extent(3) ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
+                    BoundingBoxFilter(extent._1, extent._2, extent._3, extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
                   }
 
         val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
@@ -295,7 +287,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
     val extent = getExtent( q.bbf )
 
-    val bbf = BoundingBoxFilter(extent(0), extent(1), extent(2),extent(3) ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
+    val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3,extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
 
     val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
     val shards : List[Shard] = Await.result(future, 10 seconds)
@@ -314,12 +306,14 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
       val topRight = ArrayHelper.checkInMask( ls, maxX, maxY )
       val bottomRight = ArrayHelper.checkInMask( ls, maxX, minY )
 
-      val inside = if( bottomLeft == true && topLeft == true && topRight == true && bottomRight == true ){true}else{false}
+      val inside = if( bottomLeft == true || topLeft == true || topRight == true || bottomRight == true ){true}else{false}
 
       inside
     }
 
     val filteredShards = shards.filter( s => inMask(s.minX, s.maxX, s.minY, s.maxY))
+
+    log.info(s"After filtering shards: ${filteredShards.length}")
 
     layers.foreach( l => {
       l._2.delete()
