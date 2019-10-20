@@ -14,6 +14,7 @@ from MalardClient.BoundingBox import BoundingBox
 from MalardClient.DataSet import DataSet
 from MalardClient.Projection import Projection
 from MalardClient.Shard import Shard
+from MalardClient.MaskFilter import MaskFilter
 
 class MalardClient:
     def __init__(self, environmentName='DEVv2', notebook = True):
@@ -54,6 +55,9 @@ class MalardClient:
         
     def shards(self, dataSet, boundingBox, xCol = "x", yCol="y", maskFilters =[] ):
         
+        if isinstance(maskFilters, MaskFilter):
+            maskFilters = [maskFilters]
+        
         bb = boundingBox
         gcs = []
         if len(maskFilters) == 0:
@@ -66,6 +70,9 @@ class MalardClient:
         
     def shardsWithinPolygon(self, dataSet, minT, maxT, maskFilters, xCol = "x", yCol="y"):
         
+        if isinstance(maskFilters, MaskFilter):
+            maskFilters = [maskFilters]
+        
         gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT,xCol=xCol,yCol=yCol, maskFilters=maskFilters)
        
         gcs = [ json.loads(gc) for gc in gcs ]
@@ -74,10 +81,17 @@ class MalardClient:
         
         
     def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y', maskFilters=[] ):
+        if isinstance(maskFilters, MaskFilter):
+            maskFilters = [maskFilters]
+        
         bb = boundingBox
         return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol, maskFilters)
         
     def executeQueryPolygon( self, dataSet, minT, maxT, maskFilters, projections=[], filters=[], xCol='x', yCol='y' ):
+        
+        if isinstance(maskFilters, MaskFilter):
+            maskFilters = [maskFilters]
+            
         return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT, projections, filters, xCol, yCol, maskFilters)
         
     def publishGridCellStats(self, dataSet, boundingBox, runName , statistics):

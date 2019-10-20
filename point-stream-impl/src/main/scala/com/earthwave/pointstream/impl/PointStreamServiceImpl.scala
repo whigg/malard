@@ -7,7 +7,7 @@ import akka.actor.Status.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.Source
-import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService, MaskFilter, Shard}
+import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService, Shard}
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.pointstream.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -41,41 +41,6 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   implicit val ec = ExecutionContext.global
 
-
-  private def getExtent( bbf: BoundingBoxFilter ) : (Double,Double,Double,Double) =
-  {
-    val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
-
-    val extent = if(boxEmpty) {
-      val extents = bbf.maskFilters.map(f => {
-        val source = driver.Open(f.shapeFile)
-        val layer = source.GetLayer(0)
-
-        val extent: Array[Double] = layer.GetExtent()
-
-        source.delete()
-        layer.delete()
-        extent
-      })
-
-      val extent = extents.reduce((x, y) => {
-        val array = new Array[Double](4)
-        array(0) = Math.min(x(0), y(0))
-        array(1) = Math.max(x(1), y(1))
-        array(2) = Math.min(x(2), y(2))
-        array(3) = Math.max(x(3), y(3))
-        array
-      })
-      ( extent(0), extent(1), extent(2), extent(3) )
-    }
-    else
-    {
-      ( bbf.minX, bbf.maxX, bbf.minY, bbf.maxY )
-    }
-    extent
-  }
-
-
   def runQuery(ref: ActorRef, q: StreamQuery): Future[NotUsed] = {
     Future {
       implicit val timeout = Timeout(10 seconds)
@@ -92,7 +57,11 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                   }
                   else
                   {
-                    val extent = getExtent(q.bbf)
+                    val mask = Mask.getMask(q.bbf.maskFilters, driver )
+
+                    val extent = mask.getExtent(q.bbf)
+
+                    mask.close()
 
                     BoundingBoxFilter(extent._1, extent._2, extent._3, extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
                   }
@@ -285,26 +254,21 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getShards( q : StreamQuery ) : List[Shard] = {
 
-    val extent = getExtent( q.bbf )
+    val mask = Mask.getMask(q.bbf.maskFilters, driver)
+
+    val extent = mask.getExtent( q.bbf )
 
     val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3,extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
 
     val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
     val shards : List[Shard] = Await.result(future, 10 seconds)
 
-    val layers = q.bbf.maskFilters.map( mf => {
-      val source = driver.Open(mf.shapeFile)
-      val layer = source.GetLayer(0)
-      (mf.includeWithin, layer, source )
-    })
-
     def inMask(minX : Double, maxX : Double, minY : Double, maxY : Double) : Boolean = {
 
-      val ls = layers.map( l => (l._1, l._2) )
-      val bottomLeft = ArrayHelper.checkInMask( ls, minX, minY )
-      val topLeft = ArrayHelper.checkInMask( ls, minX, maxY )
-      val topRight = ArrayHelper.checkInMask( ls, maxX, maxY )
-      val bottomRight = ArrayHelper.checkInMask( ls, maxX, minY )
+      val bottomLeft = mask.checkInMask( minX, minY )
+      val topLeft = mask.checkInMask( minX, maxY )
+      val topRight = mask.checkInMask( maxX, maxY )
+      val bottomRight = mask.checkInMask( maxX, minY )
 
       val inside = if( bottomLeft == true || topLeft == true || topRight == true || bottomRight == true ){true}else{false}
 
@@ -315,10 +279,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
     log.info(s"After filtering shards: ${filteredShards.length}")
 
-    layers.foreach( l => {
-      l._2.delete()
-      l._3.delete()
-    } )
+    mask.close()
 
     filteredShards
   }

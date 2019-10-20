@@ -40,7 +40,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
     variables
   }
 
-  def getVariablesAndData(q : Query, layer : List[(Boolean,Layer)]) : (List[(Variable, ucar.ma2.Array)],Array[Int]) ={
+  def getVariablesAndData(q : Query, maskFilter : Mask) : (List[(Variable, ucar.ma2.Array)],Array[Int]) ={
 
     val tempVariables = variables.map(v => (v,v.read()))
 
@@ -50,7 +50,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
 
     val filters = q.filters.map( f => { (Operators.getOperator(f.op,f.threshold), tempVariables.filter( v => v._1.getShortName.contentEquals( f.column )).head._2 ) } )
 
-    val mask = ArrayHelper.buildMask(x, y, t, q.bbf, filters, layer )
+    val mask = ArrayHelper.buildMask(x, y, t, q.bbf, filters, maskFilter )
 
     (tempVariables, mask)
   }
