@@ -1,7 +1,7 @@
 package com.earthwave.pointstream.api
 
 
-import com.earthwave.catalogue.api.{BoundingBox, BoundingBoxFilter, SwathDetail}
+import com.earthwave.catalogue.api.{BoundingBoxFilter, SwathDetail}
 import play.api.libs.json.{Format, Json}
 
 

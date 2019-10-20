@@ -129,7 +129,7 @@ object GridCellFile
   implicit val format : Format[GridCellFile] = Json.format[GridCellFile]
 }
 
-case class MaskFilter( shapeFile : String, includeWithin : Boolean )
+case class MaskFilter( shapeFile : String, wkt : String, includeWithin : Boolean )
 
 object MaskFilter
 {

@@ -157,7 +157,7 @@ class AsyncDataSetQuery:
         
     def filterShards( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y', maskFilters=[] ):
         
-        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile } for m in maskFilters ]
+        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile, 'wkt':m.wkt } for m in maskFilters ]
         
         request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : filtersAsDict}, 'projections':[],'filters': []}
         
@@ -168,7 +168,7 @@ class AsyncDataSetQuery:
     
     def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters, xCol='x', yCol='y', maskFilters=[] ):
         
-        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile } for m in maskFilters ]
+        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile, 'wkt':m.wkt } for m in maskFilters ]
         
         request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : filtersAsDict}, 'projections':projections,'filters': filters}
         
