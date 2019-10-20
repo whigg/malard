@@ -190,12 +190,12 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     println(s"Found [${results.length}] shards")
 
     val docs = results.toList.map( doc => Shard(doc.getString("shardName"),
-                                                doc.getDouble( "minX" ),
-                                                doc.getDouble("maxX"),
-                                                doc.getDouble("minY"),
-                                                doc.getDouble("maxY"),
-                                                doc.getDouble("minTime"),
-                                                doc.getDouble("maxTime"),
+                                                doc.getLong( "gridCellMinX" ).toDouble,
+                                                doc.getLong("gridCellMaxX").toDouble,
+                                                doc.getLong("gridCellMinY").toDouble,
+                                                doc.getLong("gridCellMaxY").toDouble,
+                                                doc.getDouble("minTime").toDouble,
+                                                doc.getDouble("maxTime").toDouble,
                                                 doc.getLong("count")
                                                     ) )
     Future.successful(docs)

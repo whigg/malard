@@ -280,7 +280,7 @@ class Publisher( val processNr : Int) extends Actor {
                                                                                                                                     , Helper.min(ce.minX, currCe.minX)
                                                                                                                                     , Helper.max(ce.maxX, currCe.maxX)
                                                                                                                                     , Helper.min(ce.minY, currCe.minY)
-                                                                                                                                    , Helper.max(ce.maxX, currCe.maxX )
+                                                                                                                                    , Helper.max(ce.maxY, currCe.maxY )
                                                                                                                                     , Helper.min(ce.minLat, currCe.minLat)
                                                                                                                                     , Helper.max(ce.maxLat, currCe.maxLat)
                                                                                                                                     , Helper.min(ce.minLon, currCe.minLon )
