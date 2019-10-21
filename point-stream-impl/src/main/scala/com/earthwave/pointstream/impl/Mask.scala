@@ -7,16 +7,25 @@ import org.gdal.ogr.{Driver, Layer, Geometry, ogrConstants}
 
 object Mask
 {
-  def getMask( filters : List[MaskFilter], driver : Driver ) : Mask ={
+  def getMask( filters : List[MaskFilter], driver : Driver ) : Option[Mask] ={
 
-    if( !filters.head.shapeFile.isEmpty )
+
+    if( !filters.isEmpty )
     {
-      new ShapeMask( filters, driver )
+      if( !filters.head.shapeFile.isEmpty )
+      {
+        Some(new ShapeMask( filters, driver ))
+      }
+      else
+      {
+        Some(new GeometryMask( filters ))
+      }
     }
     else
     {
-      new GeometryMask( filters )
+      None
     }
+
   }
 }
 

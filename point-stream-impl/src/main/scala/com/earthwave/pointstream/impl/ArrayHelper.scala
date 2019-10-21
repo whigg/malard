@@ -9,7 +9,7 @@ object ArrayHelper {
 
 
 
-  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)], maskFilter : Mask ) : Array[Int]={
+  def buildMask( xArr : ucar.ma2.Array, yArr : ucar.ma2.Array, tArr : ucar.ma2.Array, bbf : BoundingBoxFilter, f : List[(Operator,ucar.ma2.Array)], maskFilter : Option[Mask] ) : Array[Int]={
 
     val shapeFile = !bbf.maskFilters.isEmpty
     val mask = new ListBuffer[Int]()
@@ -26,7 +26,7 @@ object ArrayHelper {
         if( numberOfFilters == filterRes.length ) {
           if( shapeFile )
           {
-            if( maskFilter.checkInMask( x, y)) {
+            if( maskFilter.get.checkInMask( x, y)) {
               mask.append(i)
             }
           }

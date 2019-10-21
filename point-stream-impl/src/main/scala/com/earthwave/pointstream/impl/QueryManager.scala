@@ -215,7 +215,8 @@ class QueryProcessor( instance : Int ) extends Actor {
       log.info(s"QueryProcessor [$instance]. Received ${q.envName}, ${q.region}, ${q.parentDSName}, ${q.dsName} ")
 
       val shards = pq.shards
-      log.info(s"Found [${shards.length}]")
+      val points = pq.shards.map(s => s.numberOfPoints ).sum
+      log.info(s"Number of shards=[${shards.length}] and Points=[${points}]")
 
       val cols = if (q.projections.isEmpty) {
         scala.collection.mutable.Set()
@@ -248,7 +249,10 @@ class QueryProcessor( instance : Int ) extends Actor {
               reader.close()
             }
           })
-          mask.close()
+          if( !q.bbf.maskFilters.isEmpty )
+          {
+            mask.get.close()
+          }
         }
         finally {
           writer.close()

@@ -7,7 +7,7 @@ import akka.actor.Status.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.Source
-import com.earthwave.catalogue.api.{BoundingBoxFilter, CatalogueService, Shard}
+import com.earthwave.catalogue.api.{BoundingBox, BoundingBoxFilter, CatalogueService, Shard}
 import com.earthwave.environment.api.EnvironmentService
 import com.earthwave.pointstream.api._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
@@ -57,7 +57,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                   }
                   else
                   {
-                    val mask = Mask.getMask(q.bbf.maskFilters, driver )
+                    val mask = Mask.getMask(q.bbf.maskFilters, driver ).get
 
                     val extent = mask.getExtent(q.bbf)
 
@@ -231,8 +231,13 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   override def filterShards() : ServiceCall[StreamQuery, Source[Shard , NotUsed]] = { query =>
 
-    Future.successful(Source.apply(getShards(query)).mapAsync(8)( s => shard(s) ))
+    Future.successful(Source.apply(getShards(query)).mapAsync(8)( s => Future{s} ))
 
+  }
+
+  override def filterGridCells(): ServiceCall[StreamQuery, Source[BoundingBox, NotUsed]] = { query =>
+
+    Future.successful(Source.apply(getGridCells(query)).mapAsync(8)( gc => Future{gc} ))
   }
 
   override def releaseCache() : ServiceCall[List[Cache], Source[String, NotUsed]] = { c =>
@@ -254,7 +259,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getShards( q : StreamQuery ) : List[Shard] = {
 
-    val mask = Mask.getMask(q.bbf.maskFilters, driver)
+    val mask = Mask.getMask(q.bbf.maskFilters, driver).get
 
     val extent = mask.getExtent( q.bbf )
 
@@ -284,10 +289,35 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     filteredShards
   }
 
-  private def shard( s : Shard) : Future[Shard] ={
-    Future{
-      s
-    }
-  }
+  private def getGridCells( q : StreamQuery ) : List[BoundingBox] = {
 
+    val mask = Mask.getMask(q.bbf.maskFilters, driver).get
+
+    val extent = mask.getExtent( q.bbf )
+
+    val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3,extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
+
+    val future = catalogue.boundingBoxQuery(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
+    val gridcells : List[BoundingBox] = Await.result(future, 10 seconds)
+
+    def inMask(minX : Double, maxX : Double, minY : Double, maxY : Double) : Boolean = {
+
+      val bottomLeft = mask.checkInMask( minX, minY )
+      val topLeft = mask.checkInMask( minX, maxY )
+      val topRight = mask.checkInMask( maxX, maxY )
+      val bottomRight = mask.checkInMask( maxX, minY )
+
+      val inside = if( bottomLeft == true || topLeft == true || topRight == true || bottomRight == true ){true}else{false}
+
+      inside
+    }
+
+    val filteredGCs = gridcells.filter( s => inMask(s.gridCellMinX.toDouble, s.gridCellMaxX.toDouble, s.gridCellMinY.toDouble, s.gridCellMaxY.toDouble))
+
+    log.info(s"After filtering grid cells: ${filteredGCs.length}")
+
+    mask.close()
+
+    filteredGCs
+  }
 }
