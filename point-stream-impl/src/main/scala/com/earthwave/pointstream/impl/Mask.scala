@@ -89,7 +89,7 @@ class ShapeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver 
       outLayer.CreateFeature(feature)
       feature.delete()
 
-      val result_layer = source.CreateLayer("clippedmask")
+      val result_layer = inmemsource.CreateLayer("clippedmask")
 
       layer.Clip( outLayer, result_layer  )
 
