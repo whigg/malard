@@ -168,6 +168,7 @@ class QueryProcessor( instance : Int ) extends Actor {
 
   ogr.RegisterAll()
   val driver = ogr.GetDriverByName("ESRI Shapefile")
+  val inmemDriver = ogr.GetDriverByName("MEMORY")
 
   private val log = LoggerFactory.getLogger( QueryProcessor.super.getClass )
 
@@ -234,7 +235,7 @@ class QueryProcessor( instance : Int ) extends Actor {
         val writer = new NetCdfWriter(pq.cacheName, columns, List[Column](), List[Column](), Map[String, DataType]())
         try {
 
-          val mask = Mask.getMask(q.bbf.maskFilters, driver)
+          val mask = Mask.getMask(q.bbf, driver, inmemDriver)
 
           shards.foreach(x => {
             val reader = new NetCdfReader(x.shardName, cols.toSet)

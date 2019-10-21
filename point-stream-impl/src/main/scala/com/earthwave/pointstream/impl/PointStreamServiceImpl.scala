@@ -32,6 +32,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   ogr.RegisterAll()
   val driver = ogr.GetDriverByName("ESRI Shapefile")
+  val inmemDriver = ogr.GetDriverByName("MEMORY")
 
   val queryManager = system.actorOf(Props(new QueryManager(catalogue, system)), "QueryManager")
   val pointPublisher = system.actorOf(Props(new PointPublisher(catalogue, system)), "PointPublisher")
@@ -57,9 +58,9 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                   }
                   else
                   {
-                    val mask = Mask.getMask(q.bbf.maskFilters, driver ).get
+                    val mask = Mask.getMask(q.bbf, driver, inmemDriver ).get
 
-                    val extent = mask.getExtent(q.bbf)
+                    val extent = mask.getExtent()
 
                     mask.close()
 
@@ -259,9 +260,9 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getShards( q : StreamQuery ) : List[Shard] = {
 
-    val mask = Mask.getMask(q.bbf.maskFilters, driver).get
+    val mask = Mask.getMask(q.bbf, driver, inmemDriver).get
 
-    val extent = mask.getExtent( q.bbf )
+    val extent = mask.getExtent()
 
     val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3,extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
 
@@ -291,9 +292,9 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getGridCells( q : StreamQuery ) : List[BoundingBox] = {
 
-    val mask = Mask.getMask(q.bbf.maskFilters, driver).get
+    val mask = Mask.getMask(q.bbf, driver, inmemDriver).get
 
-    val extent = mask.getExtent( q.bbf )
+    val extent = mask.getExtent( )
 
     val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3,extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.maskFilters)
 
