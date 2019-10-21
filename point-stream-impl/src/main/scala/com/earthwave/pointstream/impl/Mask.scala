@@ -3,22 +3,23 @@ package com.earthwave.pointstream.impl
 
 import com.earthwave.catalogue.api.{BoundingBoxFilter, MaskFilter}
 import org.gdal.ogr.ogr
-import org.gdal.ogr.{Driver, Layer, Geometry, ogrConstants}
+import org.gdal.ogr.{Driver, Layer, Geometry, ogrConstants, DataSource,FieldDefn,Feature}
 
 object Mask
 {
-  def getMask( filters : List[MaskFilter], driver : Driver ) : Option[Mask] ={
+  def getMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) : Option[Mask] ={
 
+    val filters = bbf.maskFilters
 
     if( !filters.isEmpty )
     {
       if( !filters.head.shapeFile.isEmpty )
       {
-        Some(new ShapeMask( filters, driver ))
+        Some(new ShapeMask( bbf, driver, inmemDriver ))
       }
       else
       {
-        Some(new GeometryMask( filters ))
+        Some(new GeometryMask( bbf ))
       }
     }
     else
@@ -33,26 +34,83 @@ object Mask
 trait Mask {
 
 
-  def getExtent( bbf: BoundingBoxFilter ) : (Double, Double, Double, Double )
+  def getExtent() : (Double, Double, Double, Double )
 
   def checkInMask( x : Double, y : Double ) : Boolean
 
   def close()
-
 }
 
-class ShapeMask( filters : List[MaskFilter], driver : Driver ) extends Mask{
 
 
-  val layers = filters.map( mf => {
-                                    val source = driver.Open(mf.shapeFile)
-                                    val layer = source.GetLayer(0)
-                                    (mf.includeWithin, layer, source )
+class ShapeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) extends Mask{
+
+  val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
+
+  def createLayer( f : MaskFilter ) : ( Boolean, Layer, DataSource ) =
+  {
+    if( boxEmpty)
+    {
+      val source = driver.Open(f.shapeFile)
+      val layer = source.GetLayer(0)
+      (f.includeWithin, layer, source)
+    }
+    else
+    {
+      val source = driver.Open(f.shapeFile)
+      val layer = source.GetLayer(0)
+
+      val inmemsource = inmemDriver.CreateDataSource("memData")
+
+      //open the memory datasource with write access
+      val tmp=inmemDriver.Open("memData",1)
+
+      //Create a Polygon from the extent tuple
+      val ring = new Geometry(ogrConstants.wkbLinearRing)
+      ring.AddPoint(bbf.minX,bbf.minY)
+      ring.AddPoint(bbf.minX, bbf.maxY)
+      ring.AddPoint(bbf.maxX, bbf.maxY)
+      ring.AddPoint(bbf.maxX, bbf.minY)
+      ring.AddPoint(bbf.minX, bbf.minY)
+      val poly = new Geometry(ogrConstants.wkbPolygon)
+      poly.AddGeometry(ring)
+
+      val outLayer = inmemsource.CreateLayer("filter")
+
+      //Add an ID field
+      val idField = new FieldDefn("id", ogrConstants.OFTInteger)
+      outLayer.CreateField(idField)
+
+      //Create the feature and set values
+      val featureDefn = outLayer.GetLayerDefn()
+      val feature = new Feature(featureDefn)
+      feature.SetGeometry(poly)
+      feature.SetField("id", 1)
+      outLayer.CreateFeature(feature)
+      feature.delete()
+
+      val result_layer = source.CreateLayer("clippedmask")
+
+      layer.Clip( outLayer, result_layer  )
+
+      ring.delete()
+      poly.delete()
+      idField.delete()
+      layer.delete()
+      source.delete()
+
+      (f.includeWithin, result_layer, inmemsource)
+    }
+
+  }
+
+  val filters = bbf.maskFilters
+  val layers = filters.map( mf => { createLayer( mf )
   })
 
   val ls = layers.map( l => (l._1, l._2) )
 
-  override def getExtent( bbf: BoundingBoxFilter ): (Double, Double, Double, Double) = {
+  override def getExtent(): (Double, Double, Double, Double) = {
     val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
 
     val extent = if(boxEmpty) {
@@ -120,11 +178,11 @@ class ShapeMask( filters : List[MaskFilter], driver : Driver ) extends Mask{
 
 }
 
-class GeometryMask( filters : List[MaskFilter] ) extends Mask
+class GeometryMask( bbf: BoundingBoxFilter ) extends Mask
 {
-  val geometries = filters.map(f => ogr.CreateGeometryFromWkt(f.wkt))
+  val geometries = bbf.maskFilters.map(f => ogr.CreateGeometryFromWkt(f.wkt))
 
-  override def getExtent( bbf: BoundingBoxFilter ): (Double, Double, Double, Double) = {
+  override def getExtent(  ): (Double, Double, Double, Double) = {
     val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
 
     val extent = if(boxEmpty) {
