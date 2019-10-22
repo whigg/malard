@@ -85,6 +85,7 @@ case class BoundingBoxFilter(   minX : Double
                               , maxT : Double
                               , xCol: String
                               , yCol: String
+                              , extentFilter : MaskFilter
 			                        , maskFilters : List[MaskFilter] )
 
 object BoundingBoxFilter
