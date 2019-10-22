@@ -63,21 +63,32 @@ class MalardClient:
         if len(maskFilters) == 0:
             gcs = json.loads(self.query.getShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol))
         else:
-            gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol, maskFilters)
+            gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT,xCol,yCol, MaskFilter(), maskFilters)
             gcs = [json.loads(gc) for gc in gcs]
         
         return [Shard(BoundingBox( gc['minX'], gc['maxX'], gc['minY'], gc['maxY'], gc['minT'], gc['maxT'], gc['numberOfPoints']), gc['shardName']) for gc in gcs ]
         
-    def shardsWithinPolygon(self, dataSet, minT, maxT, maskFilters, xCol = "x", yCol="y"):
+    def shardsWithinPolygon(self, dataSet, minT, maxT, extentFilter, maskFilters=[], xCol = "x", yCol="y"):
         
         if isinstance(maskFilters, MaskFilter):
             maskFilters = [maskFilters]
         
-        gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT,xCol=xCol,yCol=yCol, maskFilters=maskFilters)
+        gcs = self.asyncQuery.filterShards(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT,xCol,yCol, extentFilter, maskFilters)
        
         gcs = [ json.loads(gc) for gc in gcs ]
         
         return [Shard(BoundingBox( gc['minX'], gc['maxX'], gc['minY'], gc['maxY'], gc['minT'], gc['maxT'], gc['numberOfPoints']), gc['shardName']) for gc in gcs ]
+    
+    def gridCellsWithinPolygon(self, dataSet, minT, maxT, extentFilter, maskFilters=[], xCol = "x", yCol="y"):
+        
+        if isinstance(maskFilters, MaskFilter):
+            maskFilters = [maskFilters]
+        
+        gcs = self.asyncQuery.filterGridCells(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT,xCol,yCol, extentFilter, maskFilters)
+       
+        gcs = [ json.loads(gc) for gc in gcs ]
+        
+        return [BoundingBox( gc['gridCellMinX'], gc['gridCellMaxX'], gc['gridCellMinY'], gc['gridCellMaxY'], gc['minTime'], gc['maxTime'], gc['totalPoints'] ) for gc in gcs ]
         
         
     def executeQuery( self, dataSet, boundingBox, projections=[], filters=[], xCol='x', yCol='y', maskFilters=[] ):
@@ -85,14 +96,14 @@ class MalardClient:
             maskFilters = [maskFilters]
         
         bb = boundingBox
-        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol, maskFilters)
+        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, bb.minX, bb.maxX, bb.minY, bb.maxY, bb.minT, bb.maxT, projections, filters, xCol, yCol, MaskFilter(), maskFilters)
         
-    def executeQueryPolygon( self, dataSet, minT, maxT, maskFilters, projections=[], filters=[], xCol='x', yCol='y' ):
+    def executeQueryPolygon( self, dataSet, minT, maxT, extentFilter, maskFilters=[], projections=[], filters=[], xCol='x', yCol='y' ):
         
         if isinstance(maskFilters, MaskFilter):
             maskFilters = [maskFilters]
             
-        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT, projections, filters, xCol, yCol, maskFilters)
+        return self.asyncQuery.executeQuery(dataSet.parentDataSet, dataSet.dataSet, dataSet.region, 0.0, 0.0, 0.0, 0.0, minT, maxT, projections, filters, xCol, yCol, extentFilter, maskFilters)
         
     def publishGridCellStats(self, dataSet, boundingBox, runName , statistics):
         return self.query.publishGridCellStats(dataSet.parentDataSet, runName, boundingBox.minX, boundingBox.minY, boundingBox.maxX - boundingBox.minX, statistics )

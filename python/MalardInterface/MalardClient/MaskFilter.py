@@ -22,3 +22,7 @@ class MaskFilter:
     @property
     def wkt(self):
         return self._wkt
+    
+    @property
+    def maskdict(self):
+        return { 'includeWithin' : self._includeWithin, 'shapeFile' : self._shapeFile, 'wkt':self._wkt } 

@@ -6,6 +6,8 @@ import datetime
 import MalardClient.MalardHelpers as mh
 import json
 
+from MalardClient.MaskFilter import MaskFilter
+
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
         timestamp = datetime.datetime.timestamp(o) 
@@ -155,22 +157,34 @@ class AsyncDataSetQuery:
         requestJson = json.dumps(request)
         return self.syncServerRequest(requestJson, '/validateasync')
         
-    def filterShards( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y', maskFilters=[] ):
+    def filterShards( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y', extentFilter=MaskFilter(), maskFilters=[] ):
         
-        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile, 'wkt':m.wkt } for m in maskFilters ]
+        filtersAsDict = [ m.maskdict for m in maskFilters ]
+        extentDict = extentFilter.maskdict
         
-        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : filtersAsDict}, 'projections':[],'filters': []}
+        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'extentFilter' : extentDict, 'maskFilters' : filtersAsDict}, 'projections':[],'filters': []}
         
         requestJson = json.dumps(request,default=dateconverter)
        
-        return self.syncServerRequest(requestJson, '/filtershards')     
+        return self.syncServerRequest(requestJson, '/filtershards') 
+
+    def filterGridCells( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y', extentFilter=MaskFilter(), maskFilters=[] ):
         
+        filtersAsDict = [ m.maskdict for m in maskFilters ]
+        extentDict = extentFilter.maskdict
+        
+        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'extentFilter' : extentDict,'maskFilters' : filtersAsDict}, 'projections':[],'filters': []}
+        
+        requestJson = json.dumps(request,default=dateconverter)
+       
+        return self.syncServerRequest(requestJson, '/filtergridcells')                     
     
-    def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters, xCol='x', yCol='y', maskFilters=[] ):
+    def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters, xCol='x', yCol='y', extentFilter=MaskFilter(), maskFilters=[] ):
         
         filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile, 'wkt':m.wkt } for m in maskFilters ]
+        extentDict = extentFilter.maskdict
         
-        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : filtersAsDict}, 'projections':projections,'filters': filters}
+        request ={ 'envName': self.envName, 'parentDSName': parentDs, 'dsName':dataSetName, 'region':region, 'bbf': { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'extentFilter' : extentDict, 'maskFilters' : filtersAsDict}, 'projections':projections,'filters': filters}
         
         requestJson = json.dumps(request,default=dateconverter)
            

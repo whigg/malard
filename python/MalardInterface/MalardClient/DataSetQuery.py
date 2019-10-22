@@ -2,6 +2,8 @@ import json
 import requests
 import datetime
 
+from MalardClient.MaskFilter import MaskFilter
+
 def dateconverter(o):
     if isinstance(o, datetime.datetime):
         timestamp = datetime.datetime.timestamp(o)
@@ -44,14 +46,14 @@ class DataSetQuery:
         return response.text
     def getGridCells(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y' ):
         gcUrl = self.serverUrl + '/api/boundingbox/' + self.envName + '/' + parentDsName + '/' + dsName+ '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : [] }
+        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'extentFilter': MaskFilter().maskdict, 'maskFilters' : [] }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
     #similar to getGridCells except a result for each time slice is also returned.
     def getShards(self, parentDsName, dsName, region, minX, maxX, minY, maxY, minT, maxT, xCol='x', yCol='y' ):
         gcUrl = self.serverUrl + '/api/shards/' + self.envName + '/' + parentDsName + '/' + dsName + '/' + region
-        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'maskFilters' : [] }
+        bbox = { 'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'minT':minT,'maxT':maxT, 'xCol':xCol, 'yCol': yCol, 'extentFilter': MaskFilter().maskdict, 'maskFilters' : [] }
         jsonStr = json.dumps(bbox,default=dateconverter)
         response = requests.post(gcUrl, data=jsonStr, headers=self.headers)
         return response.text
