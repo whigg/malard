@@ -250,10 +250,8 @@ class QueryProcessor( instance : Int ) extends Actor {
               reader.close()
             }
           })
-          if( !q.bbf.maskFilters.isEmpty )
-          {
-            mask.get.close()
-          }
+          mask.close()
+
         }
         finally {
           writer.close()

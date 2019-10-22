@@ -7,15 +7,15 @@ import org.gdal.ogr.{Driver, Layer, Geometry, ogrConstants, DataSource,FieldDefn
 
 object Mask
 {
-  def getMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) : Option[Mask] ={
+  def getMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) : Mask ={
 
     if( bbf.extentFilter.shapeFile.isEmpty && bbf.extentFilter.wkt.isEmpty && bbf.maskFilters.isEmpty )
     {
-       None
+       new NullMask(bbf)
     }
     else
     {
-      Some( new CompositeMask(bbf, driver, inmemDriver) )
+      new CompositeMask(bbf, driver, inmemDriver)
     }
   }
 }
@@ -28,19 +28,24 @@ trait Mask {
 
   def checkInMask( x : Double, y : Double ) : Boolean
 
+  def hasFilters() : Boolean
+
   def close()
 }
 
 class CompositeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) extends Mask
 {
-  val boxEmpty = if( bbf.minX == 0.0 && bbf.maxX == 0.0 && bbf.minY ==0.0 && bbf.maxY == 0.0){true}else{false}
-  val extentFilter: Option[Mask] =  if( boxEmpty && !bbf.extentFilter.shapeFile.isEmpty )
+  val hasExtent = if( !bbf.extentFilter.shapeFile.isEmpty || !bbf.extentFilter.wkt.isEmpty ){  true }else{false}
+  val extentFilter: Option[Mask] =  if( hasExtent && !bbf.extentFilter.shapeFile.isEmpty )
                       {
                           Some(new ShapeMask( bbf.extentFilter, bbf.minX, bbf.maxX, bbf.minY, bbf.maxY, driver, inmemDriver ))
                       }
-                      else if( boxEmpty && !bbf.extentFilter.wkt.isEmpty  )
+                      else if( hasExtent && !bbf.extentFilter.wkt.isEmpty  )
                       {
                           Some(new GeometryMask( bbf.extentFilter ) )
+                      }
+                      else if( hasExtent ){
+                          throw new Exception("Bounding box is empty then an extent is required.")
                       }
                       else
                       {
@@ -58,7 +63,7 @@ class CompositeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Dri
 
   override def getExtent()  : (Double, Double, Double, Double ) =
   {
-    if( boxEmpty )
+    if( hasExtent )
     {
       extentFilter.get.getExtent()
     }
@@ -70,24 +75,60 @@ class CompositeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Dri
 
   override def checkInMask( x : Double, y : Double ) : Boolean = {
 
-    if( boxEmpty && !extentFilter.get.checkInMask(x,y) )
-    {
-      false
+    if (hasExtent == true) {
+      val inExtent = extentFilter.get.checkInMask(x, y)
+      if (filters.isEmpty == true)
+      {
+        return inExtent
+      }
+      else if( inExtent == false )
+      {
+        return false
+      }
+      else
+      {
+        return filters.map(c => c.checkInMask(x, y)).reduce((x, y) => if (x == true && y == true) {true} else {false})
+      }
     }
-    else
-    {
-       filters.map( f => f.checkInMask(x,y) ).reduce( (x,y) => if( x == true && y == true){ true }else{false} )
+    else {
+      return if (filters.isEmpty == true) {true} else {filters.map(c => c.checkInMask(x, y)).reduce((x, y) => if (x == true && y == true) {true} else {false})}
     }
+  }
+
+  override def hasFilters(): Boolean = {
+    true
   }
 
   override def close() = {
 
-    if(boxEmpty){ extentFilter.get.close() }
+    if(hasExtent){ extentFilter.get.close() }
 
     filters.foreach(f => f.close())
 
   }
 }
+
+class NullMask( bbf : BoundingBoxFilter  ) extends Mask{
+
+  override def checkInMask(x: Double, y: Double): Boolean = {
+    true
+  }
+
+  override def getExtent(): (Double, Double, Double, Double) = {
+    ( bbf.minX, bbf.maxX, bbf.minY, bbf.maxY)
+  }
+
+  override def hasFilters(): Boolean = {
+    false
+  }
+
+
+  override def close(): Unit = {
+
+  }
+}
+
+
 
 
 
@@ -155,6 +196,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
   val ls = (layers._1, layers._2)
 
   override def getExtent(): (Double, Double, Double, Double) = {
+
       val extent = ls._2.GetExtent()
 
       (extent(0),extent(1),extent(2),extent(3))
@@ -188,6 +230,10 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
     inMask(ls._2, ls._1 )
   }
 
+  override def hasFilters(): Boolean = {
+    true
+  }
+
   override def close() ={
       layers._2.delete()
       layers._3.delete()
@@ -215,7 +261,9 @@ class GeometryMask( maskFilter : MaskFilter ) extends Mask
     ret
   }
 
-
+  override def hasFilters(): Boolean = {
+    true
+  }
 
   override def close() = {
     geometry.delete()

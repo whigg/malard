@@ -52,20 +52,19 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
         log.info(s"From environment ${q.envName} output path is $outputPath.")
 
-        val bbf = if( q.bbf.maskFilters.isEmpty )
-                  {
-                    q.bbf
-                  }
-                  else
-                  {
-                    val mask = Mask.getMask(q.bbf, driver, inmemDriver ).get
 
-                    val extent = mask.getExtent()
+        log.info(s"BB passed in MinX=${q.bbf.minX} MaxX=${q.bbf.maxX} MinY=${q.bbf.minY} MaxX=${q.bbf.maxY}")
 
-                    mask.close()
+        val mask = Mask.getMask(q.bbf, driver, inmemDriver )
 
-                    BoundingBoxFilter(extent._1, extent._2, extent._3, extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.extentFilter, q.bbf.maskFilters)
-                  }
+        val extent = mask.getExtent()
+
+        log.info(s"Extent MinX=${extent._1} MaxX=${extent._2} MinY=${extent._3} MaxY=${extent._4}")
+
+        mask.close()
+
+        val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3, extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.extentFilter, q.bbf.maskFilters)
+
 
         val projection = q.projections.foldLeft[String]("")((x, y) => x + "_" + y)
         val filters = q.filters.foldLeft[String]("")((x, y) => x + "_" + y.column + y.op + y.threshold)
@@ -260,9 +259,11 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getShards( q : StreamQuery ) : List[Shard] = {
 
-    val mask = Mask.getMask(q.bbf, driver, inmemDriver).get
+    val mask = Mask.getMask(q.bbf, driver, inmemDriver)
 
     val extent = mask.getExtent()
+
+    log.info(s"Extent MinX=${extent._1} MaxX=${extent._2} MinY=${extent._3} MaxY=${extent._4}")
 
     val bbf = BoundingBoxFilter(extent._1, extent._2, extent._3,extent._4 ,q.bbf.minT,q.bbf.maxT, q.bbf.xCol, q.bbf.yCol, q.bbf.extentFilter, q.bbf.maskFilters)
 
@@ -292,7 +293,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getGridCells( q : StreamQuery ) : List[BoundingBox] = {
 
-    val mask = Mask.getMask(q.bbf, driver, inmemDriver).get
+    val mask = Mask.getMask(q.bbf, driver, inmemDriver)
 
     val extent = mask.getExtent( )
 
