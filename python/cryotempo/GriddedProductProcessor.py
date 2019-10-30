@@ -20,6 +20,8 @@ from MalardClient.BoundingBox import BoundingBox
 
 import sys
 import os
+
+import Header as h
  
 import numpy as np
 
@@ -97,14 +99,64 @@ def processGridCell(client, queryInfo, gridCellSize, startX, startY, resolution,
     
     return (xcoords, ycoords, data, griddedCount, pointCount, maskedCount)
 
-def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution ):
+def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date ):
     
-    fullPath = "{}/GriddedProduct_{}_y{}_m{}_{}_{}.nc".format(output_path, dataSet.region, bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY )
-    
+    pubdatestr = "{}15".format(pub_date.strftime("%Y%m"))
+    fileNameExt = ".nc"
+    filetype = "THEM_GRID_"
+    fileName = "CS_TEST_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, pubdatestr, bbox.minX, bbox.minY )
+    fullPath = "{}/y{}/m{}/cell_{}_{}/{}{}".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    headerPath = "{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName)
+
+    fileDescription = "L3 Gridded thematic product containing interpolated swath data that is generated from CryoSat2 SARIN data."    
+
     ensure_dir(fullPath)
+    ensure_dir(headerPath)
     
     dataset = n.Dataset(fullPath,'w',format='NETCDF4')
-            
+    
+    minX = bbox.minX
+    maxX = bbox.maxX
+    minY = bbox.minY 
+    maxY = bbox.maxY
+    minT = bbox.minT.isoformat()
+    maxT = bbox.maxT.isoformat()
+    
+    dataset.cdm_data_type = "Gridded"                 
+    dataset.Conventions = "CF-1.7"
+    dataset.Metadata_Conventions = "Unidata Dataset Discovery v1.0"                
+    dataset.comment = "Gridded file containing elevation estimates on a regular grid"                 
+    dataset.contact = "cryotempo@earthwave.co.uk"               
+    dataset.creator_email = "cryotempo@earthwave.co.uk"                 
+    dataset.creator_url = "http://www.earthwave.co.uk"                  
+    dataset.date_created = datetime.now().isoformat()                                
+    dataset.date_modified = datetime.now().isoformat() 
+    #dataset.external_dem = "DEM"        
+    dataset.geospatial_y_min = minY                 
+    dataset.geospatial_y_max = maxY         
+    dataset.geospatial_x_min = minX                
+    dataset.geospatial_x_max = maxX                  
+    dataset.geospatial_y_units = "metres" 
+    dataset.geospatial_x_units = "metres"
+    dataset.geospatial_projection = proj4   
+    dataset.geospatial_resolution = 2000
+    dataset.geospatial_resolution_units = "metres"
+    dataset.institution = "ESA, UoE, Earthwave, isardSAT"                 
+    dataset.keywords = "Land Ice > Gridded > Elevation Model  > Elevation Points > Swath Processing > CryoSat2"                 
+    dataset.keywords_vocabulary = "NetCDF COARDS Climate and Forecast Standard Names"                 
+    dataset.platform = " Cryosat-2"
+    dataset.processing_level = "L3"
+    dataset.product_version = "1.0"
+    dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop"                 
+    dataset.references = "http://www.cryotempo.org"
+    dataset.source = "Gridded Swath data generated from Cryo-Sat2 SARIN data."
+    dataset.version = 1
+    dataset.summary = "Land Ice Elevation Thematic Gridded Product" 
+    dataset.time_coverage_duration = "P1M"
+    dataset.time_coverage_start = minT 
+    dataset.time_coverage_end = maxT
+    dataset.title = "Land Ice Elevation Thematic Gridded Product"
+
     x = dataset.createDimension('x', len(xcoords))
     y = dataset.createDimension('y', len(ycoords))
     time = dataset.createDimension('time', 1)
@@ -112,13 +164,37 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     
     # Create coordinate variables for 4-dimensions
     times = dataset.createVariable('time', np.int32, ('time',))
+    times.long_name = "Measurement of time"
+    times.units = "Seconds from 1970 in the UTC timezone."
+    times.short_name = "time"
     xs = dataset.createVariable('x', np.float32, ('x',))
+    xs.long_name = "Distance in horizontal direction on the Earth’s surface."
+    xs.units = "metres"
+    xs.standard_name = "x"
     ys = dataset.createVariable('y', np.float32, ('y',))
-    nvs = dataset.createVariable('nv', np.int32, ('nv',))
+    ys.long_name = "Distance in vertical direction on the Earth’s surface."
+    ys.units = "metres"
+    ys.standard_name = "x"
     elevations = dataset.createVariable('elevation', np.float32, ('time','x','y'))
-    
+    elevations.units = "metres"
+    elevations.long_name = "Elevation estimate for a point in space at the pixel centre and time" 
+    elevations.coordinates = "x y"
+
+    nvs = dataset.createVariable('nv', np.int32, ('nv',))
+    nvs.long_name = "Vertex"
+    nvs.comment = "Vertex with values 0 or 1, where 0 is westerly or southerly and 1 is northerly or easterly"
+    nvs.units = "Binary: 0 or 1"
+    nvs.short_name = "nv"
     x_bnds = dataset.createVariable('x_bnds', np.float32, ('x','nv') )
+    x_bnds.long_name = "x minimum and maximum bounds"
+    x_bnds.comment = "x values at the west and east boundary of each pixel."                
+    x_bnds.units = "metres" 
+    x_bnds.short_name = "x_bnds"
     y_bnds = dataset.createVariable('y_bnds', np.float32, ('y','nv') )
+    y_bnds.long_name = "y minimum and maximum bounds"
+    y_bnds.comment = "y values at the north and south boundary of each pixel."                
+    y_bnds.units = "metres" 
+    y_bnds.short_name = "y_bnds"
     
     def boundsArray( coords, resolution ):
         bounds = [ ( coord - 0.5 * resolution, coord + 0.5 * resolution ) for coord in coords ]
@@ -145,6 +221,12 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     elevations[:,:,:] = data
             
     dataset.close()
+    
+    size = os.stat(fullPath).st_size
+    attributes = { "File_Description" : fileDescription, "File_Type": "THEM_GRID_", "File_Name" : fileName, "Validity_Start" : minT, "Validity_Stop" : maxT, "Min_X" : bbox.minX, "Max_X" : bbox.maxX, "Min_Y" : bbox.minY, "Max_Y" : bbox.maxY, "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : size,"Projection": proj4, "Start_X":minX, "Stop_X":maxX,"Start_Y":minY,"Stop_Y":maxY,"Grid_Pixel_Width" : 2000, "Grid_Pixel_Height" : 2000  } 
+
+    with open( headerPath, "wt", encoding="utf8"  ) as f:
+        f.write( h.createHeader( attributes, gridded=True ))
 
 def loadMasks( client, dataSet, gridCell,resolution):
     import json
@@ -163,41 +245,43 @@ def loadMasks( client, dataSet, gridCell,resolution):
 
 def main( argv ):
     
-    argv = argv[1:]
+    #argv = argv[1:]
     
     year = 2011
     
     environmentName = 'DEVv2'
-    ndays = int(argv[0])
-    resolution = int(argv[1])
+    #ndays = int(argv[0])
+    resolution = 2000 #int(argv[1])
     print(resolution)
-    interval = "{}days".format(ndays)
+    interval = "3months" #"{}days".format(ndays)
     
-    output_path = '/home/jon/data/{}/y{}'.format(interval, year)
+    output_path = "/home/jon/data/grid"
     gridCellSize = 100000
     fillValue = -2147483647
     
-    client = MalardClient( environmentName, False )
+    client = MalardClient( environmentName, True )
     
     dataSet = DataSet( 'cryotempo', 'GRIS_BaselineC_Q2', 'greenland')
+    
+    proj4 = client.getProjection(dataSet).proj4
     
     bbox = client.boundingBox(dataSet)
     
     print(str(bbox))
     
+   
     gridcells = client.gridCells(dataSet, bbox)
     
-    processing_dates = []
-    publication_dt = datetime( year, 6, 30,23,59,59)
+    start_date = datetime( year, 3, 15,0,0,0)
+    last_date = datetime( year, 5 , 15, 0, 0, 0)
     
-    end_dt = datetime( year, 6 , 30, 23,59,59)
+    window = []
+    while start_date < last_date:
+        window_start = start_date - relativedelta(days=start_date.day) + relativedelta(days=1) - relativedelta(months=1)
+        window_end = window_start + relativedelta(months=3) - timedelta(seconds=1)
+        window.append( (window_start, window_end, start_date) )
+        start_date = start_date + relativedelta( months=1 )
     
-    while publication_dt <=  end_dt :
-        next_publication_dt = publication_dt + relativedelta(months=1)
-        processing_dates.append( ( publication_dt - relativedelta(days=ndays) , publication_dt ) )
-        publication_dt = next_publication_dt - timedelta(seconds=1)
-    
-    print(processing_dates)
     projections = ['x','y','time','elev']
     #maskTypes = ["ICE_{}m".format(resolution),"SARIN_{}m".format(resolution),"Glacier_{}m".format(resolution)]
     
@@ -206,7 +290,7 @@ def main( argv ):
     
     for i, gc in enumerate(gridcells):
         gc_start = datetime.now()
-        for from_dt, to_dt in processing_dates:
+        for from_dt, to_dt, pub_date in window:
             month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
             queryInfo = client.executeQuery(dataSet, month_gc, projections)
             
@@ -214,7 +298,7 @@ def main( argv ):
                 start_time = datetime.now()
                 mask_dict = loadMasks(client, dataSet, month_gc, resolution  ) 
                 xc, yc, d, g_count, i_count, m_count = processGridCell(client, queryInfo, gridCellSize, gc.minX, gc.minY, resolution, mask_dict, fillValue )
-                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution )
+                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution, proj4, pub_date )
                 end_time = datetime.now()
                 
                 inmask_count = len(mask_dict.keys())
