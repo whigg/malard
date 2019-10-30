@@ -67,8 +67,9 @@ def createHeader( attributes, gridded = False  ):
     
     #Gridded product has an interpolation window
     if gridded == True:
-        addElement(sph, "Grid_Pixel_Width", str(attributes["Grid_Pixel_Width"]) , {"units": "metres"}  )
-        addElement(sph, "Grid_Pixel_Height" , str(attributes["Grid_Pixel_Height"]) , {"units": "metres"}  )
+        res = addElement(sph, "Resolution" )
+        addElement(res, "Grid_Pixel_Width", str(attributes["Grid_Pixel_Width"]) , {"units": "metres"}  )
+        addElement(res, "Grid_Pixel_Height" , str(attributes["Grid_Pixel_Height"]) , {"units": "metres"}  )
         iw = addElement(sph, "Interpolation_Window")
         addElement(iw, "Window_Start", "UTC={}".format(attributes["Validity_Start"]))
         addElement(iw, "Window_End", "UTC={}".format(attributes["Validity_Stop"]))
