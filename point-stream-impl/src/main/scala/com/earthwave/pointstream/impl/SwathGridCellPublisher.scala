@@ -105,7 +105,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
 
             val indices = mask.getOrElse(gridCell, new ListBuffer[Int]())
             //Only add to the mask if not in the filter
-            val exclude: Boolean = minimumFilters.foldLeft(false)((x, y) => {
+            val include: Boolean = minimumFilters.foldLeft(false)((x, y) => {
               if (y._2.op(y._1.getDouble(i)) || x == true) {
                 true
               }
@@ -113,7 +113,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
                 false
               }
             })
-            if (!exclude) {
+            if (include) {
               indices.append(i)
             }
             mask.+=((gridCell, indices))
