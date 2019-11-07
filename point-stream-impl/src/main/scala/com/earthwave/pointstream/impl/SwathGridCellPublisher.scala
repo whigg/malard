@@ -84,7 +84,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
           val f = new Array[Int](numberOfPoints)
           val rowId = new Array[Int](numberOfPoints)
 
-          val minimumFilters = r.userRequest.columnFilters.map(c => (reader.getVariableByName(c.column).read(), Operators.getOperator(c.column, c.threshold)))
+          val minimumFilters = r.userRequest.columnFilters.map(c => (reader.getVariableByName(c.column).read(), Operators.getOperator(c.op, c.threshold)))
 
           val intermediatePath = s"${r.environment.swathIntermediatePath}/${r.userRequest.parentDataSet}/${r.userRequest.dataSet}/${r.userRequest.region}/y${date.getYear}/m${date.getMonthValue}/"
           FileHelper.createDir(intermediatePath)
