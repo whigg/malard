@@ -49,6 +49,8 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
       val dateStr = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
       val gridCellSize = r.userRequest.gridCellSize
 
+
+
       log.info(s"About to open file ${r.userRequest.inputFilePath}/${r.userRequest.inputFileName}")
       val tryReader = Try(new NetCdfReader( s"${r.userRequest.inputFilePath}/${r.userRequest.inputFileName}", Set[String]() ))
 
@@ -82,7 +84,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
           val f = new Array[Int](numberOfPoints)
           val rowId = new Array[Int](numberOfPoints)
 
-          val minimumFilters = r.userRequest.columnFilters.map(c => (reader.getVariableByName(c._1).read(), c._2))
+          val minimumFilters = r.userRequest.columnFilters.map(c => (reader.getVariableByName(c.column).read(), Operators.getOperator(c.column, c.threshold)))
 
           val intermediatePath = s"${r.environment.swathIntermediatePath}/${r.userRequest.parentDataSet}/${r.userRequest.dataSet}/${r.userRequest.region}/y${date.getYear}/m${date.getMonthValue}/"
           FileHelper.createDir(intermediatePath)
@@ -104,7 +106,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
             val indices = mask.getOrElse(gridCell, new ListBuffer[Int]())
             //Only add to the mask if not in the filter
             val exclude: Boolean = minimumFilters.foldLeft(false)((x, y) => {
-              if (y._1.getDouble(i) < y._2 || x == true) {
+              if (y._2.op(y._1.getDouble(i)) || x == true) {
                 true
               }
               else {
