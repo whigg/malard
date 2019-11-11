@@ -270,19 +270,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     val future = catalogue.shards(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
     val shards : List[Shard] = Await.result(future, 10 seconds)
 
-    def inMask(minX : Double, maxX : Double, minY : Double, maxY : Double) : Boolean = {
-
-      val bottomLeft = mask.checkInMask( minX, minY )
-      val topLeft = mask.checkInMask( minX, maxY )
-      val topRight = mask.checkInMask( maxX, maxY )
-      val bottomRight = mask.checkInMask( maxX, minY )
-
-      val inside = if( bottomLeft == true || topLeft == true || topRight == true || bottomRight == true ){true}else{false}
-
-      inside
-    }
-
-    val filteredShards = shards.filter( s => inMask(s.minX, s.maxX, s.minY, s.maxY))
+    val filteredShards = shards.filter( s => inMask(mask, s.minX, s.maxX, s.minY, s.maxY))
 
     log.info(s"After filtering shards: ${filteredShards.length}")
 
@@ -302,24 +290,41 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     val future = catalogue.boundingBoxQuery(q.envName, q.parentDSName, q.dsName, q.region).invoke(bbf)
     val gridcells : List[BoundingBox] = Await.result(future, 10 seconds)
 
-    def inMask(minX : Double, maxX : Double, minY : Double, maxY : Double) : Boolean = {
-
-      val bottomLeft = mask.checkInMask( minX, minY )
-      val topLeft = mask.checkInMask( minX, maxY )
-      val topRight = mask.checkInMask( maxX, maxY )
-      val bottomRight = mask.checkInMask( maxX, minY )
-
-      val inside = if( bottomLeft == true || topLeft == true || topRight == true || bottomRight == true ){true}else{false}
-
-      inside
-    }
-
-    val filteredGCs = gridcells.filter( s => inMask(s.gridCellMinX.toDouble, s.gridCellMaxX.toDouble, s.gridCellMinY.toDouble, s.gridCellMaxY.toDouble))
+    val filteredGCs = gridcells.filter( s => inMask(mask, s.gridCellMinX.toDouble, s.gridCellMaxX.toDouble, s.gridCellMinY.toDouble, s.gridCellMaxY.toDouble))
 
     log.info(s"After filtering grid cells: ${filteredGCs.length}")
 
     mask.close()
 
     filteredGCs
+  }
+
+  private def inMask(mask : Mask, minX : Double, maxX : Double, minY : Double, maxY : Double) : Boolean = {
+
+    val numPoints = 10
+    val width = (maxX - minX)/numPoints
+    val height = (maxY - minY)/numPoints
+    val start_x = 0.5 * width + minX
+    val start_y = 0.5 * height + minY
+
+    var x = start_x
+    var y = start_y
+
+    val x_range = Array.range(start_x.toInt, maxX.toInt, width.toInt)
+    val y_range = Array.range(start_y.toInt, maxY.toInt, height.toInt)
+
+    if( mask.checkInMask( minX, minY )){ return true }
+    if( mask.checkInMask( minX, maxY )){return true}
+    if( mask.checkInMask( maxX, maxY )){return true}
+    if( mask.checkInMask( maxX, minY )){return true}
+
+    x_range.foreach( x => y_range.foreach( y =>
+                                                {
+                                                  if( mask.checkInMask(x,y))
+                                                  {
+                                                    return true
+                                                  }
+                                                }) )
+    return false
   }
 }
