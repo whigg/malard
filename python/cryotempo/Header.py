@@ -21,7 +21,7 @@ def addElement( parent, tag, value = None, attr = {} ):
     parent.append(elem)
     return elem
 
-def createHeader( attributes, gridded = False  ):    
+def createHeader( attributes, source_files = {}, gridded = False  ):    
     root = Element("Earth_Explorer_Header")
     fh = Element("Fixed_Header")
     root.append(fh)
@@ -37,8 +37,8 @@ def createHeader( attributes, gridded = False  ):
     addElement( vp, "Validity_Stop", "UTC={}".format(attributes["Validity_Stop"]) )
     addElement( fh, "File_Version", "0001" )
     src = addElement( fh, "Source"  )
-    addElement(src,"System", "PDS" )
-    addElement(src,"Creator", "TBD" )
+    addElement(src,"System", "Tempo IPF" )
+    addElement(src,"Creator", "Earthwave" )
     addElement(src,"Creator_Version", "0.1" )
     addElement(src,"Creation_Date", "UTC={}".format(datetime.now().isoformat()) )
     
@@ -74,6 +74,21 @@ def createHeader( attributes, gridded = False  ):
         addElement(iw, "Window_Start", "UTC={}".format(attributes["Validity_Start"]))
         addElement(iw, "Window_End", "UTC={}".format(attributes["Validity_Stop"]))
         
+    dsds = addElement(sph, "DSDs" )
+    list_dsds = addElement(dsds, "List_of_DSDs", attr={"count" : str(len(source_files)) } )
+    
+    source_files = [  file for file, fileid in source_files.items() ]
+    
+    for ds in source_files:
+        dsd = addElement( list_dsds, "Data_Set_Descriptor" )
+        addElement(dsd, 'SIR_SIN_L2' )
+        addElement(dsd, "Data_Set_Type", "M" )
+        addElement(dsd, "File_Name", ds.replace("_2S_", "_2__" ))
+        addElement(dsd, "Data_Set_Offset",  attr = {"unit": "bytes"} )
+        addElement(dsd, "Data_Set_Size", attr={"unit":"bytes"})
+        addElement(dsd, "Num_of_Records")
+        addElement(dsd, "Record_Size")
+        addElement(dsd, "Byte_Order", "3210" )
     
     rough_string = ET.tostring(root, encoding="utf-8")
     reparsed = minidom.parseString(rough_string)

@@ -18,6 +18,8 @@ from MalardClient.MalardClient import MalardClient
 from MalardClient.DataSet import DataSet
 from MalardClient.BoundingBox import BoundingBox
 
+import ShapeFileIndex as s
+
 import sys
 import os
 
@@ -49,10 +51,7 @@ def ensure_dir(file_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def processGridCell(client, queryInfo, gridCellSize, startX, startY, resolution, mask, fillValue = -2147483647):
-    
-    resultDf = queryInfo.to_df
-    client.releaseCacheHandle( queryInfo.resultFileName )
+def processGridCell(client, resultDf, gridCellSize, startX, startY, resolution, mask, fillValue = -2147483647):
     
     resultDf['x_b'] = bucket_series( resultDf['x'], resolution )
     resultDf['y_b'] = bucket_series( resultDf['y'], resolution )
@@ -99,19 +98,22 @@ def processGridCell(client, queryInfo, gridCellSize, startX, startY, resolution,
     
     return (xcoords, ycoords, data, griddedCount, pointCount, maskedCount)
 
-def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date ):
+def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date, index, file_mappings ):
     
     pubdatestr = "{}15".format(pub_date.strftime("%Y%m"))
     fileNameExt = ".nc"
     filetype = "THEM_GRID_"
     fileName = "CS_TEST_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, pubdatestr, bbox.minX, bbox.minY )
-    fullPath = "{}/y{}/m{}/cell_{}_{}/{}{}".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    productPath = "y{}/m{}/cell_{}_{}/{}{}".format(pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    fullPath = "{}/{}".format(output_path, productPath)
     headerPath = "{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName)
 
     fileDescription = "L3 Gridded thematic product containing interpolated swath data that is generated from CryoSat2 SARIN data."    
 
     ensure_dir(fullPath)
     ensure_dir(headerPath)
+    
+    index.addGridCell( bbox, productPath   )
     
     dataset = n.Dataset(fullPath,'w',format='NETCDF4')
     
@@ -174,7 +176,7 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     ys = dataset.createVariable('y', np.float32, ('y',))
     ys.long_name = "Distance in vertical direction on the Earth’s surface."
     ys.units = "metres"
-    ys.standard_name = "x"
+    ys.standard_name = "y"
     elevations = dataset.createVariable('elevation', np.float32, ('time','x','y'))
     elevations.units = "metres"
     elevations.long_name = "Elevation estimate for a point in space at the pixel centre and time" 
@@ -226,7 +228,7 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     attributes = { "File_Description" : fileDescription, "File_Type": "THEM_GRID_", "File_Name" : fileName, "Validity_Start" : minT, "Validity_Stop" : maxT, "Min_X" : bbox.minX, "Max_X" : bbox.maxX, "Min_Y" : bbox.minY, "Max_Y" : bbox.maxY, "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : size,"Projection": proj4, "Start_X":minX, "Stop_X":maxX,"Start_Y":minY,"Stop_Y":maxY,"Grid_Pixel_Width" : 2000, "Grid_Pixel_Height" : 2000  } 
 
     with open( headerPath, "wt", encoding="utf8"  ) as f:
-        f.write( h.createHeader( attributes, gridded=True ))
+        f.write( h.createHeader( attributes, gridded=True, source_files = file_mappings ))
 
 def loadMasks( client, dataSet, gridCell,resolution):
     import json
@@ -273,32 +275,40 @@ def main( argv ):
     gridcells = client.gridCells(dataSet, bbox)
     
     start_date = datetime( year, 3, 15,0,0,0)
-    last_date = datetime( year, 5 , 15, 0, 0, 0)
+    last_date = datetime( year, 4 , 15, 0, 0, 0)
     
     window = []
+    
     while start_date < last_date:
         window_start = start_date - relativedelta(days=start_date.day) + relativedelta(days=1) - relativedelta(months=1)
         window_end = window_start + relativedelta(months=3) - timedelta(seconds=1)
         window.append( (window_start, window_end, start_date) )
         start_date = start_date + relativedelta( months=1 )
     
-    projections = ['x','y','time','elev']
+    projections = ['x','y','time','elev','swathFileId']
     #maskTypes = ["ICE_{}m".format(resolution),"SARIN_{}m".format(resolution),"Glacier_{}m".format(resolution)]
     
     stats = []
     total = len(gridcells)
     
-    for i, gc in enumerate(gridcells):
-        gc_start = datetime.now()
-        for from_dt, to_dt, pub_date in window:
+    for from_dt, to_dt, pub_date in window:
+        index = s.ShapeFileIndex(output_path, "THEM_GRID_", proj4, dataSet.region, pub_date ) 
+        for i, gc in enumerate(gridcells):
+            gc_start = datetime.now()        
             month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
             queryInfo = client.executeQuery(dataSet, month_gc, projections)
             
             if queryInfo.status == "Success":
+                data = queryInfo.to_df
+                client.releaseCacheHandle( queryInfo.resultFileName )
+                
+                file_ids = data['swathFileId'].unique()
+                file_mappings = client.getSwathNamesFromIds( dataSet, file_ids )
+                    
                 start_time = datetime.now()
                 mask_dict = loadMasks(client, dataSet, month_gc, resolution  ) 
-                xc, yc, d, g_count, i_count, m_count = processGridCell(client, queryInfo, gridCellSize, gc.minX, gc.minY, resolution, mask_dict, fillValue )
-                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution, proj4, pub_date )
+                xc, yc, d, g_count, i_count, m_count = processGridCell(client, data, gridCellSize, gc.minX, gc.minY, resolution, mask_dict, fillValue)
+                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution, proj4, pub_date,index, file_mappings )
                 end_time = datetime.now()
                 
                 inmask_count = len(mask_dict.keys())
@@ -306,6 +316,7 @@ def main( argv ):
                 stats.append( statistics(gc.minX, gc.minY, from_dt, elapsed_time, g_count, i_count, inmask_count, m_count ) )
             else:
                 stats.append( statistics(gc.minX, gc.minY, from_dt, 0, 0, 0, 0, 0 ) )
+        index.close()
         gc_elapsed = ( datetime.now() - gc_start).total_seconds() 
         print('Processed [{}] grid cells. Total=[{}] Took=[{}]s'.format(i+1, total, gc_elapsed ))
         

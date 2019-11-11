@@ -16,6 +16,8 @@ from MalardClient.DataSet import DataSet
 from MalardClient.BoundingBox import BoundingBox
 from MalardClient.MaskFilter import MaskFilter
 
+import ShapeFileIndex as s
+
 import sys
 import os
 
@@ -28,23 +30,25 @@ def ensure_dir(file_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds ):
+def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index ):
     
     yearmonth = bbox.minT.strftime("%Y%m")
     fileNameExt = ".nc"
     filetype = "THEM_POINT"
     fileName = "CS_TEST_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, yearmonth, bbox.minX, bbox.minY )
-    fullPath = "{}/y{}/m{}/cell_{}_{}/{}{}".format(output_path, bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    productPath = "y{}/m{}/cell_{}_{}/{}{}".format(bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    fullPath = "{}/{}".format(output_path, productPath)
     headerPath = "{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY, fileName)
 
     fileDescription = "L3 Point thematic product containing swath data generated from CryoSat2 SARIN data."    
-
+    
+    index.addGridCell(bbox, productPath )
+    
     ensure_dir(fullPath)
     
     dataset = n.Dataset(fullPath,'w',format='NETCDF4')
             
     row = dataset.createDimension('row')
-    
     
     minX = data['x'].min() 
     maxX = data['x'].max()
@@ -101,7 +105,7 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds ):
     ys = dataset.createVariable('y', np.float32, ('row',))
     ys.long_name = "Distance in vertical direction on the Earth’s surface."
     ys.units = "metres"
-    ys.standard_name = "x"
+    ys.standard_name = "y"
     elevations = dataset.createVariable('elevation', np.float32, ('row',))
     elevations.units = "metres"
     elevations.long_name = "Elevation estimate for a point in space and time" 
@@ -132,10 +136,10 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds ):
 
     size = os.stat(fullPath).st_size
     
-    attributes = { "File_Description" : fileDescription, "File_Name" : fileName, "Validity_Start" : minT, "Validity_Stop" : maxT, "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : size,"Projection": proj4, "Start_X":minX, "Stop_X":maxX,"Start_Y":minY,"Stop_Y":maxY } 
+    attributes = { "File_Description" : fileDescription, "File_Type": filetype,"File_Name" : fileName, "Validity_Start" : minT, "Validity_Stop" : maxT, "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : size,"Projection": proj4, "Min_X":minX, "Max_X":maxX,"Min_Y":minY,"Max_Y":maxY } 
 
     with open( headerPath, "wt", encoding="utf8"  ) as f:
-        f.write( h.createHeader( attributes ))
+        f.write( h.createHeader( attributes, source_files = swathIds ))
 
 def main( argv ):
     
@@ -155,7 +159,6 @@ def main( argv ):
        
     output_path = '/home/jon/data/point'
     gridCellSize = 100000
-    fillValue = -2147483647
     
     client = MalardClient( notebook=True )
     dataSet = DataSet( 'cryotempo', 'GRIS_BaselineC_Q2', 'greenland')
@@ -175,25 +178,29 @@ def main( argv ):
     
     print("Number of Gridcells found to process {}".format(len(gridcells)))
     process_start = datetime.now()
-    for i, gc in enumerate(gridcells):
-         gc_start = datetime.now()
-         for from_dt, to_dt in processing_dates:
-             print("MinT={} MaxT={}".format(from_dt, to_dt))
-             month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
-             queryInfo = client.executeQuery(dataSet, month_gc, projections=projections, filters=filters, maskFilters=shapeFilters)
+    
+    for from_dt, to_dt in processing_dates:
+        print("MinT={} MaxT={}".format(from_dt, to_dt))
+        #Create a shapefile index for each month
+        index = s.ShapeFileIndex(output_path, "THEM_POINT", proj4, dataSet.region, from_dt )    
+        for i, gc in enumerate(gridcells):
+            gc_start = datetime.now()
+            month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
+            queryInfo = client.executeQuery(dataSet, month_gc, projections=projections, filters=filters, maskFilters=shapeFilters)
             
-             if queryInfo.status == "Success":
-                 data = queryInfo.to_df
-                 print("Found {} data rows".format(len(data)))
-                 if len(data) > 0:
-                     file_ids = data['swathFileId'].unique()
-                     results = client.getSwathNamesFromIds( dataSet, file_ids )
-                     writePointProduct(output_path, dataSet, month_gc, data, proj4, results )
+            if queryInfo.status == "Success":
+                data = queryInfo.to_df
+                print("Found {} data rows".format(len(data)))
+                if len(data) > 0:
+                    file_ids = data['swathFileId'].unique()
+                    results = client.getSwathNamesFromIds( dataSet, file_ids )
+                    writePointProduct(output_path, dataSet, month_gc, data, proj4, results, index )
                  
-             client.releaseCacheHandle(queryInfo.resultFileName)
-                
-         gc_elapsed = ( datetime.now() - gc_start).total_seconds() 
-         print('Processed [{}] grid cells. Took=[{}]s'.format(i+1, gc_elapsed ))
+            client.releaseCacheHandle(queryInfo.resultFileName)
+        
+        index.close()        
+        gc_elapsed = ( datetime.now() - gc_start).total_seconds() 
+        print('Processed [{}] grid cells. Took=[{}]s'.format(i+1, gc_elapsed ))
          
     process_elapsed = ( datetime.now() - process_start ).total_seconds()
     print("Took [{}s] to process".format(process_elapsed))
