@@ -2,20 +2,21 @@ package com.earthwave.pointstream.impl
 
 import java.io.File
 
+import com.earthwave.catalogue.api.{BoundingBox, BoundingBoxFilter, CatalogueService, Shard, MaskFilter}
+import com.earthwave.environment.api.EnvironmentService
+import com.earthwave.pointstream.api._
+import com.lightbend.lagom.scaladsl.api.ServiceCall
+
 import akka.NotUsed
 import akka.actor.Status.Success
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.Source
-import com.earthwave.catalogue.api.{BoundingBox, BoundingBoxFilter, CatalogueService, Shard}
-import com.earthwave.environment.api.EnvironmentService
-import com.earthwave.pointstream.api._
-import com.lightbend.lagom.scaladsl.api.ServiceCall
+import akka.util.Timeout
+import akka.pattern.ask
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.util.Timeout
 import com.earthwave.pointstream.impl.PublisherMessages.PublishGridCellPoints
 import com.earthwave.pointstream.impl.QueryManagerMessages.{IsCompleted, ProcessQuery}
 import com.earthwave.pointstream.impl.SwathGridCellPublisher.WorkerSwathToGridCellRequest
@@ -307,9 +308,6 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
     val start_x = 0.5 * width + minX
     val start_y = 0.5 * height + minY
 
-    var x = start_x
-    var y = start_y
-
     val x_range = Array.range(start_x.toInt, maxX.toInt, width.toInt)
     val y_range = Array.range(start_y.toInt, maxY.toInt, height.toInt)
 
@@ -326,5 +324,39 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                                                   }
                                                 }) )
     return false
+  }
+
+  override def filterGriddedPoints() : ServiceCall[GridCellPointRequest, Source[PointInMask, NotUsed]] ={ gcpr =>
+
+    val mask = Mask.getMask( BoundingBoxFilter(   gcpr.minX
+                                                , gcpr.maxX
+                                                , gcpr.minY
+                                                , gcpr.maxY
+                                                , 0
+                                                , 0
+                                                , "x"
+                                                , "y"
+                                                , MaskFilter("","",false), gcpr.maskFilters)
+                                                , driver, inmemDriver)
+
+    def getPoints(): List[(Double,Double)] ={
+      val start_x = 0.5 * gcpr.resolution + gcpr.minX
+      val start_y = 0.5 * gcpr.resolution + gcpr.minY
+
+      val x_range = Array.range(start_x.toInt, gcpr.maxX.toInt, gcpr.resolution)
+      val y_range = Array.range(start_y.toInt, gcpr.maxY.toInt, gcpr.resolution)
+
+      x_range.map( x => y_range.map(y => (x.toDouble,y.toDouble)) ).toList.flatten
+    }
+
+    def isPointinMask( point : (Double, Double) ) : Future[PointInMask] = {
+      Future {
+        val inmask = mask.checkInMask(point._1, point._2)
+        PointInMask(point._1, point._2, inmask)
+      }
+    }
+
+    Future.successful(Source.apply(getPoints()).mapAsync(8)( p => isPointinMask(p) ))
+
   }
 }

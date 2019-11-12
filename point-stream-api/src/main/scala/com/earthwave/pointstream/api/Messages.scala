@@ -1,7 +1,7 @@
 package com.earthwave.pointstream.api
 
 
-import com.earthwave.catalogue.api.{BoundingBoxFilter, SwathDetail}
+import com.earthwave.catalogue.api.{BoundingBoxFilter, SwathDetail, MaskFilter}
 import play.api.libs.json.{Format, Json}
 
 
@@ -87,4 +87,18 @@ object Column
 object Columns
 {
   implicit val format : Format[Columns] = Json.format[Columns]
+}
+
+case class GridCellPointRequest( envName : String, minX : Double, maxX : Double, minY : Double, maxY : Double, maskFilters : List[MaskFilter], resolution : Int )
+
+object GridCellPointRequest
+{
+  implicit val format : Format[GridCellPointRequest] = Json.format[GridCellPointRequest]
+}
+
+case class PointInMask( x : Double, y : Double, inFilter : Boolean )
+
+object PointInMask
+{
+  implicit val format : Format[PointInMask] = Json.format[PointInMask]
 }

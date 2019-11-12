@@ -1,5 +1,4 @@
 package com.earthwave.pointstream.api
-
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.lightbend.lagom.scaladsl.api.{Descriptor, Service, ServiceCall}
@@ -24,6 +23,8 @@ trait PointStreamService extends Service {
 
   def filterGridCells() : ServiceCall[StreamQuery, Source[BoundingBox, NotUsed]]
 
+  def filterGriddedPoints() : ServiceCall[GridCellPointRequest, Source[PointInMask, NotUsed]]
+
   def releaseCache() : ServiceCall[List[Cache], Source[String, NotUsed]]
 
   override final def descriptor: Descriptor = {
@@ -36,6 +37,7 @@ trait PointStreamService extends Service {
         namedCall( "publishswath", publishSwathToGridCells),
         namedCall( "filtershards", filterShards),
         namedCall( "filtergridcells", filterGridCells),
+        namedCall( "filtergriddedpoints", filterGriddedPoints),
         namedCall("releasecache", releaseCache())
 
       ).withAutoAcl(true)
