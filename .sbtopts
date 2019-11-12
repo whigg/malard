@@ -1,5 +1,5 @@
 -J-Xms512M
--J-Xmx32G
+-J-Xmx6G
 -J-Xss16M
 -J-XX:MaxMetaspaceSize=2G
 
