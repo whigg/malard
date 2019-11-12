@@ -154,9 +154,6 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
 
       val inmemsource = inmemDriver.CreateDataSource("memData")
 
-      //open the memory datasource with write access
-      val tmp=inmemDriver.Open("memData",1)
-
       //Create a Polygon from the extent tuple
       val ring = new Geometry(ogrConstants.wkbLinearRing)
       ring.AddPoint(minX, minY)
