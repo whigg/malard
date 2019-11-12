@@ -7,7 +7,7 @@ import org.gdal.ogr.{Driver, Layer, Geometry, ogrConstants, DataSource,FieldDefn
 
 object Mask
 {
-  def getMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) : Mask ={
+  def getMask( bbf : BoundingBoxFilter ) : Mask ={
 
     if( bbf.extentFilter.shapeFile.isEmpty && bbf.extentFilter.wkt.isEmpty && bbf.maskFilters.isEmpty )
     {
@@ -15,7 +15,7 @@ object Mask
     }
     else
     {
-      new CompositeMask(bbf, driver, inmemDriver)
+      new CompositeMask(bbf)
     }
   }
 }
@@ -33,8 +33,11 @@ trait Mask {
   def close()
 }
 
-class CompositeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Driver ) extends Mask
+class CompositeMask( bbf : BoundingBoxFilter ) extends Mask
 {
+  val driver = ogr.GetDriverByName("ESRI Shapefile")
+  val inmemDriver = ogr.GetDriverByName("MEMORY")
+
   val hasExtent = if( !bbf.extentFilter.shapeFile.isEmpty || !bbf.extentFilter.wkt.isEmpty ){  true }else{false}
   val extentFilter: Option[Mask] =  if( hasExtent && !bbf.extentFilter.shapeFile.isEmpty )
                       {
@@ -105,6 +108,8 @@ class CompositeMask( bbf : BoundingBoxFilter, driver : Driver, inmemDriver : Dri
 
     filters.foreach(f => f.close())
 
+    inmemDriver.delete()
+    driver.delete()
   }
 }
 

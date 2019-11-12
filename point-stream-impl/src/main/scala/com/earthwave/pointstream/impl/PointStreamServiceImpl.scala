@@ -32,8 +32,6 @@ import org.gdal.ogr.{Layer, ogr}
 class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentService, projectionService : ProjectionService, implicit val system : ActorSystem) extends PointStreamService {
 
   ogr.RegisterAll()
-  val driver = ogr.GetDriverByName("ESRI Shapefile")
-  val inmemDriver = ogr.GetDriverByName("MEMORY")
 
   val queryManager = system.actorOf(Props(new QueryManager(catalogue, system)), "QueryManager")
   val pointPublisher = system.actorOf(Props(new PointPublisher(catalogue, system)), "PointPublisher")
@@ -56,7 +54,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
         log.info(s"BB passed in MinX=${q.bbf.minX} MaxX=${q.bbf.maxX} MinY=${q.bbf.minY} MaxX=${q.bbf.maxY}")
 
-        val mask = Mask.getMask(q.bbf, driver, inmemDriver )
+        val mask = Mask.getMask(q.bbf )
 
         val extent = mask.getExtent()
 
@@ -260,7 +258,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getShards( q : StreamQuery ) : List[Shard] = {
 
-    val mask = Mask.getMask(q.bbf, driver, inmemDriver)
+    val mask = Mask.getMask(q.bbf)
 
     val extent = mask.getExtent()
 
@@ -282,7 +280,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
   private def getGridCells( q : StreamQuery ) : List[BoundingBox] = {
 
-    val mask = Mask.getMask(q.bbf, driver, inmemDriver)
+    val mask = Mask.getMask(q.bbf)
 
     val extent = mask.getExtent( )
 
