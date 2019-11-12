@@ -177,7 +177,16 @@ class AsyncDataSetQuery:
         
         requestJson = json.dumps(request,default=dateconverter)
        
-        return self.syncServerRequest(requestJson, '/filtergridcells')                     
+        return self.syncServerRequest(requestJson, '/filtergridcells')
+
+    def filterGriddedPoints( self,  minX, maxX, minY, maxY, maskFilters, resolution ):    
+        filtersAsDict = [ m.maskdict for m in maskFilters ]
+        
+        request ={ 'envName': self.envName,'minX':minX, 'maxX':maxX, 'minY':minY, 'maxY':maxY, 'maskFilters' : filtersAsDict, 'resolution' : resolution }
+        
+        requestJson = json.dumps(request,default=dateconverter)
+       
+        return self.syncServerRequest(requestJson, '/filtergriddedpoints')                 
     
     def executeQuery( self, parentDs, dataSetName, region, minX, maxX, minY, maxY, minT, maxT, projections, filters, xCol='x', yCol='y', extentFilter=MaskFilter(), maskFilters=[] ):
         
@@ -232,6 +241,7 @@ class AsyncDataSetQuery:
                    , 'hash' : hashCode }
         
         requestJson = json.dumps(request,default=dateconverter)   
+        
         results = self.syncServerRequest(requestJson, '/publishswath') 
         
         results = results[len(results)-1]
