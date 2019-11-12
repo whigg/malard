@@ -187,6 +187,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
       idField.delete()
       layer.delete()
       source.delete()
+      outLayer.delete()
 
       (f.includeWithin, result_layer, inmemsource)
     }
