@@ -335,7 +335,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
                                                 , "x"
                                                 , "y"
                                                 , MaskFilter("","",false), gcpr.maskFilters)
-                                                , driver, inmemDriver)
+                                               )
 
     def getPoints(): List[(Double,Double)] ={
       val start_x = 0.5 * gcpr.resolution + gcpr.minX
