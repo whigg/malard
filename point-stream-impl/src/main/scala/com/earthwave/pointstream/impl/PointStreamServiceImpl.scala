@@ -356,7 +356,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
       }
     }
 
-    Future.successful(Source.apply(getPoints()).mapAsync(8)( p => isPointinMask(p) ))
+    Future.successful(Source.apply(getPoints()).mapAsync(1)( p => isPointinMask(p) ))
 
   }
 }
