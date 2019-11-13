@@ -16,19 +16,19 @@ def main(argv):
     # Get the arguments from the command-line except the filename
     argv = sys.argv[1:]
     
-    parentDataSet = 'cryotempo'
-    dataSet = 'AntarcticaV2b'
-    region = 'antarctic'
-    swathdir = '/data/slug1/holding/AntarcticaV2b'
+    parentDataSet = 'test'
+    dataSet = 'loadtest'
+    region = 'iceland'
+    swathdir = '/data/slug1/holding/Iceland10-19'
     #year = int(argv[0])
     #month = int(argv[1])
-    columnFilters = {'coh':0.3,'powerScaled':100.0}
+    columnFilters = [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns =[]
     gridCellSize = 100000
     environmentName = 'DEVv2'
     
-    years = [2018]
-    months = [9,10]
+    years = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019]
+    months = [1,2,3,4,5,6,7,8,9,10,11,12]
     
     for year in years:
         for month in months:
