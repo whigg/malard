@@ -119,12 +119,12 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
       val f: Bson = filter( and(equal("dsName",dsName)
                   ,and(equal("region", region)
-                  ,not(or(gte( "gridCellMinX", bbf.maxX )
-                  ,or(lte( "gridCellMaxX", bbf.minX)
-                  ,or(gte( "gridCellMinY", bbf.maxY)
-                  ,or(lte("gridCellMaxY", bbf.minY))
+                  ,nor(gte( "gridCellMinX", bbf.maxX )
+                  ,lte( "gridCellMaxX", bbf.minX)
+                  ,gte( "gridCellMinY", bbf.maxY)
+                  ,lte("gridCellMaxY", bbf.minY))
                   ,and(gte( "maxTime", bbf.minT )
-                  , lte( "minTime", bbf.maxT )))))))))
+                  , lte( "minTime", bbf.maxT )))))
 
      val g = group( groupByCols
                     , min("minTime", "$minTime")
