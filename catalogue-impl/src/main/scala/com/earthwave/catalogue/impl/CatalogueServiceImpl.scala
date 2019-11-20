@@ -119,10 +119,10 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
       val f: Bson = filter( and(equal("dsName",dsName)
                   ,and(equal("region", region)
-                  ,and(gt( "gridCellMaxX", bbf.minX )
-                  ,and(lt( "gridCellMinX", bbf.maxX - 1e-9)
-                  ,and(gt( "gridCellMaxY", bbf.minY)
-                  ,and(lt("gridCellMinY", bbf.maxY - 1e-9)
+                  ,not(or(gte( "gridCellMinX", bbf.maxX )
+                  ,or(lte( "gridCellMaxX", bbf.minX)
+                  ,or(gte( "gridCellMinY", bbf.maxY)
+                  ,or(lte("gridCellMaxY", bbf.minY))
                   ,and(gte( "maxTime", bbf.minT )
                   , lte( "minTime", bbf.maxT )))))))))
 
@@ -174,10 +174,10 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
     val f: Bson =  and(equal("dsName",dsName)
       ,and(equal("region", region)
-      ,and(gt( minMaxX._2, bbf.minX )
-        ,and(lt( minMaxX._1, bbf.maxX - 1e-9)
-          ,and(gt( minMaxY._2, bbf.minY)
-            ,and(lt(minMaxY._1, bbf.maxY - 1e-9)
+      ,not(or(gte( minMaxX._1, bbf.maxX )
+        ,or(lte( minMaxX._2, bbf.minX)
+          ,or(gte( minMaxY._1, bbf.maxY)
+            ,or(lte(minMaxY._2, bbf.minY))
               ,and(gte( "maxTime", bbf.minT )
                 , lte( "minTime", bbf.maxT ))))))))
 
