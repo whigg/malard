@@ -174,12 +174,9 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
 
     val f: Bson =  and(equal("dsName",dsName)
       ,and(equal("region", region)
-      ,not(or(gte( minMaxX._1, bbf.maxX )
-        ,or(lte( minMaxX._2, bbf.minX)
-          ,or(gte( minMaxY._1, bbf.maxY)
-            ,or(lte(minMaxY._2, bbf.minY))
+      ,nor(gte( minMaxX._1, bbf.maxX ), lte( minMaxX._2, bbf.minX),gte( minMaxY._1, bbf.maxY),lte(minMaxY._2, bbf.minY))
               ,and(gte( "maxTime", bbf.minT )
-                , lte( "minTime", bbf.maxT ))))))))
+                , lte( "minTime", bbf.maxT ))))
 
     val obs = collection.find(f)
 
