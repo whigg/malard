@@ -211,7 +211,7 @@ class Publisher( val processNr : Int) extends Actor {
       val now = LocalDateTime.now(ZoneOffset.UTC)
       // LocalDateTime to epoch seconds
       val seconds = now.atZone(ZoneOffset.UTC).toEpochSecond()
-      val shardPath = s"${outputBasePath}/${p.publishRequest.dsName}/gridcell/y${date.getYear}/m${date.getMonthValue}/cell_${gcp.projection}_${gcp.minX}_${gcp.minY}/"
+      val shardPath = s"${outputBasePath}/${p.publishRequest.parentDsName}/${p.publishRequest.dsName}/${p.publishRequest.region}/gridcell/y${date.getYear}/m${date.getMonthValue}/cell_${gcp.projection}_${gcp.minX}_${gcp.minY}/"
       val shardName = s"${shardPath}GridCell_${processNr}_$seconds.nc"
 
 

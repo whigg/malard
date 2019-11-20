@@ -105,14 +105,14 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
 
             val indices = mask.getOrElse(gridCell, new ListBuffer[Int]())
             //Only add to the mask if not in the filter
-            val include: Boolean = minimumFilters.foldLeft(false)((x, y) => {
+            val include: Boolean = if( minimumFilters.isEmpty){true}else{minimumFilters.foldLeft(false)((x, y) => {
               if (y._2.op(y._1.getDouble(i)) || x == true) {
                 true
               }
               else {
                 false
               }
-            })
+            })}
             if (include) {
               indices.append(i)
             }
