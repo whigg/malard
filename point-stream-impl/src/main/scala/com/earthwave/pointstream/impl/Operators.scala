@@ -20,6 +20,10 @@ object Operators {
     {
       return new Operator.LessThanEquals(threshold)
     }
+    else if( op.contentEquals("eq") )
+    {
+      return new Operator.Equals(threshold)
+    }
     else
     {
       throw new Exception(s"Unexpected operator $op")
@@ -71,4 +75,13 @@ object Operator {
       }
     }
   }
+
+  class Equals( threshold : Double ) extends Operator {
+
+    override  def op( x: Double) : Boolean ={
+      if( x == threshold )
+      { true } else{ false }
+    }
+  }
+
 }
