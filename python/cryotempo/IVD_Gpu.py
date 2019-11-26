@@ -20,23 +20,6 @@ def bucket( x , y, minX, maxX, minY, maxY, nrOfBucketsInRow ):
     
     return min(yPos * nrOfBucketsInRow + xPos, nrOfBucketsInRow* nrOfBucketsInRow)
 
-def bucketData( x, y, bucketSrs ):
-    
-    buckets = range(1,numBucketsPerRow * numBucketsPerRow +1)
-    
-    bucketData = {}
-    for b in buckets:
-        xyb = zip(x,y,bucketSrs)
-        xy = [(x,y) for x,y,d in xyb if d == b ]
-        xs,ys = zip(*xy)
-        
-        print( 'Bucket=[%d] Length=[%d]' % (b, len(xs)) )             
-        if len(xs) > 0:
-            bucketData[b] = (cp.array(xs), cp.array(ys))
-        else:
-            bucketData[b] =(None, None )
-    return bucketData
-
 def bucketData2( xArray, yArray, bucketSrs ):    
     buckets = range(1,numBucketsPerRow * numBucketsPerRow +1)
     

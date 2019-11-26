@@ -6,7 +6,10 @@ Created on Wed Sep 25 08:38:30 2019
 @author: jon
 """
 import json
+import pandas as pd
+
 from datetime import datetime
+
 
 from MalardClient.DataSetQuery import DataSetQuery
 from MalardClient.AsyncDataSetQuery import AsyncDataSetQuery
@@ -122,4 +125,14 @@ class MalardClient:
      
     def releaseCacheHandle(self, cacheHandle ):
         return self.asyncQuery.releaseCache( cacheHandle  )
+    
+    def filterGriddedPoints( self,  minX, maxX, minY, maxY, maskFilters, resolution ):
+        
+        g_points = self.asyncQuery.filterGriddedPoints( minX, maxX, minY, maxY, maskFilters, resolution )
+        
+        pts = [json.loads(j) for j in g_points ]
+        
+        df = pd.DataFrame(pts)
+        
+        return df
     

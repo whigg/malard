@@ -17,6 +17,7 @@ from math import floor
 from MalardClient.MalardClient import MalardClient
 from MalardClient.DataSet import DataSet
 from MalardClient.BoundingBox import BoundingBox
+from MalardClient.MaskFilter import MaskFilter
 
 import ShapeFileIndex as s
 
@@ -95,10 +96,12 @@ def processGridCell(client, resultDf, gridCellSize, startX, startY, resolution, 
         for j,y in enumerate( ycoords ):
             if data[i][j][0] != fillValue:
                 data[i][j][0] = data[i][j][0] / dataN[i][j][0] 
+            elif (xcoords[i],ycoords[j]) in mask:
+                data[i][j][0] = -1000
     
     return (xcoords, ycoords, data, griddedCount, pointCount, maskedCount)
 
-def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date, index, file_mappings ):
+def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date, index, file_mappings, fill_value ):
     
     pubdatestr = "{}15".format(pub_date.strftime("%Y%m"))
     fileNameExt = ".nc"
@@ -177,7 +180,7 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     ys.long_name = "Distance in vertical direction on the Earth’s surface."
     ys.units = "metres"
     ys.standard_name = "y"
-    elevations = dataset.createVariable('elevation', np.float32, ('time','x','y'))
+    elevations = dataset.createVariable('elevation', np.float32, ('time','x','y'), fill_value = fill_value)
     elevations.units = "metres"
     elevations.long_name = "Elevation estimate for a point in space at the pixel centre and time" 
     elevations.coordinates = "x y"
@@ -210,10 +213,12 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
         return boundsArray
 
         
-    times = [ bbox.minT ]
+    timesArray = np.zeros(1) 
+    timesArray.fill( int(bbox.minT.timestamp() ) )
+    
     indicatorVariables = [0,1]
     
-    times[:] = np.array(times)
+    times[:] = timesArray
     xs[:] = xcoords
     x_bnds[:] = boundsArray(xcoords, resolution)
     ys[:] = ycoords
@@ -230,33 +235,33 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     with open( headerPath, "wt", encoding="utf8"  ) as f:
         f.write( h.createHeader( attributes, gridded=True, source_files = file_mappings ))
 
-def loadMasks( client, dataSet, gridCell,resolution):
-    import json
+def loadMasks( client, gridCell, maskFilters, resolution):
     
-    maskTypes = ["LRM_{}m".format(resolution),"SARIN_{}m".format(resolution),"ICE_{}m".format(resolution)]
-    
-    mask_dataframes = [  pd.read_csv(json.loads(client.query.getGridCellMask(dataSet.parentDataSet, dataSet.dataSet, maskType, dataSet.region, gridCell.minX, gridCell.minY, gridCell.maxX - gridCell.minX ))["fileName"]  ) for maskType in maskTypes] 
-        
     inmask = {}
-
-    for x, y, lrm, sarin, ice in zip(  mask_dataframes[0]["x"], mask_dataframes[0]["y"], mask_dataframes[0]["within_LRM"], mask_dataframes[1]["within_SARIN"], mask_dataframes[2]["within_ICE"]):
-        if lrm == 0 and sarin == 1 and ice == 1:
+    
+    df = client.filterGriddedPoints( gridCell.minX, gridCell.maxX, gridCell.minY, gridCell.maxY, maskFilters , resolution )
+    
+    for x,y,b in zip(df['x'],df['y'],df['inFilter']):
+        if b == True:
             inmask[(x,y)] = 1
             
     return inmask
 
 def main( argv ):
     
-    #argv = argv[1:]
-    
     year = 2011
     
     environmentName = 'DEVv2'
-    #ndays = int(argv[0])
-    resolution = 2000 #int(argv[1])
+    resolution = 2000 
     print(resolution)
-    interval = "3months" #"{}days".format(ndays)
+    interval = "3months"
     
+    ## TODO: These need to be stored in Malard by DataSet and Type.    
+    maskFilterIce = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/masks/icesheets.shp"  ) 
+    maskFilterLRM = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/sarinmasks/LRM_Greenland.shp" , p_includeWithin=False ) 
+
+    maskFilters = [ maskFilterIce, maskFilterLRM ]    
+      
     output_path = "/home/jon/data/grid"
     gridCellSize = 100000
     fillValue = -2147483647
@@ -285,7 +290,8 @@ def main( argv ):
         window.append( (window_start, window_end, start_date) )
         start_date = start_date + relativedelta( months=1 )
     
-    projections = ['x','y','time','elev','swathFileId']
+    projections = ['x','y','time','elev','swathFileId','coh','power','demDiff','demDiffMad']
+    filters = [{"column":"power","op":"gte","threshold":10000},{"column":"coh","op":"gte","threshold":0.8},{"column":"demDiffMad","op":"lt","threshold":20.0},{"column":"demDiff","op":"lte","threshold":100.0},{"column":"demDiff","op":"gte","threshold":-100.0}]   #demDiff<100, demDiff>-100, 
     #maskTypes = ["ICE_{}m".format(resolution),"SARIN_{}m".format(resolution),"Glacier_{}m".format(resolution)]
     
     stats = []
@@ -296,7 +302,7 @@ def main( argv ):
         for i, gc in enumerate(gridcells):
             gc_start = datetime.now()        
             month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
-            queryInfo = client.executeQuery(dataSet, month_gc, projections)
+            queryInfo = client.executeQuery(dataSet, month_gc, projections, filters)
             
             if queryInfo.status == "Success":
                 data = queryInfo.to_df
@@ -306,9 +312,9 @@ def main( argv ):
                 file_mappings = client.getSwathNamesFromIds( dataSet, file_ids )
                     
                 start_time = datetime.now()
-                mask_dict = loadMasks(client, dataSet, month_gc, resolution  ) 
+                mask_dict = loadMasks(client, month_gc, maskFilters, resolution  ) 
                 xc, yc, d, g_count, i_count, m_count = processGridCell(client, data, gridCellSize, gc.minX, gc.minY, resolution, mask_dict, fillValue)
-                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution, proj4, pub_date,index, file_mappings )
+                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution, proj4, pub_date,index, file_mappings, fillValue )
                 end_time = datetime.now()
                 
                 inmask_count = len(mask_dict.keys())
