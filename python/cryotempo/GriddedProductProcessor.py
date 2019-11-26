@@ -249,21 +249,18 @@ def loadMasks( client, gridCell, maskFilters, resolution):
 
 def main( argv ):
     
-    #argv = argv[1:]
-    
     year = 2011
     
     environmentName = 'DEVv2'
-    #ndays = int(argv[0])
-    resolution = 2000 #int(argv[1])
+    resolution = 2000 
     print(resolution)
-    interval = "3months" #"{}days".format(ndays)
+    interval = "3months"
     
     ## TODO: These need to be stored in Malard by DataSet and Type.    
     maskFilterIce = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/masks/icesheets.shp"  ) 
     maskFilterLRM = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/sarinmasks/LRM_Greenland.shp" , p_includeWithin=False ) 
 
-    maskFilters = [ maskFilterIce, maskFilterLRM ]
+    maskFilters = [ maskFilterIce, maskFilterLRM ]    
       
     output_path = "/home/jon/data/grid"
     gridCellSize = 100000
@@ -293,7 +290,8 @@ def main( argv ):
         window.append( (window_start, window_end, start_date) )
         start_date = start_date + relativedelta( months=1 )
     
-    projections = ['x','y','time','elev','swathFileId']
+    projections = ['x','y','time','elev','swathFileId','coh','power','demDiff','demDiffMad']
+    filters = [{"column":"power","op":"gte","threshold":10000},{"column":"coh","op":"gte","threshold":0.8},{"column":"demDiffMad","op":"lt","threshold":20.0},{"column":"demDiff","op":"lte","threshold":100.0},{"column":"demDiff","op":"gte","threshold":-100.0}]   #demDiff<100, demDiff>-100, 
     #maskTypes = ["ICE_{}m".format(resolution),"SARIN_{}m".format(resolution),"Glacier_{}m".format(resolution)]
     
     stats = []
@@ -304,7 +302,7 @@ def main( argv ):
         for i, gc in enumerate(gridcells):
             gc_start = datetime.now()        
             month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
-            queryInfo = client.executeQuery(dataSet, month_gc, projections)
+            queryInfo = client.executeQuery(dataSet, month_gc, projections, filters)
             
             if queryInfo.status == "Success":
                 data = queryInfo.to_df
