@@ -4,11 +4,14 @@ from MalardClient.BoundingBox import BoundingBox
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-import bucket as b
+import math
+import pandas as pd
+import ND as nd
 
-import numpy as np
-import cupy as cp
-
+def distance( x1s, y1s, x2s, y2s ):
+    
+    return [math.sqrt( (x1 -x2 )**2 + (y1-y2)**2 ) for x1,y1,x2,y2 in zip( x1s, y1s, x2s, y2s )]
+        
 client = MalardClient()
 
 ds = DataSet("cryotempo","poca","greenland" )
@@ -17,98 +20,94 @@ dsSwath = DataSet("cryotempo","GRIS_BaselineC_Q2","greenland" )
 
 ds_oib = DataSet("cryotempo","oib","greenland" )
 
-bb = client.boundingBox(ds)
+filters = [{'column':'coh','op':'gte','threshold':0.5},{'column':'power','op':'gte','threshold':1000.0}]
 
-minX=-200000
-maxX=-100000
-minY=-2400000
-maxY=-2300000
-minT=datetime(2011,3,1,0,0,0)
-maxT=datetime(2011,3,31,23,59,59)
+projections = ['swathFileId','x','y','time','WGS84_Ellipsoid_Height(m)']
 
-bb = BoundingBox( minX, maxX, minY, maxY, minT, maxT )
-
-resPoca = client.executeQuery( ds, bb )
-
-resSwath = client.executeQuery( dsSwath, bb )
-
-minT=minT - relativedelta(days=10)
-maxT=maxT + relativedelta(days=10)
-
-bb = BoundingBox( minX, maxX, minY, maxY, minT, maxT )
-
-resOib =  client.executeQuery( ds_oib, bb )
-
-df_swath = resSwath.to_df
-
-df_oib = resOib.to_df
-
-print(df_swath['time'].max())
-print(df_oib['time'].max())
-
-print("Nr OIB points [{}] Nr Swath Points [{}]".format(len(df_oib),len(df_swath)))
-
-filterKernel = cp.ElementwiseKernel(
-        'raw float64 x1, float64 x2, raw float64 y1, float64 y2, raw int64 t1, int64 t2',
-        'float64 z',
-        '''
-            if( abs(t2-t1[0]) <= 864000 && abs(x2-x1[0]) <= 50 && abs(y2 -y1[0]) <=50)
-            {
-                z = sqrt((x1[0]-x2)*(x1[0]-x2) + (y1[0]-y2)*(y1[0]-y2));        
-            }
-            else
-            {
-                z = 999.0;
-            }
-        ''',
-        'filter',
-        )
-
-
-def compute_nearest_neighbour( df_swath, df_oib, bb, numBucketsPerRow ):
+projections_swath = ['swathFileId','x','y','time','coh','power','elev','demDiff','demDiffMad'] 
     
-    start_t = datetime.now()
-    print("Starting Calculation {}".format(start_t))
-       
-    xArray = cp.empty(1)
-    yArray = cp.empty(1)
-    tArray = cp.empty(1,dtype=np.int64)    
+
+years = [2011,2012,2013,2014,2015,2016]
+
+dfs = []
+start_t = datetime.now()
+
+total_match = 0 
+
+for y in years:
+    minT=datetime(y,3,1,0,0,0)
+    maxT=datetime(y,6,30,23,59,59)
     
-    x_oib = cp.array(df_oib.x)
-    y_oib = cp.array(df_oib.y)
-    t_oib = cp.array(df_oib.time,dtype=np.int64)
-  
-    swath_index = []
-    oib_index = []
-
-    for i, (x,y,t) in enumerate(zip( df_swath.x, df_swath.y, df_swath.time )):    
+    
+    #minX=-200000
+    #maxX=-100000
+    #minY=-2400000
+    #maxY=-2300000
+    
+    #bb = BoundingBox( minX, maxX, minY, maxY, minT, maxT )
+    bb = client.boundingBox(ds_oib)
+    
+    bb = BoundingBox( bb.minX, bb.maxX, bb.minY, bb.maxY, minT, maxT )
+    
+    gcs = client.gridCells( ds_oib, bb )
+    nr_gcs = len(gcs)
+    
+    print("Nr of grid cells to process: {}".format(nr_gcs))
         
-        xArray.fill(x)
-        yArray.fill(y)
-        tArray.fill(t)
+    for i, gc in enumerate(gcs):
         
-        filterSrs = filterKernel( xArray, x_oib, yArray, y_oib, tArray, t_oib  )
+        bb = BoundingBox( gc.minX, gc.maxX, gc.minY, gc.maxY, minT, maxT )
         
-        closest = cp.argmin(filterSrs)
+        resSwath = client.executeQuery( dsSwath, bb, filters=filters, projections = projections_swath )
+    
+        o_minT=minT - relativedelta(days=10)
+        o_maxT=maxT + relativedelta(days=10)
         
-        if closest > 0: 
-            swath_index.append(i)
-            oib_index.append( closest )
+        bb = BoundingBox( gc.minX, gc.maxX, gc.minY, gc.maxY, o_minT, o_maxT )
+        
+        resOib =  client.executeQuery( ds_oib, gc, projections=projections )
+        
+        if resSwath.status == "Success" and resOib.status == "Success": 
+        
+            df_swath = resSwath.to_df
+            df_oib = resOib.to_df
+        
+            print("Nr OIB points [{}] Nr Swath Points [{}]".format(len(df_oib),len(df_swath)))
+        
+            numBucketsPerRow = 1
+            oib_indices = nd.compute_nearest_neighbour( df_swath, df_oib, bb, 50.05, 864000.0 )
+            
+            df_swath['oib_index'] = oib_indices
+            oib_index = range(0,len(df_oib))
+            df_oib['oib_index'] = oib_index
+            swath_index = range(0,len(df_swath))
+            df_swath['swath_index'] = swath_index 
+            
+            alljoined = pd.merge( df_swath, df_oib, how='inner', on='oib_index', suffixes=("_swath","_oib") )
+            dists = distance( alljoined.x_swath, alljoined.y_swath, alljoined.x_oib, alljoined.y_oib )
+            alljoined['distance'] = dists
+            
+            dfs.append( alljoined  )
+            total_match = total_match + len(alljoined)
+            print( "GC {} Number of points under 50m {}. Total Matched {}".format(  i, len(alljoined), total_match ))  
+            
+        else:
+            print("Skipping {} Message {}".format(i,resSwath.message))
+            
+        client.releaseCacheHandle(resSwath.resultFileName)
+        client.releaseCacheHandle(resOib.resultFileName)
+    
+end_t =datetime.now()
 
-    total_t = datetime.now()
-    print("Took {}s".format((total_t - start_t).total_seconds()))
+#saving the output file
+df = pd.concat( dfs, ignore_index=True )
 
-                
-    return (swath_index, oib_index) 
+fname = '/home/jon/data/spatialjoin.h5'
+storeOutput = pd.HDFStore(fname,mode='w',complevel=9, complib='blosc')
+
+storeOutput['SwathOib50m'] = df
+
+storeOutput.close() 
 
 
-
-numBucketsPerRow = 1
-#swath, oib = compute_nearest_neighbour( df_swath, df_oib, bb, numBucketsPerRow )
-
-print(len(swath))
-
-client.releaseCacheHandle(resPoca.resultFileName)
-client.releaseCacheHandle(resSwath.resultFileName)
-client.releaseCacheHandle(resOib.resultFileName)
-
+print( "Total processing time {} Total Match {}".format((end_t - start_t).total_seconds(), total_match) )
