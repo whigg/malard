@@ -48,6 +48,11 @@ object ArrayHelper {
 
     val origin = new Array[Int](length)
 
+    if( length == src.getSize.toInt )
+    {
+      return src
+    }
+
     if( dt == DataType.DOUBLE )
     {
       val array = new Array[Double](mask.length)
