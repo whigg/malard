@@ -2,6 +2,7 @@ package com.earthwave.pointstream.impl
 
 import com.earthwave.catalogue.api.BoundingBoxFilter
 import ucar.ma2.DataType
+import ucar.nc2.Variable
 
 import scala.collection.mutable.ListBuffer
 
@@ -41,12 +42,27 @@ object ArrayHelper {
     mask.toArray
   }
 
+  def createArray( vars : List[Variable], length : Int ) : ucar.ma2.Array ={
+
+    val dt = vars.head.getDataType
+    val shape = Array.ofDim[Int](1)
+    shape(0) = length
+
+    val array = ucar.ma2.Array.factory(dt, shape)
+
+    var tmpStart = 0
+    vars.foreach( v => {
+      ucar.ma2.Array.arraycopy(v.read(), 0, array, tmpStart, v.getSize.toInt)
+      tmpStart = tmpStart + v.getSize.toInt
+    })
+
+    array
+  }
+
   def applyMask( dataType : DataType, src : ucar.ma2.Array, mask : Array[Int] ) : ucar.ma2.Array = {
 
     val dt = dataType
     val length = mask.length
-
-    val origin = new Array[Int](length)
 
     if( length == src.getSize.toInt )
     {

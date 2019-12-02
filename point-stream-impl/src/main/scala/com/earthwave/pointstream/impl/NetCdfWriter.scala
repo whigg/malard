@@ -16,6 +16,11 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], projection
   val fileName = filename
   private var rowcount: Int = 0
 
+  private val bufferSize = 100 * 1000
+  private var bufferLength = 0
+  private var buffer = List[List[Variable]]()
+
+
   private val chunker: Nc4Chunking = Nc4ChunkingStrategy.factory(Nc4Chunking.Strategy.standard, deflateLevel, true)
   private val writer = NetcdfFileWriter.createNew(NetcdfFileWriter.Version.netcdf4, filename, chunker)
   writer.addUnlimitedDimension("row")
@@ -91,6 +96,33 @@ class NetCdfWriter( filename : String, val srcColumns : List[Column], projection
     })
 
     rowcount = rowcount + variables.head._2.getSize.toInt
+  }
+
+  def writeBuffered( variables : List[Variable], flush : Boolean = false  ) ={
+
+    val size = if( variables.isEmpty ){0}else{variables.head.getSize.toInt}
+
+    if( size > 0 ) {
+      bufferLength = bufferLength + size
+      buffer = variables :: buffer
+    }
+
+    if( bufferLength > bufferSize || flush )
+    {
+      val origin = Array.ofDim[Int](1)
+      origin(0) = rowcount
+      //allocate an array the size of buffer length and copy it in.
+      val byColumn = buffer.transpose
+
+      byColumn.foreach( col => {
+                                  val array = ArrayHelper.createArray(col, bufferLength)
+                                  writer.write( srcVariables.filter( s => s.getShortName.contentEquals(col.head.getShortName) == true ).head, origin, array) })
+
+      rowcount = rowcount + bufferLength
+      bufferLength = 0
+      buffer = List[List[Variable]]()
+    }
+
   }
 
   def write(variables : List[(Variable,ucar.ma2.Array)], coords : TransformedCoordinates, addCols : List[AnyRef], mask : Array[Int]) = {
