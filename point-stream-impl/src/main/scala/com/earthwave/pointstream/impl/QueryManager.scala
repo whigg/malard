@@ -222,6 +222,7 @@ class QueryProcessor( instance : Int ) extends Actor {
       } else {
         val c = scala.collection.mutable.Set("x", "y", "time")
         q.projections.foreach(p => c.+=(p))
+        q.filters.foreach( f => c.+=(f.column) )
         c
       }
 
@@ -279,7 +280,7 @@ class QueryProcessor( instance : Int ) extends Actor {
     }
     else {
       log.info(s"Request complete in failed state.")
-      sender ! Completed(QueryStatus(true, "Error: No File", "Error", requestStatus))
+      sender ! Completed(QueryStatus(true, pq.cacheName, "Error", requestStatus))
     }
   }
 
