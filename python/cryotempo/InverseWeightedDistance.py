@@ -26,7 +26,7 @@ power = 2
 
   
 projections = ['x','y','time','elev','swathFileId','coh','power','demDiff','demDiffMad']
-filters = [{"column":"power","op":"gte","threshold":10000},{"column":"coh","op":"gte","threshold":0.6},{"column":"demDiffMad","op":"lt","threshold":20.0},{"column":"demDiff","op":"lte","threshold":100.0},{"column":"demDiff","op":"gte","threshold":-100.0}]   #demDiff<100, demDiff>-100, 
+filters = [{"column":"power","op":"gte","threshold":100},{"column":"coh","op":"gte","threshold":0.6},{"column":"demDiffMad","op":"lt","threshold":20.0},{"column":"demDiff","op":"lte","threshold":100.0},{"column":"demDiff","op":"gte","threshold":-100.0}]   #demDiff<100, demDiff>-100, 
 
 minT = datetime(2011,3,1,0,0,0)
 maxT = datetime(2011,5,31,23,59,59)
