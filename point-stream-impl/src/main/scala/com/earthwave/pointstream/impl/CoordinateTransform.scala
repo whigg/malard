@@ -39,17 +39,23 @@ object CoordinateTransform {
         val lt = lat.getDouble(i)
         val ln = lon.getDouble(i)
 
-        val shortName = projectionsMapped.filter( c => c._1.conditions.length == c._1.conditions.filter( c => c.op(lt)).length ).head
-        val coordTransformation = cache.get(shortName._2)
-        val transform = new TransformToXY(lt, ln, coordTransformation)
+        if( lt != Double.NaN ) {
+          val shortName = projectionsMapped.filter(c => c._1.conditions.length == c._1.conditions.filter(c => c.op(lt)).length).head
 
-        val x = (transform.getX())
-        val y = (transform.getY())
+          val coordTransformation = cache.get(shortName._2)
+          val transform = new TransformToXY(lt, ln, coordTransformation)
 
-        xArray(i) = x
-        yArray(i) = y
-        projArray(i) = shortName._1.shortName
+          val x = (transform.getX())
+          val y = (transform.getY())
 
+          xArray(i) = x
+          yArray(i) = y
+          projArray(i) = shortName._1.shortName
+        }
+        else{
+          xArray(i) = Double.NaN
+          yArray(i) = Double.NaN
+        }
       }
     }
     catch {
