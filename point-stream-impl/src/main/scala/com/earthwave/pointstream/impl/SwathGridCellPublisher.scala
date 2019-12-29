@@ -67,8 +67,8 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
       if( continue._1 ) {
         val reader = continue._2.get
         try {
-          val lat = reader.getVariableByName("lat").read()
-          val lon = reader.getVariableByName("lon").read()
+          val lat = reader.getVariableByName(r.userRequest.yCol).read()
+          val lon = reader.getVariableByName(r.userRequest.xCol).read()
 
           val columns = reader.getVariables().map(x => WriterColumn.Column(x.getShortName, 0, x.getDataType))
 
