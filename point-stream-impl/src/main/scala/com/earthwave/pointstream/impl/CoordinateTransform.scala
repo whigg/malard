@@ -39,7 +39,7 @@ object CoordinateTransform {
         val lt = lat.getDouble(i)
         val ln = lon.getDouble(i)
 
-        if( lt != Double.NaN ) {
+        if( !lt.isNaN() && ln.isNaN() ) {
           val shortName = projectionsMapped.filter(c => c._1.conditions.length == c._1.conditions.filter(c => c.op(lt)).length).head
 
           val coordTransformation = cache.get(shortName._2)
