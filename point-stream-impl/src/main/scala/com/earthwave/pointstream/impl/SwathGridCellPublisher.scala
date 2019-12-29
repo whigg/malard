@@ -93,30 +93,37 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
           //Bucketing the grid cells
           var mask = Map[GridCellPoints, ListBuffer[Int]]()
           for (i <- 0 until numberOfPoints) {
-            //Now do the bucketing
-            val cellX = Math.floor(xye.x(i) / gridCellSize).toLong * gridCellSize
-            val cellY = Math.floor(xye.y(i) / gridCellSize).toLong * gridCellSize
-            val fileName = s"$intermediatePath${idx}_${dateStr}_${xye.proj(i)}_${cellX}_${cellY}_${r.userRequest.inputFileName}"
-            val gridCell = GridCellPoints(xye.proj(i), cellX, cellY, LocalDateTime.of(date.getYear, date.getMonth, 1, 0, 0, 0).atOffset(ZoneOffset.UTC).toEpochSecond, gridCellSize, List(fileName))
 
-            t(i) = ts
-            f(i) = r.fileId
-            rowId(i) = i
+            if( ! xye.x(i).isNaN() && !xye.y(i).isNaN()  ) {
+              //Now do the bucketing
+              val cellX = Math.floor(xye.x(i) / gridCellSize).toLong * gridCellSize
+              val cellY = Math.floor(xye.y(i) / gridCellSize).toLong * gridCellSize
+              val fileName = s"$intermediatePath${idx}_${dateStr}_${xye.proj(i)}_${cellX}_${cellY}_${r.userRequest.inputFileName}"
+              val gridCell = GridCellPoints(xye.proj(i), cellX, cellY, LocalDateTime.of(date.getYear, date.getMonth, 1, 0, 0, 0).atOffset(ZoneOffset.UTC).toEpochSecond, gridCellSize, List(fileName))
 
-            val indices = mask.getOrElse(gridCell, new ListBuffer[Int]())
-            //Only add to the mask if not in the filter
-            val include: Boolean = if( minimumFilters.isEmpty){true}else{minimumFilters.foldLeft(false)((x, y) => {
-              if (y._2.op(y._1.getDouble(i)) || x == true) {
+              t(i) = ts
+              f(i) = r.fileId
+              rowId(i) = i
+
+              val indices = mask.getOrElse(gridCell, new ListBuffer[Int]())
+              //Only add to the mask if not in the filter
+              val include: Boolean = if (minimumFilters.isEmpty) {
                 true
+              } else {
+                minimumFilters.foldLeft(false)((x, y) => {
+                  if (y._2.op(y._1.getDouble(i)) || x == true) {
+                    true
+                  }
+                  else {
+                    false
+                  }
+                })
               }
-              else {
-                false
+              if (include) {
+                indices.append(i)
               }
-            })}
-            if (include) {
-              indices.append(i)
+              mask.+=((gridCell, indices))
             }
-            mask.+=((gridCell, indices))
           }
 
           mask = mask.filter(x => x._2.length > 0)
