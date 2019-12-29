@@ -23,7 +23,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
 
     val filter = variables.filter( x => x.getShortName.contentEquals(name) )
 
-    filter.head
+    filter.headOption.getOrElse(throw new Exception( s"Column [$name] is not in the data file." ))
   }
 
   def getVariableExists( name : String ) : Boolean ={
