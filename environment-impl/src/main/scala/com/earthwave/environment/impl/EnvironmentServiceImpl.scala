@@ -22,7 +22,7 @@ import scala.concurrent.duration._
   */
 class EnvironmentServiceImpl() extends EnvironmentService {
 
-  val mongoConnectionOverrides = Map("DEVv2"-> "mongodb://localhost:27018", "DEV_G"-> "mongodb://localhost:27018")
+  val mongoConnectionOverrides = Map("DEVv2"-> "mongodb://localhost:27018", "DEV_G"-> "mongodb://localhost:27018", "DEV_SLUG" -> "mongodb://localhost:27018" )
 
   var envCache = scala.collection.mutable.Map[String, Environment]()
 
