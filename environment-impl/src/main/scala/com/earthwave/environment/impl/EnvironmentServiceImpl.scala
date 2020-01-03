@@ -22,13 +22,13 @@ import scala.concurrent.duration._
   */
 class EnvironmentServiceImpl() extends EnvironmentService {
 
-  val mongoConnectionOverrides = Map("DEVv2"-> "mongodb://localhost:27018", "DEV_G"-> "mongodb://localhost:27018", "DEV_SLUG" -> "mongodb://localhost:27018" )
+  var mongoConnection = "mongodb://localhost:27018"
 
   var envCache = scala.collection.mutable.Map[String, Environment]()
 
   override def createEnvironment( name : String ): ServiceCall[Environment, String] = { x =>
 
-    val client = MongoClient(x.mongoConnection)
+    val client = MongoClient(mongoConnection)
     val insertCheck = equal("name", name )
     val db = client.getDatabase("Configuration")
     val collection = db.getCollection("Environment")
@@ -44,6 +44,8 @@ class EnvironmentServiceImpl() extends EnvironmentService {
                       , "pointCdfPath" -> x.pointCdfPath
                       , "mongoConnection" -> x.mongoConnection
                       , "swathIntermediatePath" -> x.swathIntermediatePath
+                      , "holdingBaseDir" -> x.holdingBaseDir
+                      , "dataBaseDir" -> x.dataBaseDir
                       , "deflateLevel" -> x.deflateLevel
                       , "serverVersion" -> x.serverVersion
                       )
@@ -76,7 +78,7 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
     def getEnvFromDb(): Environment = {
 
-      val connectionString = mongoConnectionOverrides.getOrElse(name,"mongodb://localhost:27017")
+      val connectionString = mongoConnection
       val client = MongoClient(connectionString)
 
       val db = client.getDatabase("Configuration")
@@ -88,7 +90,16 @@ class EnvironmentServiceImpl() extends EnvironmentService {
 
       val doc = docOption.getOrElse( throw new Exception(s"Environment name ${name} does not exist."))
 
-      val res = Environment( doc.getString("name"), doc.getString("publisherPath"), doc.getString("outputCdfPath"), doc.getString("pointCdfPath"), doc.getString("mongoConnection"), doc.getString("swathIntermediatePath"), doc.getInteger("deflateLevel"), doc.getString("serverVersion") )
+      val res = Environment( doc.getString("name")
+                          , doc.getString("publisherPath")
+                          , doc.getString("outputCdfPath")
+                          , doc.getString("pointCdfPath")
+                          , doc.getString("mongoConnection")
+                          , doc.getString("swathIntermediatePath")
+                          , doc.getString("holdingBaseDir")
+                          , doc.getString("dataBaseDir")
+                          , doc.getInteger("deflateLevel")
+                          , doc.getString("serverVersion") )
 
       def createDir( path : String): Unit =
       {
@@ -109,6 +120,32 @@ class EnvironmentServiceImpl() extends EnvironmentService {
     val res = envCache.getOrElse(name, getEnvFromDb())
 
     Future.successful( res )
+  }
+
+  override def exists(name: String): ServiceCall[NotUsed, Boolean] = { _ =>
+
+    val connectionString = mongoConnection
+    val client = MongoClient(connectionString)
+
+    val db = client.getDatabase("Configuration")
+    val collection = db.getCollection("Environment")
+
+    val f = equal( "name", name )
+
+    val docOption = Await.result( collection.find(f).toFuture(), 10 seconds )
+
+    val exists = if( docOption.isEmpty ){  false }else{  true }
+
+    Future.successful( exists )
+
+  }
+
+  override def setConnectionString() : ServiceCall[String,Boolean] = { x =>
+
+    mongoConnection = x
+
+    Future.successful(true)
+
   }
 
 }

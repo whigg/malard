@@ -15,13 +15,19 @@ trait EnvironmentService extends Service {
 
   def getEnvironment(name : String) : ServiceCall[NotUsed,Environment]
 
+  def setConnectionString() : ServiceCall[String, Boolean]
+
+  def exists( name : String ) : ServiceCall[NotUsed, Boolean]
+
   override final def descriptor: Descriptor = {
     import Service._
     // @formatter:off
     named("environment")
       .withCalls(
         pathCall("/env/createenvironment/:envname", createEnvironment _),
-        pathCall("/env/getenvironment/:name", getEnvironment _)
+        pathCall("/env/getenvironment/:name", getEnvironment _),
+        pathCall( "/env/environmentexists/:name", exists _ ),
+        pathCall( "/env/setconnectionstring", setConnectionString )
       )
       .withAutoAcl(true)
     // @formatter:on

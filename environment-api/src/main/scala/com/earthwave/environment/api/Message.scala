@@ -11,6 +11,8 @@ case class Environment( name : String
                         , pointCdfPath : String
                         , mongoConnection : String
                         , swathIntermediatePath : String
+                        , holdingBaseDir : String
+                        , dataBaseDir : String
                         , deflateLevel : Int
                         , serverVersion : String
                         )
