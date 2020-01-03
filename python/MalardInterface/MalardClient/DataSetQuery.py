@@ -14,13 +14,15 @@ class DataSetQuery:
         self.serverUrl = serverUrl
         self.envName = envName
         self.headers = {'Content-Type':'application/json'}
-    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath, mongoConnection, swathIntermediatePath, deflateLevel = 1, serverVersion = 'v3' ):
+    def createEnvironment(self, name, cacheCdfPath, maskPublisherPath, pointCdfPath, mongoConnection, swathIntermediatePath, holdingBaseDir, dataBaseDir, deflateLevel = 1, serverVersion = 'v3' ):
         data = { 'name': name
                 , 'cacheCdfPath': cacheCdfPath
                 , 'maskPublisherPath': maskPublisherPath
                 , 'pointCdfPath': pointCdfPath
                 , 'mongoConnection' : mongoConnection
                 , 'swathIntermediatePath' : swathIntermediatePath
+                , 'holdingBaseDir' : holdingBaseDir
+                , 'dataBaseDir' : dataBaseDir
                 , 'deflateLevel' : deflateLevel
                 , 'serverVersion' : serverVersion}
 
