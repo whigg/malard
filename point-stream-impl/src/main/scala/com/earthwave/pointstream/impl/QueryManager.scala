@@ -242,13 +242,7 @@ class QueryProcessor( instance : Int ) extends Actor {
               val data = reader.getVariablesAndData(Query(q.bbf, q.projections, q.filters), mask)
               log.info(s"Writing ${data._2.length} rows.")
               if (data._2.length != 0 ) {
-                if( !q.filters.isEmpty ) {
                   writer.writeWithFilter(data._1, data._2)
-                }
-                else
-                {
-                  writer.write( data._1 )
-                }
               }
             }
             finally {
