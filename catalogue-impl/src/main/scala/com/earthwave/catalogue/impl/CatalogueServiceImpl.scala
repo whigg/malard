@@ -198,6 +198,16 @@ class CatalogueServiceImpl(env : EnvironmentService) extends CatalogueService {
     Future.successful(docs)
   }
 
+  override def swathLoaded( envName : String, parentDsName : String, dsName : String, region : String, name : String ) : ServiceCall[NotUsed, Boolean] ={ _ =>
+    val f : Bson = and(equal("region",region),and(equal("datasetName",dsName), equal("swathName", name)))
+
+    val results = getSwathDetailsWithFilter( parentDsName, f, envName )
+
+    val isLoaded = if( results.isEmpty ){ false }else{true}
+
+    Future.successful(isLoaded)
+  }
+
   override def getSwathDetailsFromName( envName : String, parentDsName : String, dsName : String, region : String, name : String ) : ServiceCall[NotUsed,SwathDetail] = { _ =>
     val f : Bson = and(equal("region",region),and(equal("datasetName",dsName), equal("swathName", name)))
 

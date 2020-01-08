@@ -67,6 +67,8 @@ trait CatalogueService extends Service {
     */
   def getSwathDetailsFromName( envName : String, parentDsName : String, dsName : String, region : String,name : String  ) : ServiceCall[NotUsed,SwathDetail]
 
+  def swathLoaded( envName : String, parentDsName : String, dsName : String, region : String, name : String ) : ServiceCall[NotUsed,Boolean]
+
   def publishCatalogueElement(  envName : String, parentDsName : String, dsName : String) : ServiceCall[CatalogueElement, String]
 
   def publishSwathDetails(  envName : String, parentDsName : String) : ServiceCall[SwathDetail, String]
@@ -86,7 +88,8 @@ trait CatalogueService extends Service {
         pathCall("/api/swathdetailsfromname/:envName/:parent/:dsname/:region/:name", getSwathDetailsFromName _ ),
         pathCall( "/api/swathdetails/:envName/:parent/:dsname/:region", getSwathDetails _),
         pathCall( "/api/publishcatalogueelement/:envName/:parent/:dsname", publishCatalogueElement _),
-        pathCall( "/api/publishswathdetail/:envName/:parent", publishSwathDetails _)
+        pathCall( "/api/publishswathdetail/:envName/:parent", publishSwathDetails _),
+        pathCall(  "/api/swathloaded/:envName/:parent/:dsname/:region/:name", swathLoaded _)
       )
       .withAutoAcl(true)
     // @formatter:on
