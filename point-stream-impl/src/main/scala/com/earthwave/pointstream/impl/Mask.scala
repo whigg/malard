@@ -149,7 +149,6 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
     }
     else
     {
-      println( s"Shape file ${f.shapeFile}" )
       val source = driver.Open(f.shapeFile)
       val layer = source.GetLayer(0)
 
