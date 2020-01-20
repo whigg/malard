@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter
 
 import akka.actor.{Actor, Terminated}
 import akka.remote.DisassociatedEvent
-import com.earthwave.catalogue.api.{GridCellFile, SwathDetail}
+import com.earthwave.catalogue.api.{GridCellFile, SwathDetail, BoundingBoxFilter, MaskFilter}
 import com.earthwave.environment.api.Environment
 import com.earthwave.pointstream.api.{GridCellPoints, SwathProcessorStatus, SwathToGridCellsRequest}
 import com.earthwave.pointstream.impl.SwathGridCellPublisher.WorkerSwathToGridCellRequest
@@ -21,7 +21,8 @@ object SwathGridCellPublisher
   case class WorkerSwathToGridCellRequest(    fileId : Int
                                             , userRequest : SwathToGridCellsRequest
                                             , environment : Environment
-                                            , projections : List[Projection])
+                                            , projections : List[Projection]
+                                            , regionFilter : List[MaskFilter])
 
 
 }
@@ -83,6 +84,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
           val t = new Array[Long](numberOfPoints)
           val f = new Array[Int](numberOfPoints)
           val rowId = new Array[Int](numberOfPoints)
+          val rMask = new Array[Int](numberOfPoints)
 
           val minimumFilters = r.userRequest.columnFilters.map(c => (reader.getVariableByName(c.column).read(), Operators.getOperator(c.op, c.threshold)))
 
@@ -92,6 +94,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
           //Walk through the mapped coordinates
           //Bucketing the grid cells
           var mask = Map[GridCellPoints, ListBuffer[Int]]()
+          var shapeCache = Map[GridCellPoints, Mask]()
           for (i <- 0 until numberOfPoints) {
 
             if( ! xye.x(i).isNaN() && !xye.y(i).isNaN()  ) {
@@ -106,6 +109,12 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
               rowId(i) = i
 
               val indices = mask.getOrElse(gridCell, new ListBuffer[Int]())
+
+              val regionMask = shapeCache.getOrElse(gridCell, { val bbf = BoundingBoxFilter( cellX, cellX + gridCellSize, cellY, cellY + gridCellSize, ts, ts,"x","y", MaskFilter( "","",false ), r.regionFilter )
+                                                          Mask.getMask( bbf )} )
+
+              rMask(i) = if( regionMask.checkInMask( xye.x(i), xye.y(i)) ){ 1 }else{ 0 }
+
               //Only add to the mask if not in the filter
               val include: Boolean = if (minimumFilters.isEmpty) {
                 true
@@ -128,9 +137,9 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
 
           mask = mask.filter(x => x._2.length > 0)
 
-          val addData = List[AnyRef](t, f, rowId)
+          val addData = List[AnyRef](t, f, rowId, rMask)
 
-          val addColumns = List(WriterColumn.Column("time", 0, DataType.LONG), WriterColumn.Column("swathFileId", 0, DataType.INT), WriterColumn.Column("rowId", 0, DataType.INT))
+          val addColumns = List(WriterColumn.Column("time", 0, DataType.LONG), WriterColumn.Column("swathFileId", 0, DataType.INT), WriterColumn.Column("rowId", 0, DataType.INT), WriterColumn.Column("inRegionMask", 0, DataType.INT))
 
           //Now for each grid cell build the data arrays
           //The array reads are expensive, so we do them once up front
@@ -140,6 +149,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
 
           var results = Map[GridCellPoints, (String, Int)]()
           for ((k, v) <- mask) {
+
             val dfw = new NetCdfWriter(k.fileName.head, columns, projectedColumns, addColumns, Map[String, DataType]())
 
             dfw.write(varsAndData, xye, addData, v.toArray)
@@ -148,6 +158,8 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
 
             dfw.close()
           }
+
+          shapeCache.foreach( m => m._2.close() )
 
           val filteredPointCount = results.map(w => w._2._2).sum
           //Now write into the Swath Acquisition Table

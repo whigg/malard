@@ -33,7 +33,7 @@ object PublisherStatus
   implicit val format : Format[PublisherStatus] = Json.format[PublisherStatus]
 }
 
-case class SwathToGridCellsRequest( envName : String, parentDataSet : String, dataSet : String, region : String, inputFileName : String, inputFilePath : String, dataTime : Long, columnFilters : List[Filter], includeColumns : Set[String], gridCellSize : Long, hash : Long, xCol : String, yCol : String )
+case class SwathToGridCellsRequest( envName : String, parentDataSet : String, dataSet : String, region : String, inputFileName : String, inputFilePath : String, dataTime : Long, columnFilters : List[Filter], includeColumns : Set[String], gridCellSize : Long, hash : Long, xCol : String, yCol : String, regionFilter : List[MaskFilter] )
 
 object SwathToGridCellsRequest
 {
