@@ -182,7 +182,7 @@ class PointStreamServiceImpl(catalogue : CatalogueService, env : EnvironmentServ
 
         val fileId = request.inputFileName.hashCode()
 
-        val workerRequest = WorkerSwathToGridCellRequest(fileId, request, environment, List(projections))
+        val workerRequest = WorkerSwathToGridCellRequest(fileId, request, environment, List(projections), request.regionFilter)
 
         log.info(s"Creating worker request for ${request.inputFileName} with fileId ${fileId}")
 

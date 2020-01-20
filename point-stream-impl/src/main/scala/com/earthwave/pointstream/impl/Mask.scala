@@ -164,7 +164,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
       val poly = new Geometry(ogrConstants.wkbPolygon)
       poly.AddGeometry(ring)
 
-      val outLayer = inmemsource.CreateLayer("filter")
+      val outLayer = inmemsource.CreateLayer(s"filter_${minX}_${maxX}_${minY}_${maxY}")
 
       //Add an ID field
       val idField = new FieldDefn("id", ogrConstants.OFTInteger)
@@ -178,7 +178,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
       outLayer.CreateFeature(feature)
       feature.delete()
 
-      val result_layer = inmemsource.CreateLayer("clippedmask")
+      val result_layer = inmemsource.CreateLayer(s"clippedmask_${minX}_${maxX}_${minY}_${maxY}")
 
       layer.Clip( outLayer, result_layer  )
 
