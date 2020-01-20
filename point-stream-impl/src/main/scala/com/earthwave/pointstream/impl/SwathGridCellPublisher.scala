@@ -12,6 +12,8 @@ import com.earthwave.pointstream.impl.SwathGridCellPublisher.WorkerSwathToGridCe
 import com.earthwave.projection.api.Projection
 import ucar.ma2.DataType
 
+import org.gdal.ogr.ogr
+
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
