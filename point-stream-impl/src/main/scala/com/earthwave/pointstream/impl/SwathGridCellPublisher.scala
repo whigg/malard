@@ -135,7 +135,7 @@ class SwathGridCellPublisher( val idx : Int ) extends Actor {
                 indices.append(i)
               }
               mask.+=((gridCell, indices))
-              regionMask.+=((gridCell, regionMask))
+              shapeCache.+=((gridCell, regionMask))
             }
           }
 
