@@ -179,7 +179,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
       outLayer.CreateFeature(feature)
       feature.delete()
 
-      val result_layer = inmemsource.CreateLayer("clippedmask")
+      val result_layer = inmemsource.CreateLayer(s"clippedmask_${minX}_${maxX}_${minY}_${maxY}")
 
       layer.Clip( outLayer, result_layer  )
 
