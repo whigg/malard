@@ -18,6 +18,7 @@ from MalardClient.DataSet import DataSet
 from MalardClient.Projection import Projection
 from MalardClient.Shard import Shard
 from MalardClient.MaskFilter import MaskFilter
+from MalardClient.Environment import Environment
 
 class MalardClient:
     def __init__(self, environmentName='DEVv2', notebook = True):
@@ -25,7 +26,13 @@ class MalardClient:
         self.serverUrl = '://localhost:9000'
         self.query = DataSetQuery( "http" + self.serverUrl, self.environmentName )
         self.asyncQuery = AsyncDataSetQuery( "ws" + self.serverUrl, self.environmentName, notebook )    
+    
+    def getEnvironment(self, envName):    
+        json_env = self.query.getEnvironment(envName)
+        env = json.loads(json_env)
 
+        return Environment(env['name'] , env['cacheCdfPath'], env['maskPublisherPath'], env['pointCdfPath'], env['mongoConnection'], env['swathIntermediatePath'], env['holdingBaseDir'], env['dataBaseDir'], env['deflateLevel'], env['serverVersion'] )
+    
     def getParentDataSets(self):
         pds = self.query.getParentDataSets()
         j_obj = json.loads( pds )

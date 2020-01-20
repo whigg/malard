@@ -224,9 +224,11 @@ class AsyncDataSetQuery:
         
         return PublisherInfo( jsonresults['completed'], jsonresults['status'], jsonresults['message'],jsonresults['hash']  )
     
-    def publishSwathToGridCells( self, parentDataSet, dataSet, region, inputFileName, inputFilePath, dataTime, columnFilters, includeColumns, gridCellSize, xCol = 'lon', yCol = 'lat' ):
+    def publishSwathToGridCells( self, parentDataSet, dataSet, region, inputFileName, inputFilePath, dataTime, columnFilters, includeColumns, gridCellSize, xCol = 'lon', yCol = 'lat', maskFilters = [] ):
         
         hashCode = hash((self.envName, parentDataSet, dataSet, region, inputFileName))
+        
+        filtersAsDict = [ { 'includeWithin' : m.includeWithin, 'shapeFile' : m.shapeFile, 'wkt':m.wkt } for m in maskFilters ]
         
         request = {'envName' : self.envName
                    , 'parentDataSet' : parentDataSet
@@ -240,7 +242,8 @@ class AsyncDataSetQuery:
                    , 'gridCellSize' : gridCellSize
                    , 'hash' : hashCode
                    , 'xCol' : xCol
-                   , 'yCol' : yCol }
+                   , 'yCol' : yCol
+                   , 'regionFilter' : filtersAsDict }
         
         requestJson = json.dumps(request,default=dateconverter)   
         
