@@ -29,6 +29,7 @@ object SwathGridCellPublisher
 
 class SwathGridCellPublisher( val idx : Int ) extends Actor {
 
+  ogr.RegisterAll()
   val cache = new CoordinateTransformCache()
 
   import org.slf4j.LoggerFactory
