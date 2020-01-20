@@ -149,6 +149,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
     }
     else
     {
+      println( s"Shape file ${f.shapeFile}" )
       val source = driver.Open(f.shapeFile)
       val layer = source.GetLayer(0)
 
@@ -164,7 +165,7 @@ class ShapeMask( maskFilter : MaskFilter, minX : Double, maxX : Double, minY : D
       val poly = new Geometry(ogrConstants.wkbPolygon)
       poly.AddGeometry(ring)
 
-      val outLayer = inmemsource.CreateLayer("filter")
+      val outLayer = inmemsource.CreateLayer(s"filter_${minX}_${maxX}_${minY}_${maxY}")
 
       //Add an ID field
       val idField = new FieldDefn("id", ogrConstants.OFTInteger)
