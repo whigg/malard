@@ -27,22 +27,20 @@ import DataSetLoader as d
 
 import MalardClient.MalardHelpers as h
 
-def main(argv):
+def main(year):
 
-    #argv = sys.argv[1:]
-    
-    filePath = '/data/archive/rawdata/mtngla/pcr'
-    environmentName = 'DEVv2'
+    filePath = '/media/earthwave/MalardExt/Malard/swath/himalayas/HMA_v3'
+    environmentName = 'DEV_EXT'
   
-    region = 'alaska'
+    region = 'himalayas'
     parentDataSet = 'mtngla'
-    dataSet = 'tdx_mad'
+    dataSet = 'tdx_mad_v3'
     gridCellSize = 100000
     
     minCoh = 0.6
     minPower = 10000.0
     
-    years = [2010]#[2010,2011,2012,2013,2014,2015,2016,2017,2018,2019]
+    years = [year]
     months = [1,2,3,4,5,6,7,8,9,10,11,12]
     
     tempfilepath = '/data/puma1/scratch/v2/malard/tempnetcdfs/'
@@ -62,7 +60,7 @@ def main(argv):
                 df = h.getDataFrameFromNetCDF( "{}/{}".format(filePath, file)  )
                 
                 dfFilteredCoh = df[df["coh"] >= minCoh]
-                dfFilteredPower = dfFilteredCoh[dfFilteredCoh["power"] >= minPower]
+                dfFilteredPower = dfFilteredCoh[dfFilteredCoh["powerScaled"] >= minPower]
                 
                 df = pd.DataFrame(dfFilteredPower)
                 df['demDiffMadNew'] = df['demDiff'].groupby(df['wf_number']).transform('mad')
@@ -82,7 +80,10 @@ def main(argv):
             print('Found files[%d]' %(len(tempFiles)))
             
             if len(tempFiles) > 0:
-                d.publishData(environmentName, tempFiles, parentDataSet, dataSet, region, tempfilepath, [], [], gridCellSize )
+                d.publishData(environmentName, tempFiles, parentDataSet, dataSet, region, tempfilepath, [], [], gridCellSize, regionMask=[] )
                 
 if __name__ == "__main__":
-    main(sys.argv)
+    argv = sys.argv[1:]
+    year = int( argv[0] )
+    
+    main(year)

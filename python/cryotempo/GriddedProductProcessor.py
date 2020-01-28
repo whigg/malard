@@ -30,8 +30,7 @@ import numpy as np
 
 def bucket_series( series, resolution ):
     res = np.empty(len(series))
-    for i, x in enumerate(series):
-        res[i] =  resolution * floor( x / resolution ) + resolution * 0.5
+    res =  resolution * np.floor( series / resolution ) + resolution * 0.5
     return res      
 
 def statistics( x, y, t, process_time, g_count, p_count, inmask_count, masked_pcount ):
