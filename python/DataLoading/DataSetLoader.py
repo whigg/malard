@@ -2,33 +2,36 @@
 
 import sys
 from os import listdir
-from os.path import isfile, join
 from datetime import datetime
 import re
-import json
 import pandas as pd
 import MalardClient.AsyncDataSetQuery as aq
-import MalardClient.DataSetQuery as dq
+import MalardClient.MalardClient as mc
+
 
 
 def main(argv):
     # My code here
     # Get the arguments from the command-line except the filename
-    argv = sys.argv[1:]
-    
-    parentDataSet = 'test'
-    dataSet = 'loadtest'
-    region = 'iceland'
-    swathdir = '/data/slug1/holding/Iceland10-19'
-    #year = int(argv[0])
+    parentDataSet = 'cryotempo'
+    dataSet = 'swath_c_nw_mask'
+    region = 'greenland'
+    swathdir = '/media/earthwave/MalardExt/Malard/swath/greenland/GrIS_NW_bC'
+    year = int(argv[0])
     #month = int(argv[1])
+
     columnFilters = [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
-    includeColumns =[]
+    includeColumns =['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']
     gridCellSize = 100000
-    environmentName = 'DEVv2'
+    environmentName = 'DEV_EXT'
     
-    years = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019]
+    years = [year]
     months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    
+    ice_file = "/data/puma1/scratch/cryotempo/masks/icesheets.shp"
+    maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
+    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/sarinmasks/LRM_Greenland.shp" , p_includeWithin=False )
+    maskFilters = [maskFilterIce, maskFilterLRM]
     
     for year in years:
         for month in months:
@@ -37,14 +40,14 @@ def main(argv):
             print('Processing Year Month %d-%d. Num Swaths %d' % (year,month,len(swathfiles) ))
     
             if len(swathfiles) > 0:
-                publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns,gridCellSize )
+                publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns,gridCellSize, maskFilters )
 
 def dateFromFileName( file ):
     matchObj = re.findall(r'2S_(\d+T\d+)', file)
     dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
     return dataTime
         
-def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize ):
+def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize, regionMask ):
     
     query = aq.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
     i = 0 
@@ -52,7 +55,8 @@ def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swa
     for file,dataTime in swathfiles:
         i = i + 1
         print("Processing {} Count {}".format(file,i) )
-        result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize )
+        result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize, maskFilters = regionMask )
+        print(result.message)
         if result.status == 'Success':
             results.append(result.swathDetails)
         else:
@@ -108,4 +112,4 @@ def ismonth( file, month ):
         return False
     
 if __name__ == "__main__":
-    main(sys.argv)
+    main(sys.argv[1:])

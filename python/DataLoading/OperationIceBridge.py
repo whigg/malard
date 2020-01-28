@@ -12,16 +12,14 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import netCDF4
-import json
 from os import listdir
-import AsyncDataSetQuery
 import DataSetLoader
 
 def main(argv):
 
     argv = sys.argv[1:]
     
-    filePath = '/data/slug1/store/rawdata/oib/' + argv[0] +'/'
+    filePath = '/data/slug1/holding/oib/'
     print(filePath)
     environmentName = 'DEVv2'
   
@@ -29,7 +27,7 @@ def main(argv):
     dataSet = 'oib'
     gridCellSize = 100000
     
-    swathfiles = [f for f in listdir(filePath)]
+    swathfiles = [f for f in listdir(filePath) if f.endswith("csv")]
     
     greenland = []
     antarctic = []
@@ -40,20 +38,23 @@ def main(argv):
     
         df = pd.read_csv(filePath+file, skiprows=9)
     
-        df = df.rename(columns=lambda x: x.strip())    
+        df = df.rename(columns=lambda x: x.strip())
+        
         df['lat'] =df['Latitude(deg)']
         df['lon'] =df['Longitude(deg)']
+        df['elev'] = df['WGS84_Ellipsoid_Height(m)']
         
         
         tempfilepath = '/data/puma1/scratch/v2/malard/tempnetcdfs/'
         tempfilename = file.replace('.csv','.nc')
         
-        if float(df['lat'][0:1]) >= 52.0:
-            greenland.append((tempfilename,dataTime))
-        elif float(df['lat'][0:1]) < -60.0:
+        if float(df['lat'].min()) >= 52.0:
+            #greenland.append((tempfilename,dataTime))
+           print("Not loading data in Northern Hemisphere")
+        elif float(df['lat'].min()) < -60.0:
             antarctic.append((tempfilename,dataTime))
         else:
-            println('File %d will not be processed. Unexpected location.'%(tempfilename))
+            print('File %d will not be processed. Unexpected location.'%(tempfilename))
             
         ds = netCDF4.Dataset(tempfilepath + tempfilename,'w',format='NETCDF4')
         ds.createDimension( 'row', None )
@@ -68,10 +69,10 @@ def main(argv):
     print('Found Greenland files[%d] Antarctic Files [%d]' %(len(greenland), len(antarctic)))
 
     if len(greenland) > 0:
-        DataSetLoader.publishData(environmentName, greenland, parentDataSet, dataSet, 'greenland', tempfilepath, {}, [], gridCellSize )
+        DataSetLoader.publishData(environmentName, greenland, parentDataSet, dataSet, 'greenland', tempfilepath, [], [], gridCellSize )
         
     if len(antarctic) > 0:    
-        DataSetLoader.publishData(environmentName, antarctic, parentDataSet, dataSet, 'antarctic', tempfilepath, {}, [], gridCellSize )
+        DataSetLoader.publishData(environmentName, antarctic, parentDataSet, dataSet, 'antarctic', tempfilepath, [], [], gridCellSize )
 
 if __name__ == "__main__":
     main(sys.argv)

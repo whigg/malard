@@ -17,9 +17,11 @@ from datetime import datetime
 
 client = MalardClient()
 
-ds = DataSet("cryotempo","GRIS_BaselineC_Q2", "greenland" )
+ds = DataSet("cryotempo","swath_c", "greenland" )
 
 proj4 = client.getProjection(ds).proj4
+
+print(proj4)
 
 minX = 700000
 minY = -2200000
@@ -36,19 +38,21 @@ filters = [{"column":"power","op":"gte","threshold":10000},{"column":"coh","op":
 
 
 maskFilters = [ maskFilterIce, maskFilterLRM ]
+
+print("before executeQuery..")
     
 resultInfo = client.executeQuery(ds, bbox, maskFilters=maskFilters, filters = filters )
  
-print( resultInfo.resultFileName )
+print( resultInfo.message )
 
 #no make the spatial one
 
 print( len(resultInfo.to_df))
+nc_path = "Grid_Spatial.nc"
 
-nc_path = "/home/jon/IdeaProjects/NetCDFWriter/test.nc"
 tif_path = "Grid/out_test.nc"
 
-#print(mg.makeSpatialNC(resultInfo.resultFileName,proj4,nc_path))
+print(mg.makeSpatialNC(resultInfo.resultFileName,proj4,nc_path))
 
 print(mg.createGrid(nc_path,tif_path,algorithm='invdist'))
 

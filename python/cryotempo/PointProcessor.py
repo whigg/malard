@@ -61,8 +61,8 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     dataset.Conventions = "CF-1.7"
     dataset.Metadata_Conventions = "Unidata Dataset Discovery v1.0"                
     dataset.comment = "Point file containing elevation estimates"                 
-    dataset.contact = "cryotempo@earthwave.co.uk"               
-    dataset.creator_email = "cryotempo@earthwave.co.uk"                 
+    dataset.contact = "support@cryotempo.org"               
+    dataset.creator_email = "support@cryotempo.org"                 
     dataset.creator_url = "http://www.earthwave.co.uk"                  
     dataset.date_created = datetime.now().isoformat()                                
     dataset.date_modified = datetime.now().isoformat() 
