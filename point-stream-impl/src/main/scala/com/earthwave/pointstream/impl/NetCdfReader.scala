@@ -48,7 +48,7 @@ class NetCdfReader(val fileName : String, projection : Set[String]) {
     val y = tempVariables.filter( y => y._1.getShortName.contentEquals(q.bbf.yCol.toLowerCase()) ).head._2
     val t = tempVariables.filter( t => t._1.getShortName.contentEquals( "time")).head._2
 
-    val filters = q.filters.map( f => { (Operators.getOperator(f.op,f.threshold), tempVariables.filter( v => v._1.getShortName.contentEquals( f.column )).head._2 ) } )
+    val filters = q.filters.map( f => { (Operators.getOperator(f.op,f.threshold), tempVariables.filter( v => v._1.getShortName.contentEquals( f.column )).headOption.getOrElse( throw new Exception( s"Column ${f.column} is not in the data"  ))._2)  } )
 
     val mask = ArrayHelper.buildMask(x, y, t, q.bbf, filters, maskFilter )
 
