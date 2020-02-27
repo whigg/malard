@@ -9,6 +9,7 @@ import numpy as np
 import re
 import netCDF4 
 import os
+import MalardClient.MalardClient as mc
 
 def createTempFiles( swaths, src_dir, tempDir, columnMappings ):
     
@@ -58,7 +59,11 @@ def main(argv):
     
     includeColumns = []
     
-    
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
+    maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
+    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
+    maskFilters = [maskFilterIce, maskFilterLRM]
+     
     gridCellSize = 100000
     environmentName = 'DEV_EXT'
     
@@ -77,7 +82,7 @@ def main(argv):
             print(message)
             log_file.write( message + "\n")
             if len(swathfiles) > 0:
-                publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, region, tempdir, columnFilters, includeColumns, gridCellSize )
+                publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, region, tempdir, columnFilters, includeColumns, gridCellSize, maskFilters )
             
             cleanUpTempFiles( swathfiles, tempdir )
 

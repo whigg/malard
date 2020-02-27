@@ -13,10 +13,10 @@ import MalardClient.MalardClient as mc
 def main(month, year):
     # My code here
     # Get the arguments from the command-line except the filename
-    parentDataSet = 'cryotempo'
-    dataSet = 'swath_c_n_roll'
+    parentDataSet = 'test'
+    dataSet = 'swath_c_nw_phase'
     region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_N_roll'
+    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_NW_Phase'
     
     columnFilters = [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns =['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']

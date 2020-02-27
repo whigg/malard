@@ -13,6 +13,7 @@ import numpy as np
 import re
 import netCDF4 
 import os
+import MalardClient.MalardClient as mc
 
 """Takes a list of swath files and column mappings, e.g. pocaH -> elev and creates a NetCDF with the mapped column names.
 
@@ -82,10 +83,10 @@ def main(month, year):
     # Get the arguments from the command-line except the filename
     #argv = sys.argv[1:]
     
-    parentDataSet = 'cryotempo'
-    dataSet = 'poca_c_n_roll'
+    parentDataSet = 'test'
+    dataSet = 'poca_c_nw_phase'
     region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_N_roll'
+    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_NW_Phase'
     tempdir = '/data/puma/scratch/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
@@ -94,6 +95,10 @@ def main(month, year):
     
     includeColumns = []
     
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
+    maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
+    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
+    maskFilters = [maskFilterIce, maskFilterLRM]
     
     gridCellSize = 100000
     environmentName = 'MALARD-PROD'
@@ -112,7 +117,7 @@ def main(month, year):
             print(message)
             log_file.write( message + "\n")
             if len(filtered_swaths) > 0:
-                publishData(log_file, environmentName, filtered_swaths, parentDataSet, dataSet, region, tempdir, columnFilters, includeColumns, gridCellSize )
+                publishData(log_file, environmentName, filtered_swaths, parentDataSet, dataSet, region, tempdir, columnFilters, includeColumns, gridCellSize, maskFilters )
             
             cleanUpTempFiles( filtered_swaths, tempdir )
 
