@@ -69,7 +69,7 @@ def main(argv):
     
     for year in years:
         for month in months:
-            swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if isyearandmonth( f, year, month )]
+            swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if  f.endswith(".nc") and isyearandmonth( f, year, month )]
             
             createTempFiles( swathfiles, swathdir, tempdir, pocaColumns  )
             

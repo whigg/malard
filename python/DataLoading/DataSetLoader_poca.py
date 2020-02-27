@@ -77,16 +77,16 @@ def cleanUpTempFiles( swaths, tempDir ):
     for s,d in swaths:
         os.remove( os.path.join(tempDir, s) )
         
-def main(argv):
+def main(month, year):
     # My code here
     # Get the arguments from the command-line except the filename
     #argv = sys.argv[1:]
     
     parentDataSet = 'cryotempo'
-    dataSet = 'poca_c_nw_mask'
+    dataSet = 'poca_c_n_roll'
     region = 'greenland'
-    swathdir = '/media/earthwave/MalardExt/Malard/swath/greenland/GrIS_NW_bC'
-    tempdir = '/data/puma1/scratch/v2/malard/tempnetcdfs'
+    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_N_roll'
+    tempdir = '/data/puma/scratch/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
     columnFilters = []#[{'column':'coh','op':'gte','threshold':0.3},{'column':'power','op':'gte','threshold':100.0}]
@@ -96,15 +96,15 @@ def main(argv):
     
     
     gridCellSize = 100000
-    environmentName = 'DEV_EXT'
+    environmentName = 'MALARD-PROD'
     
-    years = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019]
-    months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    years = [year]
+    months = [month]
     
     for year in years:
-        log_file = open( "/data/puma1/scratch/v2/malard/logs/{}_{}_{}_{}_swath_loading_log.csv".format(year, parentDataSet, dataSet, region),"w" )
+        log_file = open( "/data/puma/scratch/malard/logs/{}_{}_{}_{}_swath_loading_log.csv".format(year, parentDataSet, dataSet, region),"w" )
         for month in months:
-            swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if isyearandmonth( f, year, month )]
+            swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if  f.endswith(".nc") and isyearandmonth( f, year, month )]
             
             filtered_swaths = createTempFiles( swathfiles, swathdir, tempdir, pocaColumns, region )
             
@@ -160,6 +160,7 @@ def publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, r
         query.releaseCache(files)
     
 def isyearandmonth(file, year, month ):
+    print(file)
     matchObj = re.findall(r'2S_(\d+T\d+)', file)
     dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
     
@@ -188,4 +189,9 @@ def ismonth( file, month ):
         return False
     
 if __name__ == "__main__":
-    main(sys.argv)
+    
+    args = sys.argv[1:]
+    month = args[0]
+    year = args[1]
+    
+    main(int(month), int(year))

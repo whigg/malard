@@ -9,27 +9,29 @@ Created on Mon Jan 20 15:34:06 2020
 import pymongo as p
 import time
 
-client = p.MongoClient("mongodb://localhost:27018")
+def main( parentDataSet, dataSetName, expectedTotal ):
+    client = p.MongoClient("mongodb://localhost:27018")
 
-db = client.mtngla
-
-swathDetails = db.swathDetails
-
-
-count = 0
-
-res = swathDetails.find({"datasetName":"tdx_mad_v3"})
-count = len(list(res))
-prevcount = count
-
-print(count)
-
-while True:
-    time.sleep(60)
-    res = swathDetails.find({"datasetName":"tdx_mad_v3"})
-    newcount = len(list(res))
-    count = newcount - prevcount
-    prevcount = newcount
-    print("process {} last period {}".format(newcount, count))
-        
+    db = client[parentDataSet]
     
+    swathDetails = db.swathDetails
+    
+    count = 0
+    
+    res = swathDetails.find({"datasetName":dataSetName})
+    count = len(list(res))
+    prevcount = count
+    
+    print(count)
+    
+    while True:
+        time.sleep(60)
+        res = swathDetails.find({"datasetName":dataSetName})
+        newcount = len(list(res))
+        count = newcount - prevcount
+        prevcount = newcount
+        pct_complete = newcount / expectedTotal
+        print("process {} last period {} pct_complete {:.2%}".format(newcount, count, pct_complete))
+        
+if __name__ == "__main__":
+    main("cryotempo","poca_c_n_roll", 3000 )
