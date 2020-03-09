@@ -84,9 +84,9 @@ def main(month, year):
     #argv = sys.argv[1:]
     
     parentDataSet = 'test'
-    dataSet = 'poca_c_nw_phase'
+    dataSet = 'poca_c_nw_uoe_phase'
     region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_NW_Phase'
+    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_nw_UoE_phase'
     tempdir = '/data/puma/scratch/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
@@ -126,7 +126,7 @@ def dateFromFileName( file ):
     dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
     return dataTime
         
-def publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize, xCol='lon', yCol='lat' ):
+def publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize, regionMask = None, xCol='lon', yCol='lat' ):
     
     query = aq.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
     i = 0 
@@ -134,7 +134,7 @@ def publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, r
     for file,dataTime in swathfiles:
         i = i + 1
         print("Processing {} Count {}".format(file,i) )
-        result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize, xCol, yCol )
+        result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize, xCol, yCol, maskFilters = regionMask )
         if result.status == 'Success':
             log_file.write("Processed file, {}, Succcessfully\n".format(file))
             results.append(result.swathDetails)
