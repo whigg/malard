@@ -39,7 +39,7 @@ def find_swath_dir( path ):
             raise ValueError("No files with extension {} found".format(".nc"))
         return find_swath_dir(os.path.join(path, sub_path[0]) )
     
-def main( loadData, loadPocaTfrm, applyUncertainty, runGridding ):
+def main( loadData, applyUncertainty, runGridding ):
     for parentDataSet in listdir( '/data/snail/scratch/rawdata/DataSetLoaderBase/' ):
         
         parentDataSetPath = os.path.join(base_dir, parentDataSet )
@@ -69,10 +69,10 @@ def main( loadData, loadPocaTfrm, applyUncertainty, runGridding ):
                 #Load the swath and the Poca.
                 ds_swath = "swath_c_nw_{}".format(ds)
                 ds_poca = "poca_c_nw_{}".format(ds)
-                demDiffMad = 10
+                demDiffMad = 6
                 pocaDemDiff = 100
                 resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_nw_adjust"
-                powerdB = -160
+                powerdB = -155
                 resolution = 2000
                 uncertainty = 7
                 maxPixelDist = 8
@@ -102,15 +102,14 @@ def main( loadData, loadPocaTfrm, applyUncertainty, runGridding ):
                               , "powerdB" : powerdB
                               , "loadData" : loadData
                               , "applyUncertainty" : applyUncertainty
+                              , "medianFilterIterations" : 4 
                               }
                 
                 request = pr.ProcessingRequest(loadConfig)
                 
                 request.persistRequest()
                 
-                
                 prc.main("PointLoadMonth", 6, monthsAndYears, request )
-
                 
                 if runGridding :
                     g_monthsyears = monthsAndYears[1:-1]
@@ -121,8 +120,7 @@ def main( loadData, loadPocaTfrm, applyUncertainty, runGridding ):
                     
 if __name__ == "__main__":
     loadData = False
-    applyUncertainty = True
-    loadPocaTfrm = True
-    runGridding = False
+    applyUncertainty = False
+    runGridding = True
     
-    main(loadData, loadPocaTfrm, applyUncertainty, runGridding )
+    main(loadData, applyUncertainty, runGridding )

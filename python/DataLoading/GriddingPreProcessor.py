@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
 import os
 import pandas as pd
 from datetime import datetime
@@ -11,6 +10,7 @@ import MalardClient.MalardClient as mc
 
 import Gridding_1_noDataValues as grid
 import Grid_6_ConvertToTiff_Interp as grid_tif
+import medianFilter as mf
 
 #minPoints = 1 # 2,5,10
 #maxPixelDist = 6 # 2, 4                  #Number of pixels to use in the second interpolation phase.
@@ -45,6 +45,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     maxPixelDist = loadConfig["maxPixelDist"]
     uncertainty_threshold = loadConfig["uncertainty_threshold"]
     demDiffMad = loadConfig["demDiffMad"]
+    powerdB = loadConfig["powerdB"]
     res = loadConfig["resolution"]
     keepIntermediates = loadConfig["keepIntermediateDems"]
     pocaDemDiff = loadConfig["pocaDemDiff"]
@@ -68,7 +69,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     output_dir = loadConfig["resultPath"]
     
     
-    filters = [{"column":"Q_uStd","op":"lte","threshold":uncertainty_threshold},{"column":"demDiffMad","op":"lte","threshold":demDiffMad}]
+    filters = [{"column":"Q_uStd","op":"lte","threshold":uncertainty_threshold},{"column":"demDiffMad","op":"lte","threshold":demDiffMad},{"column":"powerdB","op":"gte","threshold":powerdB}]
     datasetName = "{}_unc".format(uncResultDataSet)
 
     swath_ds = mc.DataSet(parentDataSet,datasetName,region)
@@ -176,9 +177,15 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     grid_tif.gdal_warp(gris_dem,grisDem.name,r="cubic",tr=outRes,t_srs=proj4,te=extent,tap="",et=0)            
     
-    grid_tif.gdal_diff(dem,grisDem.name,dem.replace(".tif","_diff.tif"),-32768,-32768,-32768)
+    diffFilePath = dem.replace(".tif","_diff.tif")
+    grid_tif.gdal_diff(dem,grisDem.name,diffFilePath,-32768,-32768,-32768)
     
     post_dem = datetime.now()
+    
+    medianMask = mf.applyMedianFilter(diffFilePath, loadConfig["medianFilterIterations"])
+    
+    #Now apply the median mask to the final dem.
+    grid_tif.gdal_calc(dem,medianMask,dem.replace(".tif","_maskeddem.tif"),"A*(B>0)-32768*(B<1)",-32768)
     
     print("Dem creation took {}s".format((post_dem - post_csv).total_seconds()))
     
