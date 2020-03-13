@@ -2,7 +2,13 @@ import os
 import sys
 
 
-def main(script, processes, monthsandyears):
+def main(script, processes):
+    #months = range(1,12+1)
+    #years = [2011,2019]
+
+    #monthsandyears = sum([ [ (m,y) for m in months ]  for y in years ],[])
+
+    monthsandyears = [(2,2011),(3,2011),(4,2011),(5,2011),(6,2019),(7,2019),(8,2019),(9,2019),(10,2019),(11,2019)]
     
     fmt_cmd =  '"python {script}.py {month} {year} >> log/{script}_{year}_{month}.txt"'
 

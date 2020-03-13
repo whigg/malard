@@ -41,20 +41,20 @@ def simplePlot(title, df_swath,bb, background_map):
     return fig
 
 def main():
-    client = mc.MalardClient()
+    client = mc.MalardClient("MALARD-PROD")
 
-    ds = mc.DataSet("cryotempo","swath_c_nw","greenland")
+    ds = mc.DataSet("test","swath_c_nw_unc","greenland")
 
     bb = client.boundingBox( ds )    
     
     proj4 = client.getProjection( ds ).proj4
 
-    minT = datetime(2011,3,1,0,0,0 )
-    maxT = datetime(2011,4,1,0,0,0 )
+    minT = datetime(2010,7,1,0,0,0 )
+    maxT = datetime(2010,8,1,0,0,0 )
     
-    ice_file = "/data/puma1/scratch/cryotempo/masks/icesheets.shp"
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/sarinmasks/LRM_Greenland.shp" , p_includeWithin=False )
+    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM]
     
     gcs = client.gridCellsWithinPolygon(ds, minT, maxT, maskFilterIce, maskFilters=maskFilters)
@@ -87,10 +87,10 @@ def main():
     print("Took {} seconds to load data".format((end - st).total_seconds() ) )
     df = pd.concat( all_df )
     print(len(df))
-    #g_df = toGeoDataPoint( df, proj4 )    
-    #background = gp.read_file(ice_file)
+    g_df = toGeoDataPoint( df, proj4 )    
+    background = gp.read_file(ice_file)
     
-    #simplePlot("Test area",g_df,bb,background)
+    simplePlot("Test area",g_df,bb,background)
     
 
 

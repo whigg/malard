@@ -15,6 +15,8 @@ import netCDF4
 import os
 import MalardClient.MalardClient as mc
 
+import ProcessingRequest as pr
+
 """Takes a list of swath files and column mappings, e.g. pocaH -> elev and creates a NetCDF with the mapped column names.
 
 Args:
@@ -78,15 +80,13 @@ def cleanUpTempFiles( swaths, tempDir ):
     for s,d in swaths:
         os.remove( os.path.join(tempDir, s) )
         
-def main(month, year):
-    # My code here
-    # Get the arguments from the command-line except the filename
-    #argv = sys.argv[1:]
+def main(month, year, loaderConfig):
     
-    parentDataSet = 'test'
-    dataSet = 'poca_c_nw_uoe_phase'
-    region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_nw_UoE_phase'
+    parentDataSet = loaderConfig["parentDataSet"]
+    dataSet = loaderConfig["dataSetPoca"]
+    region = loaderConfig["region"]
+    swathdir = loaderConfig["swathDir"]
+    
     tempdir = '/data/puma/scratch/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
@@ -192,11 +192,18 @@ def ismonth( file, month ):
         return True
     else:
         return False
-    
+
 if __name__ == "__main__":
-    
     args = sys.argv[1:]
+    
     month = args[0]
     year = args[1]
+    configPath = args[2]
+        
+    processingRequest = pr.ProcessingRequest.fetchRequest(configPath)
+    loadConfig = processingRequest.getConfig
     
-    main(int(month), int(year))
+    print("Running for month=[{month}] and year=[{year}]".format(month=month, year=year))
+    
+    main(int(month),int(year), loadConfig)
+    

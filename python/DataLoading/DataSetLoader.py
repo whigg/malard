@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 
-import sys
 from os import listdir
+import sys
 from datetime import datetime
 import re
 import pandas as pd
 import MalardClient.AsyncDataSetQuery as aq
 import MalardClient.MalardClient as mc
+import ProcessingRequest as pr
 
-
-
-def main(month, year):
+def main(month, year, loaderConfig):
+    
+    parentDataSet = loaderConfig["parentDataSet"]
+    dataSet = loaderConfig["dataSet"]
+    region = loaderConfig["region"]
+    swathdir = loaderConfig["swathDir"]
+    
+    
     # My code here
     # Get the arguments from the command-line except the filename
-    parentDataSet = 'test'
-    dataSet = 'swath_c_nw_phase'
-    region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/swath/greenland/GrIS_NW_Phase'
-    
     columnFilters = [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns =['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']
     gridCellSize = 100000
@@ -80,6 +81,16 @@ def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swa
         result = query.publishGridCellPoints( parentDataSet, dataSet, region, x, y, t, gridCellSize, files, projection)
         print('Result status %s' %(result.message))
         query.releaseCache(files)
+
+def index( monthYear ):
+    m,y = monthYear
+    return m*y
+
+def monthandyear(fileName):
+    matchObj = re.findall(r'2S_(\d+T\d+)', fileName)
+    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
+    
+    return dataTime.month, dataTime.year
     
 def isyearandmonth(file, year, month ):
     matchObj = re.findall(r'2S_(\d+T\d+)', file)
@@ -108,10 +119,18 @@ def ismonth( file, month ):
         return True
     else:
         return False
-    
+
 if __name__ == "__main__":
-    args = sys.argv[1:] 
-    month = int(args[0])
-    year = int(args[1])
+    args = sys.argv[1:]
     
-    main(month, year)
+    month = args[0]
+    year = args[1]
+    configPath = args[2]
+        
+    processingRequest = pr.ProcessingRequest.fetchRequest(configPath)
+    loadConfig = processingRequest.getConfig
+    
+    print("Running for month=[{month}] and year=[{year}]".format(month=month, year=year))
+    
+    main(int(month),int(year), loadConfig)
+
