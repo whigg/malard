@@ -43,9 +43,10 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     parentDataSet = loadConfig["parentDataSet"]
     minPoints = loadConfig["minPoints"]
     maxPixelDist = loadConfig["maxPixelDist"]
-    uncertainty_threshold = loadConfig["uncertainty_threshold"]
+    uncertainty_threshold = loadConfig["uncertainty_threshold"] if "uncertainty_threshold" in loadConfig else None
     demDiffMad = loadConfig["demDiffMad"]
     powerdB = loadConfig["powerdB"]
+    coh = loadConfig["coh"]
     res = loadConfig["resolution"]
     keepIntermediates = loadConfig["keepIntermediateDems"]
     pocaDemDiff = loadConfig["pocaDemDiff"]
@@ -68,8 +69,12 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     output_dir = loadConfig["resultPath"]
     
+    filters = []
+    if uncertainty_threshold is not None:
+        filters.append({"column":"Q_uStd","op":"lte","threshold":uncertainty_threshold})
+        
+    filters +=[{"column":"demDiffMad","op":"lte","threshold":demDiffMad},{"column":"powerdB","op":"gte","threshold":powerdB},{"column":"coh","op":"gte","threshold":coh}]
     
-    filters = [{"column":"Q_uStd","op":"lte","threshold":uncertainty_threshold},{"column":"demDiffMad","op":"lte","threshold":demDiffMad},{"column":"powerdB","op":"gte","threshold":powerdB}]
     datasetName = "{}_unc".format(uncResultDataSet)
 
     swath_ds = mc.DataSet(parentDataSet,datasetName,region)
