@@ -24,7 +24,7 @@ def getMonthsAndYears( files ):
     
     monthsAndYears = { dsl.monthandyear( f ) for f in files  }
     
-    l_monthsyears = [(m,y) for m,y in monthsAndYears]
+    l_monthsyears = [(m,y) for m,y in monthsAndYears if y < 2017]
             
     l_monthsyears.sort(key=dsl.index)
     print(l_monthsyears)
@@ -40,7 +40,7 @@ def find_swath_dir( path ):
         return find_swath_dir(os.path.join(path, sub_path[0]) )
     
 def main( loadData, applyUncertainty, runGridding ):
-    for parentDataSet in listdir( '/data/snail/scratch/rawdata/DataSetLoaderBase/' ):
+    for parentDataSet in listdir( base_dir ):
         
         parentDataSetPath = os.path.join(base_dir, parentDataSet )
         for region in listdir( parentDataSetPath ):
@@ -67,17 +67,18 @@ def main( loadData, applyUncertainty, runGridding ):
                 monthsAndYears = getMonthsAndYears(listdir(swath_dir))
                 
                 #Load the swath and the Poca.
-                ds_swath = "swath_c_nw_{}".format(ds)
-                ds_poca = "poca_c_nw_{}".format(ds)
+                ds_swath = "swath_c_{}".format(ds)
+                ds_poca = "poca_c_{}".format(ds)
                 demDiffMad = 6
                 pocaDemDiff = 100
                 resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_nw_adjust"
-                powerdB = -155
+                powerdB = -160
                 resolution = 2000
                 uncertainty = 7
                 maxPixelDist = 8
+                minCoh = 0.6
                 
-                run = "{}_PDD_{}_PwrdB_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds, pocaDemDiff, powerdB, uncertainty, maxPixelDist, demDiffMad, resolution )
+                run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
     
                 output_dir = os.path.join(resultBasePath, run)
     
@@ -100,6 +101,7 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "pocaDemDiff" :pocaDemDiff
                               , "resultPath" : output_dir
                               , "powerdB" : powerdB
+                              , "coh" : minCoh
                               , "loadData" : loadData
                               , "applyUncertainty" : applyUncertainty
                               , "medianFilterIterations" : 4 
@@ -119,8 +121,8 @@ def main( loadData, applyUncertainty, runGridding ):
                         gpp.main( m, y, loadConfig )
                     
 if __name__ == "__main__":
-    loadData = False
+    loadData = True
     applyUncertainty = False
-    runGridding = True
+    runGridding = False
     
     main(loadData, applyUncertainty, runGridding )
