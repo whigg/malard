@@ -27,9 +27,10 @@ def main(month, year, loaderConfig):
     years = [year]
     months = [month]
     
-    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp" if region == "greenland" else "/data/puma/scratch/cryotempo/masks/antarctic/AntarcticaReprojected.shp"
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
+    lrm_file = "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" if region == "greenland" else "/data/puma/scratch/cryotempo/masks/antarctic/LRM_Antarctica.shp"
+    maskFilterLRM = mc.MaskFilter( p_shapeFile= lrm_file, p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM]
     
     for year in years:

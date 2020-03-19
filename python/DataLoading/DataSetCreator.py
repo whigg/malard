@@ -71,7 +71,7 @@ def main( loadData, applyUncertainty, runGridding ):
                 ds_poca = "poca_c_{}".format(ds)
                 demDiffMad = 6
                 pocaDemDiff = 100
-                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_nw_adjust"
+                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/antarctic"
                 powerdB = -160
                 resolution = 2000
                 uncertainty = 7
@@ -83,7 +83,7 @@ def main( loadData, applyUncertainty, runGridding ):
                 output_dir = os.path.join(resultBasePath, run)
     
                 if not os.path.exists(output_dir):
-                    os.mkdir(output_dir)     
+                    os.makedirs(output_dir)     
     
                 loadConfig = {"swathDir" : swath_dir
                               ,"dataSet" : ds_swath

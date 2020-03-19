@@ -187,10 +187,10 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     post_dem = datetime.now()
     
-    medianMask = mf.applyMedianFilter(diffFilePath, loadConfig["medianFilterIterations"])
+    maskedDemFile = mf.applyMedianFilter(diffFilePath, loadConfig["medianFilterIterations"])
     
-    #Now apply the median mask to the final dem.
-    grid_tif.gdal_calc(dem,medianMask,dem.replace(".tif","_maskeddem.tif"),"A*(B>0)-32768*(B<1)",-32768)
+    #Now compute the diff
+    grid_tif.gdal_diff(maskedDemFile,grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
     
     print("Dem creation took {}s".format((post_dem - post_csv).total_seconds()))
     
