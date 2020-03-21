@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 import sys
 
-sys.path.append('/data/puma/scratch/cryotempo/analysis')
+#sys.path.append('/data/puma/scratch/cryotempo/analysis')
 
-import waveform_adjustment as wa
+#import waveform_adjustment as wa
 
 from datetime import datetime
 
@@ -130,7 +130,8 @@ def loadAndJoinToPoca(  dsSwath, dsPoca, filters, columns_swath, extentFilter = 
         
         if adjustWaveform and len(joined) > 0:
             print( "Applying waveform adjustment." )
-            joined = wa.adjust_whole_df( joined )
+            #joined = wa.adjust_whole_df( joined )
+            raise ValueError("AdjustWaveform No Longer supported.")
         else:
             print("Skipping waveform adjustment.")
     
