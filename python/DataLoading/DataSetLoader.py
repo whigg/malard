@@ -22,14 +22,14 @@ def main(month, year, loaderConfig):
     columnFilters = [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns =['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']
     gridCellSize = 100000
-    environmentName = 'MALARD-PROD'
+    environmentName = 'DEVv2'
     
     years = [year]
     months = [month]
     
-    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp" if region == "greenland" else "/data/puma/scratch/cryotempo/masks/antarctic/AntarcticaReprojected.shp"
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/AntarcticaReprojected.shp"
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    lrm_file = "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" if region == "greenland" else "/data/puma/scratch/cryotempo/masks/antarctic/LRM_Antarctica.shp"
+    lrm_file = "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/LRM_Antarctica.shp"
     maskFilterLRM = mc.MaskFilter( p_shapeFile= lrm_file, p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM]
     

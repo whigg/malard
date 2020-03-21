@@ -17,23 +17,25 @@ import sys
 def main(month, year):
     # My code here
     # Get the arguments from the command-line except the filename
-    parentDataSet = 'cryotempo'
-    dataSet = 'poca_c_nw_esa'
-    region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/poca/greenland_nw'
+    parentDataSet = 'test'
+    dataSet = 'ThwaitesBergPOCA'
+    region = 'antarctic'
+    swathdir = '/data/snail1/scratch/rawdata/ThwaitesBergPOCA'
     
     columnFilters = []# [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns = []# ['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']
     gridCellSize = 100000
-    environmentName = 'MALARD-PROD'
+    environmentName = 'DEVv2'
     
     years = [year]
     months = [month]
     
-    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/AntarcticaReprojected.shp"
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
+    lrm_file = "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/LRM_Antarctica.shp"
+    maskFilterLRM = mc.MaskFilter( p_shapeFile= lrm_file, p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM]
+    
     
     for year in years:
         for month in months:
