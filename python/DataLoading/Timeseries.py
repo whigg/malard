@@ -36,7 +36,7 @@ def gdal_warp(inFile,outFile,**kwargs):
     
 param='elev'
 #cm='viridis'
-cm='ocean'
+cm='viridis'
 
 def getExtent( ras ):
     raster = rasterio.open(ras)
