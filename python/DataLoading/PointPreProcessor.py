@@ -20,7 +20,7 @@ import pandas as pd
 import ProcessingRequest as pr
 
 #Filters
-minCoh = 0.5
+#minCoh = 0.5
 maxDemDiff = 100
 #maxDemDiffMad = 20
 minPower = 100
@@ -76,6 +76,7 @@ def main(month, year, loadConfig, maxDemDiffMad = None, newMaxDemDiffMad = None,
     print( "Processing window start {} end {}".format(minT,maxT) )
     
     minPowerdB = loadConfig["powerdB"]
+    minCoh = loadConfig["coh"]
     
     #removed demDiffMad filter.
     filters = [{"column":"powerScaled","op":"gte","threshold":minPower}
