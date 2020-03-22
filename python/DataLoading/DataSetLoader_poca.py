@@ -50,9 +50,11 @@ def createTempFiles( swaths, src_dir, tempDir, columnMappings, region ):
             if np.max(lats) < 52:
                 print( "Skipping file. Not in greenland {}".format(s))
                 continue
-        else:
-            raise "Region not supported {}".format( region )
-        
+        elif region == "antarctic":
+            if np.max(lats) > -50:
+                print( "Skipping file. Not in antarctic {}".format(s))
+                continue
+            
         for v in columnMappings.keys():
             d = nc.variables[v]
             srs = pd.Series(d[:])
@@ -87,7 +89,7 @@ def main(month, year, loaderConfig):
     region = loaderConfig["region"]
     swathdir = loaderConfig["swathDir"]
     
-    tempdir = '/data/puma/scratch/malard/tempnetcdfs'
+    tempdir = '/data/puma1/scratch/v2/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
     columnFilters = []#[{'column':'coh','op':'gte','threshold':0.3},{'column':'power','op':'gte','threshold':100.0}]
@@ -95,19 +97,20 @@ def main(month, year, loaderConfig):
     
     includeColumns = []
     
-    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
+    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/AntarcticaReprojected.shp"
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
+    lrm_file = "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/LRM_Antarctica.shp"
+    maskFilterLRM = mc.MaskFilter( p_shapeFile= lrm_file, p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM]
     
     gridCellSize = 100000
-    environmentName = 'MALARD-PROD'
+    environmentName = 'DEVv2'
     
     years = [year]
     months = [month]
     
     for year in years:
-        log_file = open( "/data/puma/scratch/malard/logs/{}_{}_{}_{}_swath_loading_log.csv".format(year, parentDataSet, dataSet, region),"w" )
+        log_file = open( "log/{}_{}_{}_{}_swath_loading_log.csv".format(year, parentDataSet, dataSet, region),"w" )
         for month in months:
             swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if  f.endswith(".nc") and isyearandmonth( f, year, month )]
             

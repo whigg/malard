@@ -51,15 +51,21 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     keepIntermediates = loadConfig["keepIntermediateDems"]
     pocaDemDiff = loadConfig["pocaDemDiff"]
     uncResultDataSet = loadConfig["resultsetName"] 
-    mask = '/data/puma/scratch/cryotempo/masks_raster/GrIS_noLRM_{}.tif'.format(res)
-    gris_dem = '/data/puma/scratch/cryotempo/underlying_dems/greenland_arctic_dem/combined/GrIS_dem_2km.tif'
+    
+    pocaParentDataSet = loadConfig["pocaParentDataSet"]
+    pocaDataSet = loadConfig["pocaDataSet"]
+    
+    
+    mask = '/data/puma/scratch/cryotempo/masks_raster/GrIS_noLRM_{}.tif'.format(res) if region == "greenland" else '/data/puma1/scratch/cryotempo/masks_raster/AIS_dem_noLrm_2km.tif'
+    gris_dem = '/data/puma/scratch/cryotempo/underlying_dems/greenland_arctic_dem/combined/GrIS_dem_2km.tif' if region == "greenland" else "/data/puma1/scratch/cryotempo/underlying_dems/antarctic/combined/AIS_dem_2km.tif"
     
     pub_date = datetime(pub_year, pub_month,15,0,0,0)
     window_start = pub_date - relativedelta(days=pub_date.day) + relativedelta(days=1) - relativedelta(months=1)
     window_end = window_start + relativedelta(months=3) - timedelta(seconds=1)    
     
     output_dir = loadConfig["resultPath"]
-    client = mc.MalardClient("MALARD-PROD",notebook=notebook)
+    #client = mc.MalardClient("MALARD-PROD",notebook=notebook)
+    client = mc.MalardClient("DEVv2",notebook=notebook)
     
     projections = ['x','y','time','demDiff','elev_adjustment','Q_uStd','elev','coh','powerScaled','inRegionMask']
     
@@ -75,14 +81,14 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
         
     filters +=[{"column":"demDiffMad","op":"lte","threshold":demDiffMad},{"column":"powerdB","op":"gte","threshold":powerdB},{"column":"coh","op":"gte","threshold":coh}]
     
-    datasetName = "{}_unc".format(uncResultDataSet)
+    datasetName = "{}_unc".format(uncResultDataSet) if uncertainty_threshold is not None else uncResultDataSet
 
     swath_ds = mc.DataSet(parentDataSet,datasetName,region)
     print(swath_ds)
     bb_swath = client.boundingBox(swath_ds)
     print(bb_swath)
     
-    esa_poca_ds = mc.DataSet( "cryotempo", "poca_c_nw_esa", "greenland" )
+    esa_poca_ds = mc.DataSet( pocaParentDataSet , pocaDataSet, region )
     
     extent = "{} {} {} {}".format(bb_swath.minX,bb_swath.minY,bb_swath.maxX,bb_swath.maxY)
     
@@ -169,7 +175,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     grid_tif.gdal_warp(mask,maskDem.name,r="cubic",tr=outRes,t_srs=proj4,te=extent,tap="",et=0)            
     
-    dem = os.path.join( output_dir, "greenland_{year}_{month}.tif".format(year=pub_year, month=pub_date.month))
+    dem = os.path.join( output_dir, "{name}_{date}.tif".format(name=swath_ds.dataSet, date=pub_date.strftime("%Y%m%d")))
     #################
     #This output is the product - e.g. in the file dem pub_date = datetime(pub_year, pub_month,15,0,0,0)
     #This outputs the dem to use - may need to change to have nodate -32768 - only at 0 for the colormaps
@@ -187,10 +193,10 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     post_dem = datetime.now()
     
-    medianMask = mf.applyMedianFilter(diffFilePath, loadConfig["medianFilterIterations"])
+    maskedDemFile = mf.applyMedianFilter(dem, diffFilePath, loadConfig["medianFilterIterations"])
     
-    #Now apply the median mask to the final dem.
-    grid_tif.gdal_calc(dem,medianMask,dem.replace(".tif","_maskeddem.tif"),"A*(B>0)-32768*(B<1)",-32768)
+    #Now compute the diff
+    grid_tif.gdal_diff(maskedDemFile,grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
     
     print("Dem creation took {}s".format((post_dem - post_csv).total_seconds()))
     
