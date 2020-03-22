@@ -31,7 +31,7 @@ if __name__ == "__main__":
     print("Running for month=[{month}] and year=[{year}]".format(month=month, year=year))
     
     if loadData:
-        dsl.main(month,year,loadConfig)
+        #dsl.main(month,year,loadConfig)
     
         dslp.main(month,year,loadConfig)
     
