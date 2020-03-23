@@ -53,6 +53,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     uncResultDataSet = loadConfig["resultsetName"] 
 
     malardEnv = loadConfig["MalardEnvironment"]
+    griddingIncludePoca = loadConfig["GridIncludePoca"]
 
     pocaParentDataSet = loadConfig["pocaParentDataSet"]
     pocaDataSet = loadConfig["pocaDataSet"]
@@ -108,11 +109,18 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
         print("Result of querying results Status={} Message={}".format(resultInfo.status, resultInfo.message))
         
         if resultInfo.status == "Success" and not resultInfo.resultFileName.startswith("Error") :
-            
-            pocaInfo = client.executeQuery( esa_poca_ds, bb, filters=filters_poca  )
 
-            pocaDf =  pocaInfo.to_df if pocaInfo.status == "Success" and not pocaInfo.resultFileName.startswith("Error") else pd.DataFrame()           
-            
+            pocaInfo = None
+            pocaDf = None
+
+            if griddingIncludePoca:
+                pocaInfo = client.executeQuery( esa_poca_ds, bb, filters=filters_poca  )
+
+                pocaDf =  pocaInfo.to_df if pocaInfo.status == "Success" and not pocaInfo.resultFileName.startswith("Error") else pd.DataFrame()
+            else:
+                print("Ignoring poca")
+                pocaDf = pd.DataFrame()
+
             print( "Poca points to include {}".format(len(pocaDf)))
             
             df = resultInfo.to_df
@@ -131,6 +139,9 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
             idw_list.append( df_idw )
             
             client.releaseCacheHandle(resultInfo.resultFileName)
+
+            if griddingIncludePoca:
+                client.releaseCacheHandle(pocaInfo.resultFileName)
     
 
     if len(idw_list) == 0:

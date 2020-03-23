@@ -11,11 +11,11 @@ area = 'Jak'
 
 numBins=6
 #Load Uncertainty
-bins = pd.read_hdf('/data/puma1/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_binDefs.h5'.format(numBins))
-std = np.load('/data/puma1/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_std.npy'.format(numBins))
-uStd = np.load('/data/puma1/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_uStd.npy'.format(numBins))
-count = np.load('/data/puma1/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_count.npy'.format(numBins))
-mean = np.load('/data/puma1/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_mean.npy'.format(numBins))
+bins = pd.read_hdf('/data/puma/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_binDefs.h5'.format(numBins))
+std = np.load('/data/puma/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_std.npy'.format(numBins))
+uStd = np.load('/data/puma/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_uStd.npy'.format(numBins))
+count = np.load('/data/puma/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_count.npy'.format(numBins))
+mean = np.load('/data/puma/scratch/cryotempo/uncertainty/processeddata/uncertainty_{}bins_mean.npy'.format(numBins))
 
 def binKernel( num_bins ):
     binK = cp.ElementwiseKernel(

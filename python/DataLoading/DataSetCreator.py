@@ -18,7 +18,7 @@ import GriddingPreProcessor as gpp
 
 import DataSetLoader as dsl
 
-base_dir = '/data/snail1/scratch/rawdata/DataSetLoaderBase/'
+base_dir = '/data/snail/scratch/rawdata/DataSetLoaderBase/'
 
 def getMonthsAndYears( files ):
     
@@ -65,14 +65,14 @@ def main( loadData, applyUncertainty, runGridding ):
                 swath_dir = find_swath_dir(dataSetPath)
                 print(swath_dir)
                 
-                monthsAndYears = getMonthsAndYears(listdir(swath_dir))
+                monthsAndYears = [(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
                 print(monthsAndYears)
                 #Load the swath and the Poca.
                 ds_swath = "swath_c_{}".format(ds)
                 ds_poca = "poca_c_{}".format(ds)
                 demDiffMad = 6
                 pocaDemDiff = 100
-                resultBasePath = "/data/puma1/scratch/cryotempo/processeddata/antarctica"
+                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_oib"
                 powerdB = -160
                 resolution = 2000
                 uncertainty = 7
@@ -96,7 +96,7 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "keepIntermediateDems" : True
                               , "minPoints" : 1
                               , "maxPixelDist" : maxPixelDist
-                              #, "uncertainty_threshold" : uncertainty
+                              , "uncertainty_threshold" : uncertainty
                               , "demDiffMad" : demDiffMad
                               , "resolution" : resolution
                               , "pocaDemDiff" :pocaDemDiff
@@ -107,9 +107,10 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "applyUncertainty" : applyUncertainty
                               , "medianFilterIterations" : 4 
                               , "pocaParentDataSet" : parentDataSet
-                              , "pocaDataSet" : "ThwaitesBergPOCA"
+                              , "pocaDataSet" : "poca_c_nw_esa"
                               , "MalardEnvironment": "MALARD-PROD"
-                              , "generatePointProduct": False}
+                              , "generatePointProduct": False
+                              , "GridIncludePoca":False}
                 
                 request = pr.ProcessingRequest(loadConfig)
                 
@@ -126,8 +127,8 @@ def main( loadData, applyUncertainty, runGridding ):
                     
 if __name__ == "__main__":
     loadData = False
-    applyUncertainty = False
+    applyUncertainty = True
     generatePointProduct = False
-    runGridding = True
+    runGridding = False
     
     main(loadData, applyUncertainty, runGridding )
