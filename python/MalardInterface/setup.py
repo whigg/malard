@@ -10,7 +10,7 @@ setuptools.setup(
 
      name='MalardInterface',  
 
-     version='0.4',
+     version='0.5',
 
      scripts=['MalardInterface'] ,
 
