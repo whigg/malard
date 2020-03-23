@@ -42,7 +42,7 @@ class QueryResultInfo:
     
     @property
     def to_df(self):
-        if self._df == None:
+        if self._df is None:
             self._df = mh.getDataFrameFromNetCDF( self.resultFileName ) 
         
         return self._df
@@ -55,7 +55,7 @@ class SwathPublisherInfo:
         self._status = status
         self._message = message
         
-        if swathDetails == None:    
+        if swathDetails is None:
             self._json = json.dumps({  'completed': completed
                                  , 'inputFileName': self._inputFileName
                                  , 'status' : self._status
@@ -125,7 +125,11 @@ class AsyncDataSetQuery:
             self.serverUrl = serverUrl
             self.envName = envName
             self.headers = {'Content-Type':'application/json'}
-            self.notebook = notebook
+
+            if notebook is not None:
+                print("Warning notebook flag is deprecated and will be removed in a later version.")
+
+            self.eventLoopRunning = asyncio.get_event_loop().is_running()
 
     async def asyncServerRequest(self, uri, request):
         async with websockets.connect(uri) as websocket:
@@ -141,7 +145,7 @@ class AsyncDataSetQuery:
     def syncServerRequest( self, requestJson, endPoint ):
         
         loop = None
-        if self.notebook == True:
+        if self.eventLoopRunning == True:
             loop = asyncio.get_running_loop()
         else:
             loop = asyncio.new_event_loop()

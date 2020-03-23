@@ -21,7 +21,7 @@ from MalardClient.MaskFilter import MaskFilter
 from MalardClient.Environment import Environment
 
 class MalardClient:
-    def __init__(self, environmentName='DEVv2', notebook = True):
+    def __init__(self, environmentName='DEVv2', notebook = None):
         self.environmentName = environmentName
         self.serverUrl = '://localhost:9000'
         self.query = DataSetQuery( "http" + self.serverUrl, self.environmentName )
