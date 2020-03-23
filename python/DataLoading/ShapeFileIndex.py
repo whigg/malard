@@ -10,6 +10,7 @@ import osgeo.ogr as ogr
 import osgeo.osr as osr
 
 import os
+import PointProcessor as pp
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
@@ -61,11 +62,11 @@ class ShapeFileIndex:
       
       feature.SetField("website","http://www.cryotempo.org")
       feature.SetField("info", "info@earthwave.co.uk")
-      feature.SetField("min_x", gc.minX )
-      feature.SetField("max_x", gc.maxX)
+      feature.SetField("min_x", pp.formatXYStr(gc.minX) )
+      feature.SetField("max_x", pp.formatXYStr(gc.maxX) )
       feature.SetField("pub_dat", self.pub_date.isoformat())  
-      feature.SetField("min_y", gc.minY)
-      feature.SetField("max_y", gc.maxY)
+      feature.SetField("min_y", pp.formatXYStr(gc.minY))
+      feature.SetField("max_y", pp.formatXYStr(gc.maxY))
       feature.SetField("units", 'metres')  
       feature.SetField("pdgs_path", pdgs_path )
     

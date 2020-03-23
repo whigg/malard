@@ -42,11 +42,12 @@ def createNetCDF( df, filename ):
 
     return fullpath
 
-def main(month, year, loadConfig, maxDemDiffMad = None, newMaxDemDiffMad = None, notebook=False, adjustWaveform = True):
+def main(month, year, loadConfig, maxDemDiffMad = None, newMaxDemDiffMad = None, adjustWaveform = True):
+
+    malardEnv = loadConfig["MalardEnvironment"]
+    client = mc.MalardClient(environmentName=malardEnv)
     
-    client = mc.MalardClient(environmentName="MALARD-PROD", notebook=notebook)
-    
-    tempDir = client.getEnvironment("MALARD-PROD").cacheCdfPath
+    tempDir = client.getEnvironment(malardEnv).cacheCdfPath
     print(tempDir)
     
     swath_ds = mc.DataSet(loadConfig["parentDataSet"],loadConfig["dataSet"],loadConfig["region"])
@@ -116,7 +117,7 @@ def main(month, year, loadConfig, maxDemDiffMad = None, newMaxDemDiffMad = None,
         
         bb_offset = mc.BoundingBox( bb.minX - offset, bb.maxX + offset, bb.minY - offset, bb.maxY + offset, bb.minT, bb.maxT  )
    
-        df, status = landj.loadAndJoinToPoca(swath_ds, poca_ds, filters, columns_swath, bb=bb, bb_offset=bb_offset, newDemDiffMad=newMaxDemDiffMad, adjustWaveform=adjustWaveform)
+        df, status = landj.loadAndJoinToPoca(swath_ds, poca_ds, filters, columns_swath, malardEnv, bb=bb, bb_offset=bb_offset, newDemDiffMad=newMaxDemDiffMad, adjustWaveform=adjustWaveform)
 
         step_1 = d.datetime.now()
         time_load_and_join += ( step_1 - st ).total_seconds()

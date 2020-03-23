@@ -28,6 +28,13 @@ import Header as h
  
 import numpy as np
 
+from osgeo import gdal
+
+def getArray( file ):
+    dem = gdal.Open(file, gdal.GA_ReadOnly)
+    demArray = dem.GetRasterBand(1).ReadAsArray()
+    return demArray
+
 def bucket_series( series, resolution ):
     res = np.empty(len(series))
     res =  resolution * np.floor( series / resolution ) + resolution * 0.5
@@ -51,7 +58,7 @@ def ensure_dir(file_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def processGridCell(client, resultDf, gridCellSize, startX, startY, resolution, mask, fillValue = -2147483647):
+def processGridCell( resultRaster, gridCellSize, startX, startY, resolution, mask, source_fill=-32768, fillValue = -2147483647):
     
     resultDf['x_b'] = bucket_series( resultDf['x'], resolution )
     resultDf['y_b'] = bucket_series( resultDf['y'], resolution )
@@ -102,13 +109,15 @@ def processGridCell(client, resultDf, gridCellSize, startX, startY, resolution, 
 
 def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date, index, file_mappings, fill_value ):
     
-    pubdatestr = "{}15".format(pub_date.strftime("%Y%m"))
+    pubdatestr = "{}".format(pub_date.strftime("%Y_%m"))
     fileNameExt = ".nc"
     filetype = "THEM_GRID_"
-    fileName = "CS_TEST_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, pubdatestr, bbox.minX, bbox.minY )
-    productPath = "y{}/m{}/cell_{}_{}/{}{}".format(pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName, fileNameExt)
-    fullPath = "{}/{}".format(output_path, productPath)
-    headerPath = "{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName)
+    fileName = "CS_OFFL_{}_{}_{}_V1".format( filetype, dataSet.region, pubdatestr )
+    productPath = "{}{}".format( fileName, fileNameExt )#"y{}/m{}/cell_{}_{}/{}{}".format(pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    fullPath = os.path.join(output_path, productPath)
+
+
+    headerPath = os.path.join(output_path, "{}.HDR".format( fileName ))#"{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName)
 
     fileDescription = "L3 Gridded thematic product containing interpolated swath data that is generated from CryoSat2 SARIN data."    
 
@@ -134,7 +143,8 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     dataset.creator_email = "cryotempo@earthwave.co.uk"                 
     dataset.creator_url = "http://www.earthwave.co.uk"                  
     dataset.date_created = datetime.now().isoformat()                                
-    dataset.date_modified = datetime.now().isoformat() 
+    dataset.date_modified = datetime.now().isoformat()
+    dataset.DOI = "10.5270/CR2-2xs4q4l";
     #dataset.external_dem = "DEM"        
     dataset.geospatial_y_min = minY                 
     dataset.geospatial_y_max = maxY         
@@ -152,7 +162,7 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     dataset.processing_level = "L3"
     dataset.product_version = "1.0"
     dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop"                 
-    dataset.references = "http://www.cryotempo.org"
+    dataset.references = "http://cryotempo.org"
     dataset.source = "Gridded Swath data generated from Cryo-Sat2 SARIN data."
     dataset.version = 1
     dataset.summary = "Land Ice Elevation Thematic Gridded Product" 
@@ -297,7 +307,7 @@ def main( argv ):
     total = len(gridcells)
     
     for from_dt, to_dt, pub_date in window:
-        index = s.ShapeFileIndex(output_path, "THEM_GRID_", proj4, dataSet.region, pub_date ) 
+        #index = s.ShapeFileIndex(output_path, "THEM_GRID_", proj4, dataSet.region, pub_date )
         for i, gc in enumerate(gridcells):
             gc_start = datetime.now()        
             month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)

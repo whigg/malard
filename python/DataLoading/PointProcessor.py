@@ -14,31 +14,33 @@ from datetime import timedelta
 from MalardClient.MalardClient import MalardClient
 from MalardClient.DataSet import DataSet
 from MalardClient.BoundingBox import BoundingBox
-from MalardClient.MaskFilter import MaskFilter
 
 import ShapeFileIndex as s
 
-import sys
 import os
-
 import Header as h
- 
 import numpy as np
+
+import pandas as pd
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+def formatXYStr( x ):
+
+    return "+{}".format(x) if x >=0 else str(x)
+
 def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index ):
     
-    yearmonth = bbox.minT.strftime("%Y%m")
+    yearmonth = bbox.minT.strftime("%Y_%m")
     fileNameExt = ".nc"
     filetype = "THEM_POINT"
-    fileName = "CS_TEST_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, yearmonth, bbox.minX, bbox.minY )
-    productPath = "y{}/m{}/cell_{}_{}/{}{}".format(bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY, fileName, fileNameExt)
-    fullPath = "{}/{}".format(output_path, productPath)
-    headerPath = "{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, bbox.minT.year, bbox.minT.month, bbox.minX, bbox.minY, fileName)
+    fileName = "CS_OFFL_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, yearmonth, formatXYStr(bbox.minX), formatXYStr(bbox.minY) )
+    productPath = "{}{}".format( fileName, fileNameExt )#"y{}/m{}/cell_{}_{}/{}{}".format(bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName, fileNameExt)
+    fullPath = os.path.join(output_path, productPath)
+    headerPath = os.path.join(output_path, "{}.HDR".format( fileName )) #"{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName)
 
     fileDescription = "L3 Point thematic product containing swath data generated from CryoSat2 SARIN data."    
     
@@ -65,7 +67,8 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     dataset.creator_email = "support@cryotempo.org"                 
     dataset.creator_url = "http://www.earthwave.co.uk"                  
     dataset.date_created = datetime.now().isoformat()                                
-    dataset.date_modified = datetime.now().isoformat() 
+    dataset.date_modified = datetime.now().isoformat()
+    dataset.DOI = "10.5270/CR2-2xs4q4l"
     #dataset.external_dem = "DEM"        
     dataset.geospatial_y_min = minY                 
     dataset.geospatial_y_max = maxY         
@@ -127,10 +130,8 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     xs[:] = np.array(data['x'])
     ys[:] = np.array(data['y'])
     elevations[:] = np.array(data['elev'])
-    uncertainties[:] = np.zeros(len(data))
-    swathVector = np.array(range(0,len(data)),"S5")
-    swathVector.fill("swath")
-    pocaswath[:] = swathVector
+    uncertainties[:] = np.array(data['Q_uStd'])
+    pocaswath[:] = np.array(data[data['swathPoca']])
     inputfileid[:] = np.array(data['swathFileId'])
     dataset.close()
 
@@ -141,69 +142,84 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     with open( headerPath, "wt", encoding="utf8"  ) as f:
         f.write( h.createHeader( attributes, source_files = swathIds ))
 
-def main( argv ):
-    
-    argv = argv[1:]
-    
-    year = 2012
-    
-    processing_dates = []
-    publication_dt = datetime( year, 2, 1,0,0,0)
-    
-    end_dt = datetime( year, 2 , 29, 23,59,59)
-    
-    while publication_dt <=  end_dt :
-        next_publication_dt = publication_dt + relativedelta(months=1) - timedelta(seconds=1)
-        processing_dates.append( ( publication_dt , next_publication_dt ) )
-        publication_dt = next_publication_dt + timedelta(seconds=1)
-       
-    output_path = '/home/jon/data/point'
-    gridCellSize = 100000
-    
-    client = MalardClient( notebook=True )
-    dataSet = DataSet( 'cryotempo', 'GRIS_BaselineC_Q2', 'greenland')
-    
-    projections = ['x','y','time','elev','power','coh','demDiff','demDiffMad','swathFileId']
-    filters =  [{'column':'power','op':'gte','threshold':10000},{'column':'coh','op':'gte','threshold':0.8},{'column':'demDiff','op':'lte','threshold':100.0},{'column':'demDiff','op':'gte','threshold':-100.0},{'column':'demDiffMad','op':'lte','threshold':10.0}]
-    
-    maskFilterIce = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/masks/icesheets.shp"  ) 
-    maskFilterLRM = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/sarinmasks/LRM_Greenland.shp" , p_includeWithin=False ) 
-    shapeFilters = [ maskFilterIce, maskFilterLRM ]
-    
-    minT = datetime(2011,2,1,0,0,0)
-    maxT = datetime(2016,6,30,23,59,59) 
-    gridcells = client.gridCellsWithinPolygon(dataSet, minT, maxT, extentFilter=maskFilterIce, maskFilters=[maskFilterLRM] )
+def main( pub_month, pub_year, loadConfig ):
+
+    region = loadConfig["region"]
+    parentDataSet = loadConfig["parentDataSet"]
+    uncertainty_threshold = loadConfig["uncertainty_threshold"] if "uncertainty_threshold" in loadConfig else None
+    powerdB = loadConfig["powerdB"]
+    coh = loadConfig["coh"]
+    uncResultDataSet = loadConfig["resultsetName"]
+
+    pocaParentDataSet = loadConfig["pocaParentDataSet"]
+    pocaDataSetName = loadConfig["pocaDataSet"]
+
+    output_path = os.path.join( loadConfig["resultPath"], "pointProduct")
+    ensure_dir(output_path)
+
+    malardEnv = loadConfig["MalardEnvironment"]
+
+    client = MalardClient( malardEnv )
+
+    datasetName = "{}_unc".format(uncResultDataSet) if uncertainty_threshold is not None else uncResultDataSet
+    dataSet = DataSet( parentDataSet, datasetName, region)
+
+    pocaDataSet = DataSet(pocaParentDataSet, pocaDataSetName, region )
+
+    projections = ['x','y','time','elev','powerdB','coh','demDiff','demDiffMad','swathFileId','Q_uStd']
+    filters =  [{'column':'Q_uStd','op':'lte','threshold':uncertainty_threshold},{'column':'powerdB','op':'gte','threshold':powerdB},{'column':'coh','op':'gte','threshold':coh},{'column':'InRegionMask','op':'eq','threshold':1.0}]
+    filters_poca = [{"column":"height_err","op":"eq","threshold":0.0}, {"column":"demDiff","op":"lte","threshold":pocaDemDiff}, {"column":"demDiff","op":"gte","threshold":-pocaDemDiff}]
+
+    from_dt = datetime(pub_year, pub_month, 1,0,0,0)
+    to_dt = from_dt + relativedelta(months=1) - timedelta(seconds=1)
+
+    bb = client.boundingBox( dataSet )
+    gridcells = client.gridCells(dataSet, BoundingBox(bb.minX, bb.maxX, bb.minY, bb.maxY, from_dt, to_dt))
     
     proj4 = client.getProjection(dataSet).proj4
     
     print("Number of Gridcells found to process {}".format(len(gridcells)))
     process_start = datetime.now()
     
-    for from_dt, to_dt in processing_dates:
-        print("MinT={} MaxT={}".format(from_dt, to_dt))
-        #Create a shapefile index for each month
-        index = s.ShapeFileIndex(output_path, "THEM_POINT", proj4, dataSet.region, from_dt )    
-        for i, gc in enumerate(gridcells):
-            gc_start = datetime.now()
-            month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
-            queryInfo = client.executeQuery(dataSet, month_gc, projections=projections, filters=filters, maskFilters=shapeFilters)
-            
-            if queryInfo.status == "Success":
-                data = queryInfo.to_df
-                print("Found {} data rows".format(len(data)))
-                if len(data) > 0:
-                    file_ids = data['swathFileId'].unique()
-                    results = client.getSwathNamesFromIds( dataSet, file_ids )
-                    writePointProduct(output_path, dataSet, month_gc, data, proj4, results, index )
-                 
-            client.releaseCacheHandle(queryInfo.resultFileName)
-        
-        index.close()        
-        gc_elapsed = ( datetime.now() - gc_start).total_seconds() 
-        print('Processed [{}] grid cells. Took=[{}]s'.format(i+1, gc_elapsed ))
-         
+    print("MinT={} MaxT={}".format(from_dt, to_dt))
+    #Create a shapefile index for each month
+    index = s.ShapeFileIndex(output_path, "THEM_POINT", proj4, dataSet.region, from_dt )
+    for i, gc in enumerate(gridcells):
+        gc_start = datetime.now()
+        month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
+        queryInfo = client.executeQuery(dataSet, month_gc, projections=projections, filters=filters)
+
+        if queryInfo.status == "Success" and not resultInfo.resultFileName.startswith("Error") :
+
+            pocaInfo = client.executeQuery( pocaDataSet, gc, filters=filters_poca  )
+
+            pocaDf =  pocaInfo.to_df if pocaInfo.status == "Success" and not pocaInfo.resultFileName.startswith("Error") else pd.DataFrame()
+
+            pocaStr = np.empty(len(pocaDf))
+            pocaStr.fill( "poca" )
+            pocaDf["swathPoca"] = pocaStr
+
+            print( "Poca points to include {}".format(len(pocaDf)))
+
+            data = queryInfo.to_df
+
+            dataSwathStr = np.array( len(data)  )
+            dataSwathStr.fill("swath")
+            data["swathPoca"] = dataSwathStr
+
+            data = data if len(pocaDf) == 0 else pd.concat([data, pocaDf])
+
+            print("Found {} data rows".format(len(data)))
+            if len(data) > 0:
+                file_ids = data['swathFileId'].unique()
+                results = client.getSwathNamesFromIds( dataSet, file_ids )
+                writePointProduct(output_path, dataSet, month_gc, data, proj4, results, index )
+
+        client.releaseCacheHandle(queryInfo.resultFileName)
+
+    index.close()
+    gc_elapsed = ( datetime.now() - gc_start).total_seconds()
+    print('Processed [{}] grid cells. Took=[{}]s'.format(i+1, gc_elapsed ))
+
     process_elapsed = ( datetime.now() - process_start ).total_seconds()
     print("Took [{}s] to process".format(process_elapsed))
-         
-if __name__ == "__main__":
-    main(sys.argv)

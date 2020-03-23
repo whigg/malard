@@ -73,11 +73,11 @@ def main( loadData, applyUncertainty, runGridding ):
                 demDiffMad = 6
                 pocaDemDiff = 100
                 resultBasePath = "/data/puma1/scratch/cryotempo/processeddata/antarctica"
-                powerdB = -155
+                powerdB = -160
                 resolution = 2000
                 uncertainty = 7
                 maxPixelDist = 8
-                minCoh = 0.7
+                minCoh = 0.6
                 
                 run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
     
@@ -107,7 +107,9 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "applyUncertainty" : applyUncertainty
                               , "medianFilterIterations" : 4 
                               , "pocaParentDataSet" : parentDataSet
-                              , "pocaDataSet" : "ThwaitesBergPOCA" }
+                              , "pocaDataSet" : "ThwaitesBergPOCA"
+                              , "MalardEnvironment": "MALARD-PROD"
+                              , "generatePointProduct": False}
                 
                 request = pr.ProcessingRequest(loadConfig)
                 
@@ -125,6 +127,7 @@ def main( loadData, applyUncertainty, runGridding ):
 if __name__ == "__main__":
     loadData = False
     applyUncertainty = False
+    generatePointProduct = False
     runGridding = True
     
     main(loadData, applyUncertainty, runGridding )

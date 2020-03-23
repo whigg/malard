@@ -12,8 +12,6 @@ import sys
 
 from datetime import datetime
 
-client = c.MalardClient(environmentName="MALARD-PROD",notebook=False)
-
 jakobshavn = "/data/puma1/scratch/cryotempo/notebook/shpfiles/jakobshaven_NPS.shp"
 petermann = "/data/puma1/scratch/cryotempo/notebook/shpfiles/petermann_NPS.shp"
 
@@ -65,8 +63,9 @@ def applyDemDiffMad( df, demDiffMadNew ):
     
     return res_df
 
-def loadAndJoinToPoca(  dsSwath, dsPoca, filters, columns_swath, extentFilter = None, minT = None, maxT = None, bb = None, bb_offset=None, newDemDiffMad = None, adjustWaveform=True):
- 
+def loadAndJoinToPoca(  dsSwath, dsPoca, filters, columns_swath, malardEnv, extentFilter = None, minT = None, maxT = None, bb = None, bb_offset=None, newDemDiffMad = None, adjustWaveform=True):
+
+    client = c.MalardClient(environmentName=malardEnv)
     filter_mask = []#[{"column":"inRegionMask","op":"eq","threshold":1}]
          
     swathResult = None

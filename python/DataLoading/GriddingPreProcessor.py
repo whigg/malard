@@ -51,21 +51,20 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     keepIntermediates = loadConfig["keepIntermediateDems"]
     pocaDemDiff = loadConfig["pocaDemDiff"]
     uncResultDataSet = loadConfig["resultsetName"] 
-    
+
+    malardEnv = loadConfig["MalardEnvironment"]
+
     pocaParentDataSet = loadConfig["pocaParentDataSet"]
     pocaDataSet = loadConfig["pocaDataSet"]
-    
-    
+
     mask = '/data/puma/scratch/cryotempo/masks_raster/GrIS_noLRM_{}.tif'.format(res) if region == "greenland" else '/data/puma1/scratch/cryotempo/masks_raster/AIS_dem_noLrm_2km.tif'
     gris_dem = '/data/puma/scratch/cryotempo/underlying_dems/greenland_arctic_dem/combined/GrIS_dem_2km.tif' if region == "greenland" else "/data/puma1/scratch/cryotempo/underlying_dems/antarctic/combined/AIS_dem_2km.tif"
     
     pub_date = datetime(pub_year, pub_month,15,0,0,0)
     window_start = pub_date - relativedelta(days=pub_date.day) + relativedelta(days=1) - relativedelta(months=1)
     window_end = window_start + relativedelta(months=3) - timedelta(seconds=1)    
-    
-    output_dir = loadConfig["resultPath"]
-    #client = mc.MalardClient("MALARD-PROD",notebook=notebook)
-    client = mc.MalardClient("DEVv2",notebook=notebook)
+
+    client = mc.MalardClient(malardEnv)
     
     projections = ['x','y','time','demDiff','elev_adjustment','Q_uStd','elev','coh','powerScaled','inRegionMask']
     

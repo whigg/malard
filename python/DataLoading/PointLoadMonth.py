@@ -11,6 +11,7 @@ import DataSetLoader as dsl
 import DataSetLoader_poca as dslp
 import PointPreProcessor as ppp
 import ProcessingRequest as pr
+import PointProcessor as pp
 
 import sys
 
@@ -27,13 +28,17 @@ if __name__ == "__main__":
     
     loadData = loadConfig["loadData"]
     applyUncertainty = loadConfig["applyUncertainty"]
+    generatePointProduct = loadConfig["generatePointProduct"]
     
     print("Running for month=[{month}] and year=[{year}]".format(month=month, year=year))
     
     if loadData:
-        #dsl.main(month,year,loadConfig)
+        dsl.main(month,year,loadConfig)
     
         dslp.main(month,year,loadConfig)
     
     if applyUncertainty:
         ppp.main( month, year, loadConfig, maxDemDiffMad=loadConfig["demDiffMad"], newMaxDemDiffMad=None, adjustWaveform=False)
+
+    if generatePointProduct:
+        pp.main( month, year, loadConfig)
