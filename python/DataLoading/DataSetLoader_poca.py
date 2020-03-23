@@ -88,7 +88,8 @@ def main(month, year, loaderConfig):
     dataSet = loaderConfig["dataSetPoca"]
     region = loaderConfig["region"]
     swathdir = loaderConfig["swathDir"]
-    
+    environmentName = loaderConfig["MalardEnvironment"]
+
     tempdir = '/data/puma1/scratch/v2/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
@@ -104,7 +105,6 @@ def main(month, year, loaderConfig):
     maskFilters = [maskFilterIce, maskFilterLRM]
     
     gridCellSize = 100000
-    environmentName = 'DEVv2'
     
     years = [year]
     months = [month]
