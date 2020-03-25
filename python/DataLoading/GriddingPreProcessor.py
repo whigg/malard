@@ -71,7 +71,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     #projections = ['x','y','time','powerScaled','coh','elev','inRegionMask']
     
-    filters_poca = [{"column":"height_err","op":"eq","threshold":0.0}, {"column":"demDiff","op":"lte","threshold":pocaDemDiff}, {"column":"demDiff","op":"gte","threshold":-pocaDemDiff}]
+    filters_poca = [{"column":"demDiff","op":"lte","threshold":pocaDemDiff}, {"column":"demDiff","op":"gte","threshold":-pocaDemDiff}]#[{"column":"height_err","op":"eq","threshold":0.0}, {"column":"demDiff","op":"lte","threshold":pocaDemDiff}, {"column":"demDiff","op":"gte","threshold":-pocaDemDiff}]
     
     output_dir = loadConfig["resultPath"]
     
@@ -203,10 +203,12 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     post_dem = datetime.now()
     
-    maskedDemFile = mf.applyMedianFilter(dem, diffFilePath, loadConfig["medianFilterIterations"])
+    for it in loadConfig["medianFilterIterations"]:
     
-    #Now compute the diff
-    grid_tif.gdal_diff(maskedDemFile,grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
+        maskedDemFile = mf.applyMedianFilter(dem, diffFilePath, it)
+    
+        #Now compute the diff
+        grid_tif.gdal_diff(maskedDemFile,grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
     
     print("Dem creation took {}s".format((post_dem - post_csv).total_seconds()))
     

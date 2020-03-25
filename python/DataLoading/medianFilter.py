@@ -139,7 +139,7 @@ def applyMedianFilter( demFilePath, diffFilePath, numIterations ):
     result.GetRasterBand(1).WriteArray(mask)
     result = None   
     
-    demFileName = fullPath.replace(".tif","_masked.tif")
+    demFileName = demFilePath.replace(".tif","_masked_{}.tif".format(numIterations))
     result = driver.CreateCopy(demFileName, gdal.Open(fullPath))
     result.GetRasterBand(1).WriteArray(demArray)
     result = None

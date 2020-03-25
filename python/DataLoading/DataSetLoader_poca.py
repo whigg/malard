@@ -90,7 +90,7 @@ def main(month, year, loaderConfig):
     swathdir = loaderConfig["swathDir"]
     environmentName = loaderConfig["MalardEnvironment"]
 
-    tempdir = '/data/puma1/scratch/v2/malard/tempnetcdfs'
+    tempdir = '/data/puma/scratch/malard/tempnetcdfs'
     #year = int(argv[0])
     #month = int(argv[1])
     columnFilters = []#[{'column':'coh','op':'gte','threshold':0.3},{'column':'power','op':'gte','threshold':100.0}]

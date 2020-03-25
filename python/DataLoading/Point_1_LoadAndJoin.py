@@ -104,16 +104,16 @@ def loadAndJoinToPoca(  dsSwath, dsPoca, filters, columns_swath, malardEnv, exte
         
         swath['wfUnique']=swath['time']*100000+swath['wf_number']
         
-        if dsSwath.dataSet.endswith("_d"):
+        #if dsSwath.dataSet.endswith("_d"):
+        #    
+        #    powerdB = swath["powerdB"]
+        #    powerdBEsa = 10*np.log10(1e9*np.power(10,powerdB/10))
             
-            powerdB = swath["powerdB"]
-            powerdBEsa = 10*np.log10(1e9*np.power(10,powerdB/10))
+        #    swath["powerdB"] = powerdBEsa
             
-            swath["powerdB"] = powerdBEsa
-            
-            print("Nr rows before power filter {}".format(len(swath)))
-            swath = swath[swath["powerdB"] > -160.0 ]
-            print("Nr rows after power filter {}".format(len(swath)))
+        #    print("Nr rows before power filter {}".format(len(swath)))
+        #    swath = swath[swath["powerdB"] > -160.0 ]
+        #    print("Nr rows after power filter {}".format(len(swath)))
         
         if newDemDiffMad is not None: 
             swath = applyDemDiffMad( swath, newDemDiffMad )

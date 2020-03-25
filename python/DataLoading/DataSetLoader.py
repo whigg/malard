@@ -48,7 +48,7 @@ def dateFromFileName( file ):
         
 def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize, regionMask ):
     
-    query = aq.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
+    query = aq.AsyncDataSetQuery( 'ws://localhost:9000',environmentName)
     i = 0 
     results = []    
     for file,dataTime in swathfiles:

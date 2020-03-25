@@ -65,14 +65,14 @@ def main( loadData, applyUncertainty, runGridding ):
                 swath_dir = find_swath_dir(dataSetPath)
                 print(swath_dir)
                 
-                monthsAndYears = [(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
+                monthsAndYears = getMonthsAndYears(listdir(swath_dir)) #[(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
                 print(monthsAndYears)
                 #Load the swath and the Poca.
-                ds_swath = "swath_c_{}".format(ds)
-                ds_poca = "poca_c_{}".format(ds)
+                ds_swath = "swath_c_nw_{}".format(ds)
+                ds_poca = "poca_c_nw_{}".format(ds)
                 demDiffMad = 6
                 pocaDemDiff = 100
-                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_oib"
+                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_nw_bD"
                 powerdB = -160
                 resolution = 2000
                 uncertainty = 7
@@ -105,12 +105,12 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "coh" : minCoh
                               , "loadData" : loadData
                               , "applyUncertainty" : applyUncertainty
-                              , "medianFilterIterations" : 4 
-                              , "pocaParentDataSet" : parentDataSet
-                              , "pocaDataSet" : "poca_c_nw_esa"
+                              , "medianFilterIterations" : [4,5,6,7,8,9] 
+                              , "pocaParentDataSet" : "test"
+                              , "pocaDataSet" : "poca_d_nw_esa_demDiff"
                               , "MalardEnvironment": "MALARD-PROD"
                               , "generatePointProduct": False
-                              , "GridIncludePoca":False}
+                              , "GridIncludePoca":True}
                 
                 request = pr.ProcessingRequest(loadConfig)
                 
@@ -119,7 +119,7 @@ def main( loadData, applyUncertainty, runGridding ):
                 prc.main("PointLoadMonth", 6, monthsAndYears, request )
                 
                 if runGridding :
-                    g_monthsyears = monthsAndYears[1:-1]
+                    g_monthsyears = monthsAndYears[1:-1]#[(2,2011)]
                     print(g_monthsyears)
                 
                     for m,y in g_monthsyears:
@@ -127,8 +127,8 @@ def main( loadData, applyUncertainty, runGridding ):
                     
 if __name__ == "__main__":
     loadData = False
-    applyUncertainty = True
+    applyUncertainty = False
     generatePointProduct = False
-    runGridding = False
+    runGridding = True
     
     main(loadData, applyUncertainty, runGridding )
