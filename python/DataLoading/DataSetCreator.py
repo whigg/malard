@@ -39,7 +39,7 @@ def find_swath_dir( path ):
             raise ValueError("No files with extension {} found".format(".nc"))
         return find_swath_dir(os.path.join(path, sub_path[0]) )
     
-def main( loadData, applyUncertainty, runGridding ):
+def main( loadData, applyUncertainty, runGridding, generateESAPointProduct ):
     for parentDataSet in listdir( base_dir ):
         
         parentDataSetPath = os.path.join(base_dir, parentDataSet )
@@ -109,7 +109,7 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "pocaParentDataSet" : "test"
                               , "pocaDataSet" : "poca_d_nw_esa_demDiff"
                               , "MalardEnvironment": "MALARD-PROD"
-                              , "generatePointProduct": False
+                              , "generatePointProduct": generateESAPointProduct
                               , "GridIncludePoca":True}
                 
                 request = pr.ProcessingRequest(loadConfig)
@@ -128,7 +128,7 @@ def main( loadData, applyUncertainty, runGridding ):
 if __name__ == "__main__":
     loadData = False
     applyUncertainty = False
-    generatePointProduct = False
-    runGridding = True
+    generateESAPointProduct = True
+    runGridding = False
     
-    main(loadData, applyUncertainty, runGridding )
+    main(loadData, applyUncertainty, runGridding, generateESAPointProduct )
