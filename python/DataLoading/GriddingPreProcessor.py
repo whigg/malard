@@ -12,6 +12,8 @@ import Gridding_1_noDataValues as grid
 import Grid_6_ConvertToTiff_Interp as grid_tif
 import medianFilter as mf
 
+import GriddedProductProcessor as gpp
+
 #minPoints = 1 # 2,5,10
 #maxPixelDist = 6 # 2, 4                  #Number of pixels to use in the second interpolation phase.
 smoothIterations=0 
@@ -203,12 +205,19 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     
     post_dem = datetime.now()
     
-    for it in loadConfig["medianFilterIterations"]:
+    
+    iters = loadConfig["medianFilterIterations"]
+    iteration = iters[-1:][0]
+    for it in iters:
     
         maskedDemFile = mf.applyMedianFilter(dem, diffFilePath, it)
     
         #Now compute the diff
         grid_tif.gdal_diff(maskedDemFile,grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
+    
+        if iteration == it and loadConfig["generateESAGriddedProduct"]:
+            print("Generating ESA Gridded Product")
+            gpp.createGriddedProductFromTif(swath_ds, maskedDemFile, loadConfig, bb_swath, pub_date, proj4)
     
     print("Dem creation took {}s".format((post_dem - post_csv).total_seconds()))
     

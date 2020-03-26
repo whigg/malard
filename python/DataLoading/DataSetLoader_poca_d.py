@@ -3,7 +3,6 @@
 import sys
 from os import listdir
 from datetime import datetime
-import MalardClient.AsyncDataSetQuery as aq
 import pandas as pd
 import numpy as np
 import re
@@ -15,6 +14,7 @@ from osgeo import gdal
 
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
+from datetime import timezone
 
 import Timeseries as t
 
@@ -162,8 +162,10 @@ def main(month, year):
 
 def dateFromFileName( file ):
     matchObj = re.findall(r'SIN_2__(\d+T\d+)', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
-    return dataTime
+    date_obj = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
+    t = datetime(date_obj.year, date_obj.month,date_obj.day,date_obj.hour,date_obj.minute, date_obj.second, tzinfo=timezone.utc)
+
+    return t
     
 def isyearandmonth(file, year, month ):
     matchObj = re.findall(r'2__(\d+T\d+)', file)

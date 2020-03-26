@@ -54,11 +54,6 @@ def createHeader( attributes, source_files = {}, gridded = False  ):
          
     sph = addElement( vh, "SPH"  )
     
-    addElement(sph, "SPH_Descriptor", "{} SPECIFIC HEADER".format(attributes["File_Type"]) )
-    ti = addElement(sph, "Time_Information")
-    addElement( ti, "Start_Record_Time", "UTC={}".format(attributes["Validity_Start"]))
-    addElement( ti, "Stop_Record_Time", "UTC={}".format(attributes["Validity_Stop"]))
-    
     pl = addElement(sph, "Product_Location")
     addElement(pl, "Min_X", str(attributes["Min_X"]), { "unit" : "metres", "proj4" : attributes["Projection"]  } )
     addElement(pl, "Max_X", str(attributes["Max_X"]), { "unit" : "metres", "proj4" : attributes["Projection"] } )
@@ -73,6 +68,7 @@ def createHeader( attributes, source_files = {}, gridded = False  ):
         iw = addElement(sph, "Interpolation_Window")
         addElement(iw, "Window_Start", "UTC={}".format(attributes["Validity_Start"]))
         addElement(iw, "Window_End", "UTC={}".format(attributes["Validity_Stop"]))
+        addElement(iw, "Window_Centre", "UTC={}".format(attributes["Pub_Date"]))
         
     dsds = addElement(sph, "DSDs" )
     list_dsds = addElement(dsds, "List_of_DSDs", attr={"count" : str(len(source_files)) } )
@@ -94,13 +90,6 @@ def createHeader( attributes, source_files = {}, gridded = False  ):
     reparsed = minidom.parseString(rough_string)
     pretty = reparsed.toprettyxml(indent="    ")
     return pretty
-
-attributes = {"File_Description": "L3 Point thematic product containing swath data generated from CryoSat2 SARIN data.", "File_Type": "THEM_POINT", "File_Name" : "testing", "Validity_Start" : datetime.now(), "Validity_Stop" : datetime.now(), "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : 1000,"Projection": "proj4 code..", "Min_X":0, "Max_X":100000,"Min_Y":-200000,"Max_Y":-100000 } 
-
-root = createHeader( attributes )
-
-with open( "{}.HDR".format(attributes["File_Name"]), "wt", encoding="utf8"  ) as f:
-    f.write(root)
 
 
 
