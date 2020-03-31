@@ -84,13 +84,13 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     dataset.geospatial_projection = proj4   
     dataset.institution = "ESA, UoE, Earthwave, isardSAT "                 
     dataset.keywords = "Land Ice > Elevation Model  > Elevation Points > Swath Processing > CryoSat2 "                 
-    dataset.keywords_vocabulary = "NetCDF COARDS Climate and Forecast Standard Names "                 
+    dataset.keywords_vocabulary = "NetCDF Climate and Forecast Standard Names "                 
     dataset.platform = " Cryosat-2"
     dataset.processing_level = "L3"
     dataset.product_version = "1.0"
     dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop "                 
-    dataset.references = "http://www.cryotempo.org"
-    dataset.source = "Swath data generated from Cryo-Sat2 SARIN data."
+    dataset.references = "CryoSat-2 swath interferometric altimetry for mapping ice elevation and elevation change, In Advances in Space Research, (2017), ISSN 0273-1177, https://doi.org/10.1016/j.asr.2017.11.014"
+    dataset.source = "Swath data generated from CryoSat-2 SARIn data."
     dataset.version = 1
     dataset.summary = "Land Ice Elevation Thematic Point Product." 
     dataset.time_coverage_duration = "P1M"
