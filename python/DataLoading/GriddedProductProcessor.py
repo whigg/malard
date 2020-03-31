@@ -133,14 +133,14 @@ def writeGriddedProduct(output_path, dataSet, bbox,  xcoords, ycoords, data, res
     dataset.geospatial_global_uncertainty = 15.0
     dataset.geospatial_global_uncertainty_units = "metres"
     dataset.institution = "ESA, UoE, Earthwave, isardSAT"                 
-    dataset.keywords = "Land Ice > Gridded > Elevation Model  > Elevation Points > Swath Processing > CryoSat2"                 
-    dataset.keywords_vocabulary = "NetCDF COARDS Climate and Forecast Standard Names"                 
+    dataset.keywords = "Land Ice > Gridded > Elevation Model  > Elevation Points > Swath Processing > CryoSat-2"                 
+    dataset.keywords_vocabulary = "NetCDF Climate and Forecast Standard Names"                 
     dataset.platform = " Cryosat-2"
     dataset.processing_level = "L3"
     dataset.product_version = "1.0"
     dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop"                 
     dataset.references = "http://cryotempo.org"
-    dataset.source = "Gridded Swath data generated from Cryo-Sat2 SARIN data."
+    dataset.source = "Gridded Swath data generated from CryoSat-2 SARIn data."
     dataset.version = 1
     dataset.summary = "Land Ice Elevation Thematic Gridded Product" 
     dataset.time_coverage_duration = "P3M"
