@@ -89,7 +89,7 @@ def writeGriddedProduct(output_path, dataSet, bbox,  xcoords, ycoords, data, res
     pubdatestr = "{}".format(pub_date.strftime("%Y_%m"))
     fileNameExt = ".nc"
     filetype = "THEM_GRID_"
-    fileName = "CS_OFFL_{}_{}_{}_V1".format( filetype, dataSet.region, pubdatestr )
+    fileName = "CS_OFFL_{}_{}_{}_V001".format( filetype, dataSet.region, pubdatestr )
     productPath = "{}/{}/{}{}".format( pub_date.strftime("%Y"), pub_date.strftime("%m"),fileName, fileNameExt )
     fullPath = os.path.join(output_path, productPath)
 
