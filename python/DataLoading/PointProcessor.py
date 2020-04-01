@@ -42,7 +42,7 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     yearmonthpath = yearmonth.replace("_","/")
     fileNameExt = ".nc"
     filetype = "THEM_POINT"
-    fileName = "CS_OFFL_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, yearmonth, formatXYStr(bbox.minX), formatXYStr(bbox.minY) )
+    fileName = "CS_OFFL_{}_{}_{}_{}_{}_V001".format( filetype, dataSet.region, yearmonth, formatXYStr(bbox.minX), formatXYStr(bbox.minY) )
     productPath = "{}/{}{}".format( yearmonthpath,fileName, fileNameExt )#"y{}/m{}/cell_{}_{}/{}{}".format(bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName, fileNameExt)
     fullPath = os.path.join(output_path, productPath)
     headerPath = os.path.join(output_path, "{}/{}.HDR".format( yearmonthpath, fileName )) #"{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName)
