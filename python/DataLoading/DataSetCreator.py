@@ -65,7 +65,7 @@ def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, gene
                 swath_dir = find_swath_dir(dataSetPath)
                 print(swath_dir)
                 
-                monthsAndYears = [(3,2011),(4,2011),(5,2011)]#getMonthsAndYears(listdir(swath_dir))
+                monthsAndYears = [(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
                 print(monthsAndYears)
                 #Load the swath and the Poca.
                 ds_swath = "swath_c_{}".format(ds)
@@ -76,10 +76,10 @@ def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, gene
                 powerdB = -160
                 resolution = 2000
                 uncertainty = 7
-                maxPixelDist = 8
+                maxPixelDist = 20
                 minCoh = 0.6
                 
-                run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}Load".format(ds, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
+                run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
     
                 output_dir = os.path.join(resultBasePath, run)
     
@@ -120,17 +120,16 @@ def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, gene
                 prc.main("PointLoadMonth", 6, monthsAndYears, request )
                 
                 if runGridding :
-                    g_monthsyears =monthsAndYears[1:-1]#[(2,2011)]
+                    g_monthsyears =[(4,2011),(4,2012),(4,2013),(4,2014),(4,2015),(4,2016)]#[(2,2011)]
                     print(g_monthsyears)
                 
-                    for m,y in g_monthsyears:
-                        gpp.main( m,  y, loadConfig )
+                    prc.main("GriddingRunMonth", 6, g_monthsyears, request)
                     
 if __name__ == "__main__":
     loadData = False
     applyUncertainty = False
-    generateESAPointProduct = True
-    runGridding = False
-    generateESAGriddedProduct = False
+    generateESAPointProduct = False
+    runGridding = True
+    generateESAGriddedProduct =False
     
     main(loadData, applyUncertainty, runGridding, generateESAPointProduct, generateESAGriddedProduct )
