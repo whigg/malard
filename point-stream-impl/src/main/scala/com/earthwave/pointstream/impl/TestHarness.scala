@@ -8,39 +8,35 @@ import ucar.nc2.Variable
 
 import scala.io.Source
 
+import org.gdal.ogr.ogr
+
+import org.gdal.ogr.{Driver, Layer, Geometry, ogrConstants, DataSource,FieldDefn,Feature}
+
+
+
 object TestHarness {
 
+  ogr.RegisterAll()
+
   def main(args : Array[String]):Unit ={
+    val driver = ogr.GetDriverByName("ESRI Shapefile")
+    val inmemDriver = ogr.GetDriverByName("MEMORY")
 
-    //dummy catalogue path
-    val path = "C:\\Earthwave\\v2\\mtngla\\catalogue.csv"
-    val outPath = "C:\\Earthwave\\v2\\mtngla\\test.nc"
+    val file = "/data/eagle/project-cryo-tempo/data/masks/greenland/NoPeripheryMergeReProj/GRE_Basins_IMBIE2_v1.3_NoPeriphReproj.shp"
 
-    val files = Source.fromFile(path).getLines().map( str => {val tokens = str.split(",")
-                                                                        tokens(1)  }).drop(1).toList
+    try {
+      val source = driver.Open(file)
+      val layer = source.GetLayer(0)
+    }
+    catch{
+      case e => Exception{
 
-    val startTime = LocalDateTime.now()
+        e.printStackTrace()
+        print("Error..." )
+      }
 
-    val tmpreader = new NetCdfReader(files.head, Set[String]())
-    val writer = new NetCdfWriter(outPath, tmpreader.getVariables().map( x => WriterColumn.Column(x.getShortName, 0, x.getDataType)),List[Column](),List[Column](),Map[String, DataType]())
-    tmpreader.close()
+    }
 
-    val readers = files.map( f => new NetCdfReader(f, Set[String]()))
-
-    readers.map( r => {
-                        val data = r.getVariables()
-                        writer.writeBuffered(data)
-                      }   )
-
-    writer.writeBuffered( List[Variable](), true )
-
-    readers.foreach(r => r.close())
-
-    writer.close()
-
-    val elapsedTime = LocalDateTime.now().atOffset(ZoneOffset.UTC).toEpochSecond - startTime.atOffset(ZoneOffset.UTC).toEpochSecond
-
-    println(s"Took [$elapsedTime]s.")
 
   }
 
