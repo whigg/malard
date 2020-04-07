@@ -30,17 +30,22 @@ def ensure_dir(file_path):
 
 def formatXYStr( x ):
 
-    return "+{}".format(x) if x >=0 else str(x)
+    strXY = "+{}".format(x) if x >=0 else str(x)
+    
+    padding = ["_" for i in range(0, 9 - len(strXY)) ]
+    
+    return "{}{}".format(strXY, "".join(padding))
 
 def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index ):
     
     yearmonth = bbox.minT.strftime("%Y_%m")
+    yearmonthpath = yearmonth.replace("_","/")
     fileNameExt = ".nc"
     filetype = "THEM_POINT"
-    fileName = "CS_OFFL_{}_{}_{}_{}_{}_V1".format( filetype, dataSet.region, yearmonth, formatXYStr(bbox.minX), formatXYStr(bbox.minY) )
-    productPath = "{}{}".format( fileName, fileNameExt )#"y{}/m{}/cell_{}_{}/{}{}".format(bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName, fileNameExt)
+    fileName = "CS_OFFL_{}_{}_{}_{}_{}_V001".format( filetype, dataSet.region, yearmonth, formatXYStr(bbox.minX), formatXYStr(bbox.minY) )
+    productPath = "{}/{}{}".format( yearmonthpath,fileName, fileNameExt )#"y{}/m{}/cell_{}_{}/{}{}".format(bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName, fileNameExt)
     fullPath = os.path.join(output_path, productPath)
-    headerPath = os.path.join(output_path, "{}.HDR".format( fileName )) #"{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName)
+    headerPath = os.path.join(output_path, "{}/{}.HDR".format( yearmonthpath, fileName )) #"{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, bbox.minT.year, bbox.minT.month, formatXYStr(bbox.minX), formatXYStr(bbox.minY), fileName)
 
     fileDescription = "L3 Point thematic product containing swath data generated from CryoSat2 SARIN data."    
     
@@ -77,21 +82,21 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     dataset.geospatial_y_units = "metres" 
     dataset.geospatial_x_units = "metres"
     dataset.geospatial_projection = proj4   
-    dataset.institution = "ESA, UoE, Earthwave, isardSAT"                 
-    dataset.keywords = "Land Ice > Elevation Model  > Elevation Points > Swath Processing > CryoSat2"                 
-    dataset.keywords_vocabulary = "NetCDF COARDS Climate and Forecast Standard Names"                 
+    dataset.institution = "ESA, UoE, Earthwave, isardSAT "                 
+    dataset.keywords = "Land Ice > Elevation Model  > Elevation Points > Swath Processing > CryoSat2 "                 
+    dataset.keywords_vocabulary = "NetCDF Climate and Forecast Standard Names "                 
     dataset.platform = " Cryosat-2"
     dataset.processing_level = "L3"
     dataset.product_version = "1.0"
-    dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop"                 
-    dataset.references = "http://www.cryotempo.org"
-    dataset.source = "Swath data generated from Cryo-Sat2 SARIN data."
+    dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop "                 
+    dataset.references = "CryoSat-2 swath interferometric altimetry for mapping ice elevation and elevation change, In Advances in Space Research, (2017), ISSN 0273-1177, https://doi.org/10.1016/j.asr.2017.11.014"
+    dataset.source = "Swath data generated from CryoSat-2 SARIn data."
     dataset.version = 1
-    dataset.summary = "Land Ice Elevation Thematic Point Product" 
+    dataset.summary = "Land Ice Elevation Thematic Point Product." 
     dataset.time_coverage_duration = "P1M"
     dataset.time_coverage_start = minT 
     dataset.time_coverage_end = maxT
-    dataset.title = "Land Ice Elevation Thematic Point Product"
+    dataset.title = "Land Ice Elevation Thematic Point Product."
     swathIdsList = [ "{} : {}".format(fileid, file) for file, fileid in swathIds.items() ] 
     dataset.fileids = np.array(swathIdsList)
 
@@ -131,7 +136,7 @@ def writePointProduct(output_path, dataSet, bbox, data, proj4, swathIds, index )
     ys[:] = np.array(data['y'])
     elevations[:] = np.array(data['elev'])
     uncertainties[:] = np.array(data['Q_uStd'])
-    pocaswath[:] = np.array(data[data['swathPoca']])
+    pocaswath[:] = np.array(data['swathPoca'],"S5")
     inputfileid[:] = np.array(data['swathFileId'])
     dataset.close()
 
@@ -149,11 +154,11 @@ def main( pub_month, pub_year, loadConfig ):
     uncertainty_threshold = loadConfig["uncertainty_threshold"] if "uncertainty_threshold" in loadConfig else None
     powerdB = loadConfig["powerdB"]
     coh = loadConfig["coh"]
-    uncResultDataSet = loadConfig["resultsetName"]
+    dataSetName = loadConfig["resultsetName"]
 
     pocaParentDataSet = loadConfig["pocaParentDataSet"]
     pocaDataSetName = loadConfig["pocaDataSet"]
-
+    pocaDemDiff = loadConfig["pocaDemDiff"]
     output_path = os.path.join( loadConfig["resultPath"], "pointProduct")
     ensure_dir(output_path)
 
@@ -161,60 +166,75 @@ def main( pub_month, pub_year, loadConfig ):
 
     client = MalardClient( malardEnv )
 
-    datasetName = "{}_unc".format(uncResultDataSet) if uncertainty_threshold is not None else uncResultDataSet
-    dataSet = DataSet( parentDataSet, datasetName, region)
-
+    uncDatasetName = "{}_unc".format(dataSetName) if uncertainty_threshold is not None else dataSetName
+    uncDataSet = DataSet( parentDataSet, uncDatasetName, region)
+    dataSet = DataSet( parentDataSet, dataSetName, region)
+    
     pocaDataSet = DataSet(pocaParentDataSet, pocaDataSetName, region )
+    pocaDataSet_noDemDiff = DataSet(pocaParentDataSet, pocaDataSetName.replace("_demDiff",""), region )
 
     projections = ['x','y','time','elev','powerdB','coh','demDiff','demDiffMad','swathFileId','Q_uStd']
-    filters =  [{'column':'Q_uStd','op':'lte','threshold':uncertainty_threshold},{'column':'powerdB','op':'gte','threshold':powerdB},{'column':'coh','op':'gte','threshold':coh},{'column':'InRegionMask','op':'eq','threshold':1.0}]
-    filters_poca = [{"column":"height_err","op":"eq","threshold":0.0}, {"column":"demDiff","op":"lte","threshold":pocaDemDiff}, {"column":"demDiff","op":"gte","threshold":-pocaDemDiff}]
+    filters =  [{'column':'Q_uStd','op':'lte','threshold':uncertainty_threshold},{'column':'powerdB','op':'gte','threshold':powerdB},{'column':'coh','op':'gte','threshold':coh},{'column':'inRegionMask','op':'eq','threshold':1.0}]
+    filters_poca = [{"column":"demDiff","op":"lte","threshold":pocaDemDiff}, {"column":"demDiff","op":"gte","threshold":-pocaDemDiff},{'column':'inRegionMask','op':'eq','threshold':1.0}]
 
     from_dt = datetime(pub_year, pub_month, 1,0,0,0)
     to_dt = from_dt + relativedelta(months=1) - timedelta(seconds=1)
 
-    bb = client.boundingBox( dataSet )
-    gridcells = client.gridCells(dataSet, BoundingBox(bb.minX, bb.maxX, bb.minY, bb.maxY, from_dt, to_dt))
+    bb = client.boundingBox( uncDataSet )
+    gridcells = client.gridCells(uncDataSet, BoundingBox(bb.minX, bb.maxX, bb.minY, bb.maxY, from_dt, to_dt))
     
-    proj4 = client.getProjection(dataSet).proj4
+    proj4 = client.getProjection(uncDataSet).proj4
     
     print("Number of Gridcells found to process {}".format(len(gridcells)))
     process_start = datetime.now()
     
     print("MinT={} MaxT={}".format(from_dt, to_dt))
     #Create a shapefile index for each month
-    index = s.ShapeFileIndex(output_path, "THEM_POINT", proj4, dataSet.region, from_dt )
+    index = s.ShapeFileIndex(output_path, "THEM_POINT", proj4, uncDataSet.region, from_dt )
+    
     for i, gc in enumerate(gridcells):
         gc_start = datetime.now()
         month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
-        queryInfo = client.executeQuery(dataSet, month_gc, projections=projections, filters=filters)
-
-        if queryInfo.status == "Success" and not resultInfo.resultFileName.startswith("Error") :
-
-            pocaInfo = client.executeQuery( pocaDataSet, gc, filters=filters_poca  )
-
-            pocaDf =  pocaInfo.to_df if pocaInfo.status == "Success" and not pocaInfo.resultFileName.startswith("Error") else pd.DataFrame()
-
-            pocaStr = np.empty(len(pocaDf))
-            pocaStr.fill( "poca" )
-            pocaDf["swathPoca"] = pocaStr
-
-            print( "Poca points to include {}".format(len(pocaDf)))
-
+        queryInfo = client.executeQuery(uncDataSet, month_gc, projections=projections, filters=filters)
+       
+        if queryInfo.status == "Success" and not queryInfo.resultFileName.startswith("Error") :
+            
             data = queryInfo.to_df
 
-            dataSwathStr = np.array( len(data)  )
+            dataSwathStr = np.array( len(data), "S5"  )
             dataSwathStr.fill("swath")
             data["swathPoca"] = dataSwathStr
-
-            data = data if len(pocaDf) == 0 else pd.concat([data, pocaDf])
+            swath_file_ids = data['swathFileId'].unique()
+            pocaInfo = client.executeQuery( pocaDataSet, gc, filters=filters_poca  )
+            
+            pocaDf = pd.DataFrame()
+            if pocaInfo.status == "Success" and not pocaInfo.resultFileName.startswith("Error"):
+                pocaDf = pocaInfo.to_df
+                
+                if len(pocaDf) > 0:
+                    pocaStr = np.empty(len(pocaDf), "S5")
+                    pocaStr.fill( "poca" )
+                    pocaDf["swathPoca"] = pocaStr
+                    poca_file_ids = pocaDf['swathFileId'].unique()
+                    print( "Poca points to include {}".format(len(pocaDf)))
+                        
+                    data = pd.concat([data, pocaDf], sort=False)
 
             print("Found {} data rows".format(len(data)))
             if len(data) > 0:
-                file_ids = data['swathFileId'].unique()
-                results = client.getSwathNamesFromIds( dataSet, file_ids )
+                results = client.getSwathNamesFromIds( dataSet, swath_file_ids )
+                if len(pocaDf) > 0:
+                    try: 
+                        results.update(client.getSwathNamesFromIds(pocaDataSet_noDemDiff , poca_file_ids ))
+                    except KeyError as ex:
+                        print("Exception caught while retrieving swathIds for data set {} file ids {}".format(pocaDataSet_noDemDiff, poca_file_ids))
+                        raise KeyError(ex)
+                    
                 writePointProduct(output_path, dataSet, month_gc, data, proj4, results, index )
-
+                
+            client.releaseCacheHandle(pocaInfo.resultFileName)
+        else:
+            print("Grid Cells skipped X=[{}] Y=[{}] with message [{}] ".format(gc.minX, gc.minY, queryInfo.status))
         client.releaseCacheHandle(queryInfo.resultFileName)
 
     index.close()

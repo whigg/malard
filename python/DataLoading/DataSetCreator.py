@@ -39,7 +39,7 @@ def find_swath_dir( path ):
             raise ValueError("No files with extension {} found".format(".nc"))
         return find_swath_dir(os.path.join(path, sub_path[0]) )
     
-def main( loadData, applyUncertainty, runGridding ):
+def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, generateESAGriddedProduct ):
     for parentDataSet in listdir( base_dir ):
         
         parentDataSetPath = os.path.join(base_dir, parentDataSet )
@@ -65,18 +65,18 @@ def main( loadData, applyUncertainty, runGridding ):
                 swath_dir = find_swath_dir(dataSetPath)
                 print(swath_dir)
                 
-                monthsAndYears = getMonthsAndYears(listdir(swath_dir)) #[(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
+                monthsAndYears = [(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
                 print(monthsAndYears)
                 #Load the swath and the Poca.
-                ds_swath = "swath_c_nw_{}".format(ds)
-                ds_poca = "poca_c_nw_{}".format(ds)
+                ds_swath = "swath_c_{}".format(ds)
+                ds_poca = "poca_c_{}".format(ds)
                 demDiffMad = 6
                 pocaDemDiff = 100
-                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_nw_bD"
+                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_oib"
                 powerdB = -160
                 resolution = 2000
                 uncertainty = 7
-                maxPixelDist = 8
+                maxPixelDist = 20
                 minCoh = 0.6
                 
                 run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
@@ -105,12 +105,13 @@ def main( loadData, applyUncertainty, runGridding ):
                               , "coh" : minCoh
                               , "loadData" : loadData
                               , "applyUncertainty" : applyUncertainty
-                              , "medianFilterIterations" : [4,5,6,7,8,9] 
+                              , "medianFilterIterations" : [4,8] 
                               , "pocaParentDataSet" : "test"
                               , "pocaDataSet" : "poca_d_nw_esa_demDiff"
                               , "MalardEnvironment": "MALARD-PROD"
-                              , "generatePointProduct": False
-                              , "GridIncludePoca":True}
+                              , "generatePointProduct": generateESAPointProduct
+                              , "GridIncludePoca":False
+                              , "generateESAGriddedProduct":generateESAGriddedProduct}
                 
                 request = pr.ProcessingRequest(loadConfig)
                 
@@ -119,16 +120,16 @@ def main( loadData, applyUncertainty, runGridding ):
                 prc.main("PointLoadMonth", 6, monthsAndYears, request )
                 
                 if runGridding :
-                    g_monthsyears = monthsAndYears[1:-1]#[(2,2011)]
+                    g_monthsyears =[(4,2011),(4,2012),(4,2013),(4,2014),(4,2015),(4,2016)]#[(2,2011)]
                     print(g_monthsyears)
                 
-                    for m,y in g_monthsyears:
-                        gpp.main( m, y, loadConfig )
+                    prc.main("GriddingRunMonth", 6, g_monthsyears, request)
                     
 if __name__ == "__main__":
     loadData = False
     applyUncertainty = False
-    generatePointProduct = False
+    generateESAPointProduct = False
     runGridding = True
+    generateESAGriddedProduct =False
     
-    main(loadData, applyUncertainty, runGridding )
+    main(loadData, applyUncertainty, runGridding, generateESAPointProduct, generateESAGriddedProduct )

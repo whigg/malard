@@ -3,6 +3,7 @@
 from os import listdir
 import sys
 from datetime import datetime
+from datetime import timezone
 import re
 import pandas as pd
 import MalardClient.AsyncDataSetQuery as aq
@@ -43,8 +44,10 @@ def main(month, year, loaderConfig):
 
 def dateFromFileName( file ):
     matchObj = re.findall(r'2S_(\d+T\d+)', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
-    return dataTime
+    date_obj = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
+    t = datetime(date_obj.year, date_obj.month,date_obj.day,date_obj.hour,date_obj.minute, date_obj.second, tzinfo=timezone.utc)
+
+    return t
         
 def publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize, regionMask ):
     

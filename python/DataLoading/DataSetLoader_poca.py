@@ -6,16 +6,14 @@ Usage:
 
 import sys
 from os import listdir
-from datetime import datetime
-import MalardClient.AsyncDataSetQuery as aq
 import pandas as pd
 import numpy as np
-import re
 import netCDF4 
 import os
 import MalardClient.MalardClient as mc
 
 import ProcessingRequest as pr
+import DataSetLoader as dsl
 
 """Takes a list of swath files and column mappings, e.g. pocaH -> elev and creates a NetCDF with the mapped column names.
 
@@ -91,9 +89,7 @@ def main(month, year, loaderConfig):
     environmentName = loaderConfig["MalardEnvironment"]
 
     tempdir = '/data/puma/scratch/malard/tempnetcdfs'
-    #year = int(argv[0])
-    #month = int(argv[1])
-    columnFilters = []#[{'column':'coh','op':'gte','threshold':0.3},{'column':'power','op':'gte','threshold':100.0}]
+    columnFilters = []
     pocaColumns = {'pocaH' : 'elev', 'pocaLat' : 'lat','pocaLon' : 'lon', 'pocaWf' : 'wf_number' }
     
     includeColumns = []
@@ -112,7 +108,7 @@ def main(month, year, loaderConfig):
     for year in years:
         log_file = open( "log/{}_{}_{}_{}_swath_loading_log.csv".format(year, parentDataSet, dataSet, region),"w" )
         for month in months:
-            swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if  f.endswith(".nc") and isyearandmonth( f, year, month )]
+            swathfiles = [(f,dsl.dateFromFileName(f)) for f in listdir(swathdir) if  f.endswith(".nc") and dsl.isyearandmonth( f, year, month )]
             
             filtered_swaths = createTempFiles( swathfiles, swathdir, tempdir, pocaColumns, region )
             
@@ -120,81 +116,10 @@ def main(month, year, loaderConfig):
             print(message)
             log_file.write( message + "\n")
             if len(filtered_swaths) > 0:
-                publishData(log_file, environmentName, filtered_swaths, parentDataSet, dataSet, region, tempdir, columnFilters, includeColumns, gridCellSize, maskFilters )
+                dsl.publishData(environmentName, filtered_swaths, parentDataSet, dataSet, region, tempdir, columnFilters, includeColumns, gridCellSize, maskFilters )
             
             cleanUpTempFiles( filtered_swaths, tempdir )
 
-def dateFromFileName( file ):
-    matchObj = re.findall(r'2S_(\d+T\d+)', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
-    return dataTime
-        
-def publishData(log_file, environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns, gridCellSize, regionMask = None, xCol='lon', yCol='lat' ):
-    
-    query = aq.AsyncDataSetQuery( 'ws://localhost:9000',environmentName,False)
-    i = 0 
-    results = []    
-    for file,dataTime in swathfiles:
-        i = i + 1
-        print("Processing {} Count {}".format(file,i) )
-        result = query.publishSwathToGridCells( parentDataSet, dataSet, region, file, swathdir, dataTime, columnFilters, includeColumns, gridCellSize, xCol, yCol, maskFilters = regionMask )
-        if result.status == 'Success':
-            log_file.write("Processed file, {}, Succcessfully\n".format(file))
-            results.append(result.swathDetails)
-        else:
-            message = 'File, %s ,Result Status ,%s, Message ,%s\n' % ( file, result.status, result.message ) 
-            print(message)
-            log_file.write(message)
-        
-    data = []    
-    for result in results:
-        swathDetails = result
-        gridCells = pd.DataFrame(swathDetails['gridCells'])
-        gridCells['swathName'] = swathDetails['swathName']
-        gridCells['swathId'] = swathDetails['swathId']
-        gridCells['swathPointCount'] = swathDetails['swathPointCount']
-        gridCells['filteredSwathPointCount'] = swathDetails['filteredSwathPointCount']
-        data.append(gridCells)
-
-    df = pd.concat(data, ignore_index=True)
-
-    groupBy = df.groupby(['x','y','t','projection'])
-
-    for k,v in groupBy:
-        x,y,t,projection = k
-        files = list(v['fileName'])
-        result = query.publishGridCellPoints( parentDataSet, dataSet, region, x, y, t, gridCellSize, files, projection)
-        print('Result status %s' %(result.message))
-        query.releaseCache(files)
-    
-def isyearandmonth(file, year, month ):
-    print(file)
-    matchObj = re.findall(r'2S_(\d+T\d+)', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
-    
-    if dataTime.year == year and dataTime.month == month:
-        return True
-    else:
-        return False
-
-    
-def isyear( file, year ):
-    matchObj = re.findall(r'2S_(\d+T\d+)', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
-    
-    if dataTime.year == year:
-        return True
-    else:
-        return False
-
-def ismonth( file, month ):
-    matchObj = re.findall(r'2S_(\d+T\d+)', file)
-    dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
-    
-    if dataTime.month == month:
-        return True
-    else:
-        return False
 
 if __name__ == "__main__":
     args = sys.argv[1:]

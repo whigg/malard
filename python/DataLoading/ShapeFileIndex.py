@@ -22,7 +22,7 @@ class ShapeFileIndex:
         # set up the shapefile driver
         driver = ogr.GetDriverByName("ESRI Shapefile")
         
-        path = "{}/y{}/m{}/CS_TEST_{}_index_{}_{}.shp".format(base_path, str(pub_date.year), str(pub_date.month), product_type, region, pub_date.strftime("%Y%m") )
+        path = "{}/{}/{}/CS_OFFL_{}_index_{}_{}.shp".format(base_path, pub_date.strftime("%Y"), pub_date.strftime("%m"), product_type, region, pub_date.strftime("%Y_%m") )
         ensure_dir(path)
         
         # create the data source
@@ -62,11 +62,11 @@ class ShapeFileIndex:
       
       feature.SetField("website","http://www.cryotempo.org")
       feature.SetField("info", "info@earthwave.co.uk")
-      feature.SetField("min_x", pp.formatXYStr(gc.minX) )
-      feature.SetField("max_x", pp.formatXYStr(gc.maxX) )
+      feature.SetField("min_x", gc.minX )
+      feature.SetField("max_x", gc.maxX )
       feature.SetField("pub_dat", self.pub_date.isoformat())  
-      feature.SetField("min_y", pp.formatXYStr(gc.minY))
-      feature.SetField("max_y", pp.formatXYStr(gc.maxY))
+      feature.SetField("min_y", gc.minY)
+      feature.SetField("max_y", gc.maxY)
       feature.SetField("units", 'metres')  
       feature.SetField("pdgs_path", pdgs_path )
     

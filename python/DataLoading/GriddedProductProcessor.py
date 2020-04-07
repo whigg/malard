@@ -7,124 +7,98 @@ Created on Wed Sep 25 15:26:36 2019
 """
 import netCDF4 as n
 
-import pandas as pd
-
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
-from datetime import timedelta
-from math import floor
+from datetime import timezone
 
-from MalardClient.MalardClient import MalardClient
-from MalardClient.DataSet import DataSet
-from MalardClient.BoundingBox import BoundingBox
-from MalardClient.MaskFilter import MaskFilter
-
-import ShapeFileIndex as s
-
-import sys
+import Timeseries as t
 import os
-
 import Header as h
- 
 import numpy as np
 
 from osgeo import gdal
 
-def getArray( file ):
-    dem = gdal.Open(file, gdal.GA_ReadOnly)
-    demArray = dem.GetRasterBand(1).ReadAsArray()
-    return demArray
-
-def bucket_series( series, resolution ):
-    res = np.empty(len(series))
-    res =  resolution * np.floor( series / resolution ) + resolution * 0.5
-    return res      
-
-def statistics( x, y, t, process_time, g_count, p_count, inmask_count, masked_pcount ):
-    res ={}        
-    res['x'] = x
-    res['y'] = y
-    res['t'] = t
-    res['process_time'] = process_time
-    res['gridded_count'] = g_count
-    res['point_count'] = p_count
-    res['inmask_count'] = inmask_count
-    res['masked_pcount'] = masked_pcount
+def getPixel(x, y, gt):
+    '''
+    :param x: pandas df
+    :param y: pandas df
+    :param gt: GeoTransform
+    :return:
+    ''' 
+    py = ((x-gt[0])/gt[1]).astype('int64')
+    px = ((gt[3]-y)/-gt[5]).astype('int64')
     
-    return pd.DataFrame(res, index=['x'])
+    return px, py
+
+def getArray( dem ):
+    ad = gdal.Open(dem, gdal.GA_ReadOnly)
+    adArray = ad.GetRasterBand(1).ReadAsArray()
+    adGt = ad.GetGeoTransform()
+    
+    return ( adArray, adGt )    
 
 def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def processGridCell( resultRaster, gridCellSize, startX, startY, resolution, mask, source_fill=-32768, fillValue = -2147483647):
+def createGriddedProductFromTif(dataSet, resultRaster, loadConfig, bbox, pub_date, proj4, source_fill=-32768, fillValue = -2147483647):
+  
+    demArray, demGt = getArray(resultRaster)
+    print(demArray.shape)
     
-    resultDf['x_b'] = bucket_series( resultDf['x'], resolution )
-    resultDf['y_b'] = bucket_series( resultDf['y'], resolution )
+    trDem = np.transpose(demArray)
     
-    pointCount = len(resultDf)
-    maskedCount = 0
-         
-    n = floor(gridCellSize / resolution)
-    r = range(0, n)
+    print(trDem.shape)
+    m, n = trDem.shape
     
-    xcoords = [ i * resolution + resolution * 0.5 + startX for i in r]    
-    ycoords = [ i * resolution + resolution * 0.5 + startY for i in r]
+    resolution = loadConfig["resolution"]
+    
+    bounds = t.getExtent(resultRaster)
+    startX = bounds[0]
+    startY = bounds[2]
+    
+    print("Dem Bounds {}".format(bounds))
+    
+    xcoords = [ i * resolution + resolution * 0.5 + startX for i in range(0,m) ]    
+    ycoords = [ i * resolution + resolution * 0.5 + startY for i in range(0,n) ]
+    
+    print("Xcoords {}".format(len(xcoords)))
+    print("Ycoords {}".format(len(ycoords)))
 
-    def index( point, startX, resolution ):
-        return int( ( point - startX ) / resolution  )  
-    
-    data = np.empty((n,n,1))
+    data = np.empty((m,n,1))
     data.fill(fillValue)
     
-    dataN = np.empty((n,n,1))
-    dataN.fill(fillValue)
-    
-    griddedCount = 0 
-    
-    for x,y,e in zip( resultDf['x_b'], resultDf['y_b'], resultDf['elev'] ) :
-        i = index(x, startX, resolution)
-        j = index(y, startY, resolution)
-        
-        p = (x,y)
-        if p in mask:
-            maskedCount = maskedCount + 1
-            if data[i][j][0] == fillValue:
-                griddedCount = griddedCount + 1
-                data[i][j][0] = e
-                dataN[i][j][0] = 1
-            else:
-                data[i][j][0] = data[i][j][0] + e
-                dataN[i][j][0] = dataN[i][j][0] + 1
-            
     for i,x in enumerate( xcoords ):
         for j,y in enumerate( ycoords ):
-            if data[i][j][0] != fillValue:
-                data[i][j][0] = data[i][j][0] / dataN[i][j][0] 
-            elif (xcoords[i],ycoords[j]) in mask:
-                data[i][j][0] = -1000
+            try:
+                value = demArray[ getPixel( np.array(x), np.array(y), demGt ) ]
+                if value == source_fill:
+                    data[i][j][0] = fillValue
+                else:
+                    data[i][j][0] = value
+            except IndexError as ex:
+                print("getPixel failed for i={} j={} X={} Y={}".format(i,j,x,y))
+                raise ex
+                    
+    writeGriddedProduct(loadConfig["resultPath"], dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date, fillValue)
     
-    return (xcoords, ycoords, data, griddedCount, pointCount, maskedCount)
-
-def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, resolution, proj4, pub_date, index, file_mappings, fill_value ):
+def writeGriddedProduct(output_path, dataSet, bbox,  xcoords, ycoords, data, resolution, proj4, pub_date, fill_value ):
+    
+    output_path = os.path.join(output_path, "griddedProduct")
     
     pubdatestr = "{}".format(pub_date.strftime("%Y_%m"))
     fileNameExt = ".nc"
     filetype = "THEM_GRID_"
-    fileName = "CS_OFFL_{}_{}_{}_V1".format( filetype, dataSet.region, pubdatestr )
-    productPath = "{}{}".format( fileName, fileNameExt )#"y{}/m{}/cell_{}_{}/{}{}".format(pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName, fileNameExt)
+    fileName = "CS_OFFL_{}_{}_{}_V001".format( filetype, dataSet.region, pubdatestr )
+    productPath = "{}/{}/{}{}".format( pub_date.strftime("%Y"), pub_date.strftime("%m"),fileName, fileNameExt )
     fullPath = os.path.join(output_path, productPath)
 
-
-    headerPath = os.path.join(output_path, "{}.HDR".format( fileName ))#"{}/y{}/m{}/cell_{}_{}/{}.HDR".format(output_path, pub_date.year, pub_date.month, bbox.minX, bbox.minY, fileName)
+    headerPath = os.path.join(output_path, "{}/{}/{}.HDR".format( pub_date.strftime("%Y"), pub_date.strftime("%m"), fileName ))
 
     fileDescription = "L3 Gridded thematic product containing interpolated swath data that is generated from CryoSat2 SARIN data."    
 
     ensure_dir(fullPath)
     ensure_dir(headerPath)
-    
-    index.addGridCell( bbox, productPath   )
     
     dataset = n.Dataset(fullPath,'w',format='NETCDF4')
     
@@ -135,6 +109,8 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     minT = bbox.minT.isoformat()
     maxT = bbox.maxT.isoformat()
     
+    pubdt_iso = pub_date.isoformat()
+    
     dataset.cdm_data_type = "Gridded"                 
     dataset.Conventions = "CF-1.7"
     dataset.Metadata_Conventions = "Unidata Dataset Discovery v1.0"                
@@ -144,8 +120,7 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     dataset.creator_url = "http://www.earthwave.co.uk"                  
     dataset.date_created = datetime.now().isoformat()                                
     dataset.date_modified = datetime.now().isoformat()
-    dataset.DOI = "10.5270/CR2-2xs4q4l";
-    #dataset.external_dem = "DEM"        
+    dataset.DOI = "10.5270/CR2-2xs4q4l";    
     dataset.geospatial_y_min = minY                 
     dataset.geospatial_y_max = maxY         
     dataset.geospatial_x_min = minX                
@@ -155,18 +130,20 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     dataset.geospatial_projection = proj4   
     dataset.geospatial_resolution = 2000
     dataset.geospatial_resolution_units = "metres"
+    dataset.geospatial_global_uncertainty = 15.0
+    dataset.geospatial_global_uncertainty_units = "metres"
     dataset.institution = "ESA, UoE, Earthwave, isardSAT"                 
-    dataset.keywords = "Land Ice > Gridded > Elevation Model  > Elevation Points > Swath Processing > CryoSat2"                 
-    dataset.keywords_vocabulary = "NetCDF COARDS Climate and Forecast Standard Names"                 
+    dataset.keywords = "Land Ice > Gridded > Elevation Model  > Elevation Points > Swath Processing > CryoSat-2"                 
+    dataset.keywords_vocabulary = "NetCDF Climate and Forecast Standard Names"                 
     dataset.platform = " Cryosat-2"
     dataset.processing_level = "L3"
     dataset.product_version = "1.0"
     dataset.project = "CryoTEMPO which is an evolution of CryoSat+ CryoTop"                 
-    dataset.references = "http://cryotempo.org"
-    dataset.source = "Gridded Swath data generated from Cryo-Sat2 SARIN data."
+    dataset.references = "CryoSat-2 swath interferometric altimetry for mapping ice elevation and elevation change, In Advances in Space Research, (2017), ISSN 0273-1177, https://doi.org/10.1016/j.asr.2017.11.014"
+    dataset.source = "Gridded Swath data generated from CryoSat-2 SARIn data."
     dataset.version = 1
     dataset.summary = "Land Ice Elevation Thematic Gridded Product" 
-    dataset.time_coverage_duration = "P1M"
+    dataset.time_coverage_duration = "P3M"
     dataset.time_coverage_start = minT 
     dataset.time_coverage_end = maxT
     dataset.title = "Land Ice Elevation Thematic Gridded Product"
@@ -182,16 +159,16 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     times.units = "Seconds from 1970 in the UTC timezone."
     times.short_name = "time"
     xs = dataset.createVariable('x', np.float32, ('x',))
-    xs.long_name = "Distance in horizontal direction on the Earth’s surface."
+    xs.long_name = "Polar Stereographic (EPSG: 3413) X Coordinate"
     xs.units = "metres"
     xs.standard_name = "x"
     ys = dataset.createVariable('y', np.float32, ('y',))
-    ys.long_name = "Distance in vertical direction on the Earth’s surface."
+    ys.long_name = "Polar Stereographic (EPSG: 3413) Y Coordinate"
     ys.units = "metres"
     ys.standard_name = "y"
     elevations = dataset.createVariable('elevation', np.float32, ('time','x','y'), fill_value = fill_value)
     elevations.units = "metres"
-    elevations.long_name = "Elevation estimate for a point in space at the pixel centre and time" 
+    elevations.long_name = "CryoTempo: Gridded Elevation" 
     elevations.coordinates = "x y"
 
     nvs = dataset.createVariable('nv', np.int32, ('nv',))
@@ -221,9 +198,9 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
         
         return boundsArray
 
-        
+    pub_dateUTC = datetime(pub_date.year, pub_date.month, pub_date.day, pub_date.hour, pub_date.minute, pub_date.second, tzinfo=timezone.utc)
     timesArray = np.zeros(1) 
-    timesArray.fill( int(bbox.minT.timestamp() ) )
+    timesArray.fill( int(pub_dateUTC.timestamp() ) )
     
     indicatorVariables = [0,1]
     
@@ -239,109 +216,9 @@ def writeGriddedProduct(output_path, dataSet, bbox, xcoords, ycoords, data, reso
     dataset.close()
     
     size = os.stat(fullPath).st_size
-    attributes = { "File_Description" : fileDescription, "File_Type": "THEM_GRID_", "File_Name" : fileName, "Validity_Start" : minT, "Validity_Stop" : maxT, "Min_X" : bbox.minX, "Max_X" : bbox.maxX, "Min_Y" : bbox.minY, "Max_Y" : bbox.maxY, "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : size,"Projection": proj4, "Start_X":minX, "Stop_X":maxX,"Start_Y":minY,"Stop_Y":maxY,"Grid_Pixel_Width" : 2000, "Grid_Pixel_Height" : 2000  } 
+    attributes = { "Pub_Date": pubdt_iso, "File_Description" : fileDescription, "File_Type": "THEM_GRID_", "File_Name" : fileName, "Validity_Start" : minT, "Validity_Stop" : maxT, "Min_X" : bbox.minX, "Max_X" : bbox.maxX, "Min_Y" : bbox.minY, "Max_Y" : bbox.maxY, "Creator" : "Earthwave", "Creator_Version" : 0.1, "Tot_size" : size,"Projection": proj4, "Start_X":minX, "Stop_X":maxX,"Start_Y":minY,"Stop_Y":maxY,"Grid_Pixel_Width" : 2000, "Grid_Pixel_Height" : 2000  } 
 
     with open( headerPath, "wt", encoding="utf8"  ) as f:
-        f.write( h.createHeader( attributes, gridded=True, source_files = file_mappings ))
+        f.write( h.createHeader( attributes, gridded=True, source_files = {} ))
 
-def loadMasks( client, gridCell, maskFilters, resolution):
-    
-    inmask = {}
-    
-    df = client.filterGriddedPoints( gridCell.minX, gridCell.maxX, gridCell.minY, gridCell.maxY, maskFilters , resolution )
-    
-    for x,y,b in zip(df['x'],df['y'],df['inFilter']):
-        if b == True:
-            inmask[(x,y)] = 1
-            
-    return inmask
-
-def main( argv ):
-    
-    year = 2011
-    
-    environmentName = 'DEVv2'
-    resolution = 2000 
-    print(resolution)
-    interval = "3months"
-    
-    ## TODO: These need to be stored in Malard by DataSet and Type.    
-    maskFilterIce = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/masks/icesheets.shp"  ) 
-    maskFilterLRM = MaskFilter( p_shapeFile="/data/puma1/scratch/cryotempo/sarinmasks/LRM_Greenland.shp" , p_includeWithin=False ) 
-
-    maskFilters = [ maskFilterIce, maskFilterLRM ]    
-      
-    output_path = "/home/jon/data/grid"
-    gridCellSize = 100000
-    fillValue = -2147483647
-    
-    client = MalardClient( environmentName, True )
-    
-    dataSet = DataSet( 'cryotempo', 'GRIS_BaselineC_Q2', 'greenland')
-    
-    proj4 = client.getProjection(dataSet).proj4
-    
-    bbox = client.boundingBox(dataSet)
-    
-    print(str(bbox))
-    
-   
-    gridcells = client.gridCells(dataSet, bbox)
-    
-    start_date = datetime( year, 3, 15,0,0,0)
-    last_date = datetime( year, 4 , 15, 0, 0, 0)
-    
-    window = []
-    
-    while start_date < last_date:
-        window_start = start_date - relativedelta(days=start_date.day) + relativedelta(days=1) - relativedelta(months=1)
-        window_end = window_start + relativedelta(months=3) - timedelta(seconds=1)
-        window.append( (window_start, window_end, start_date) )
-        start_date = start_date + relativedelta( months=1 )
-    
-    projections = ['x','y','time','elev','swathFileId','coh','power','demDiff','demDiffMad']
-    filters = [{"column":"power","op":"gte","threshold":10000},{"column":"coh","op":"gte","threshold":0.8},{"column":"demDiffMad","op":"lt","threshold":20.0},{"column":"demDiff","op":"lte","threshold":100.0},{"column":"demDiff","op":"gte","threshold":-100.0}]   #demDiff<100, demDiff>-100, 
-    #maskTypes = ["ICE_{}m".format(resolution),"SARIN_{}m".format(resolution),"Glacier_{}m".format(resolution)]
-    
-    stats = []
-    total = len(gridcells)
-    
-    for from_dt, to_dt, pub_date in window:
-        #index = s.ShapeFileIndex(output_path, "THEM_GRID_", proj4, dataSet.region, pub_date )
-        for i, gc in enumerate(gridcells):
-            gc_start = datetime.now()        
-            month_gc = BoundingBox(gc.minX, gc.maxX, gc.minY, gc.maxY, from_dt, to_dt)
-            queryInfo = client.executeQuery(dataSet, month_gc, projections, filters)
-            
-            if queryInfo.status == "Success":
-                data = queryInfo.to_df
-                client.releaseCacheHandle( queryInfo.resultFileName )
-                
-                file_ids = data['swathFileId'].unique()
-                file_mappings = client.getSwathNamesFromIds( dataSet, file_ids )
-                    
-                start_time = datetime.now()
-                mask_dict = loadMasks(client, month_gc, maskFilters, resolution  ) 
-                xc, yc, d, g_count, i_count, m_count = processGridCell(client, data, gridCellSize, gc.minX, gc.minY, resolution, mask_dict, fillValue)
-                writeGriddedProduct(output_path, dataSet, month_gc, xc, yc, d, resolution, proj4, pub_date,index, file_mappings, fillValue )
-                end_time = datetime.now()
-                
-                inmask_count = len(mask_dict.keys())
-                elapsed_time = (end_time - start_time).total_seconds()
-                stats.append( statistics(gc.minX, gc.minY, from_dt, elapsed_time, g_count, i_count, inmask_count, m_count ) )
-            else:
-                stats.append( statistics(gc.minX, gc.minY, from_dt, 0, 0, 0, 0, 0 ) )
-        index.close()
-        gc_elapsed = ( datetime.now() - gc_start).total_seconds() 
-        print('Processed [{}] grid cells. Total=[{}] Took=[{}]s'.format(i+1, total, gc_elapsed ))
-        
-    stats_df = pd.concat( stats, ignore_index=True )
-    stats_path = '/home/jon/data/stats/{}/{}_{}_{}m.csv'.format(interval,dataSet.region,year,resolution)
-    
-    ensure_dir(stats_path)
-    
-    stats_df.to_csv( stats_path )
-
-if __name__ == "__main__":
-    main(sys.argv)
                 
