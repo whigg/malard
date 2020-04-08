@@ -94,9 +94,9 @@ def main(month, year, loaderConfig):
     
     includeColumns = []
     
-    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/AntarcticaReprojected.shp"
+    ice_file = loaderConfig["regionMaskShpFile"]
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    lrm_file = "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" if region == "greenland" else "/data/puma1/scratch/cryotempo/sarinmasks/LRM_Antarctica.shp"
+    lrm_file = loaderConfig["regionLRMMaskShpFile"]
     maskFilterLRM = mc.MaskFilter( p_shapeFile= lrm_file, p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM]
     

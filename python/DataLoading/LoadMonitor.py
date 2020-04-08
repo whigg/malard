@@ -34,4 +34,4 @@ def main( parentDataSet, dataSetName, expectedTotal ):
         print("process {} last period {} pct_complete {:.2%}".format(newcount, count, pct_complete))
         
 if __name__ == "__main__":
-    main("test","swath_c_ThwaitesBergSWATH", 211 )
+    main("cryotempo","swath_GriS_bD", 3562 )

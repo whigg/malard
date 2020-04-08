@@ -78,28 +78,29 @@ def cleanUpTempFiles( swaths, tempDir ):
     for s,d in swaths:
         os.remove( os.path.join(tempDir, s) )
         
-def main(month, year):
+def main(month, year, loadConfig):
     # My code here
     # Get the arguments from the command-line except the filename   
-    parentDataSet = 'test'
-    dataSet = 'poca_d_nw_esa'
-    region = 'greenland'
-    swathdir = '/data/snail/scratch/rawdata/poca_d'
+    parentDataSet = loadConfig["pocaParentDataSet"]
+    dataSet = loadConfig["pocaInputDataSet"]
+    region = loadConfig["region"]
+    swathdir = loadConfig["pocaPath"]
     tempdir = '/data/puma/scratch/malard/tempnetcdfs'
     gris_dem = '/data/puma/scratch/cryotempo/underlying_dems/greenland_arctic_dem/combined/GrIS_dem.tif'
     
     environmentName = 'MALARD-PROD'    
     
-    client = mc.MalardClient(environmentName)
+    client = mc.MalardClient(loadConfig["MalardEnvironment"])
     
     columnFilters = []
     pocaColumns = {'height_1_20_ku' : 'elev', 'lat_poca_20_ku' : 'lat','lon_poca_20_ku' : 'lon' }
     
     includeColumns = []
     
-    ice_file = "/data/puma/scratch/cryotempo/masks/greenland/icesheets.shp"
+    ice_file = loadConfig["regionMaskShpFile"]
+    lrm_file = loadConfig["regionLRMMaskShpFile"]
     maskFilterIce = mc.MaskFilter( p_shapeFile=ice_file)
-    maskFilterLRM = mc.MaskFilter( p_shapeFile="/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp" , p_includeWithin=False )
+    maskFilterLRM = mc.MaskFilter( p_shapeFile=lrm_file , p_includeWithin=False )
     maskFilters = [maskFilterIce, maskFilterLRM] 
 	         
     gridCellSize = 100000

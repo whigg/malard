@@ -60,7 +60,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
     pocaParentDataSet = loadConfig["pocaParentDataSet"]
     pocaDataSet = loadConfig["pocaDataSet"]
 
-    mask = '/data/puma/scratch/cryotempo/masks_raster/GrIS_noLRM_{}.tif'.format(res) if region == "greenland" else '/data/puma1/scratch/cryotempo/masks_raster/AIS_dem_noLrm_2km.tif'
+    mask = '/data/puma/scratch/cryotempo/masks_raster/GrIS_noLRM_noPeriph_2000.tif'.format(res) if region == "greenland" else '/data/puma1/scratch/cryotempo/masks_raster/AIS_dem_noLrm_2km.tif'
     gris_dem = '/data/puma/scratch/cryotempo/underlying_dems/greenland_arctic_dem/combined/GrIS_dem_2km.tif' if region == "greenland" else "/data/puma1/scratch/cryotempo/underlying_dems/antarctic/combined/AIS_dem_2km.tif"
     
     pub_date = datetime(pub_year, pub_month,15,0,0,0)
@@ -213,7 +213,7 @@ def main(pub_month, pub_year, loadConfig, notebook=False):
         maskedDemFile = mf.applyMedianFilter(dem, diffFilePath, it)
     
         #Now compute the diff
-        grid_tif.gdal_diff(maskedDemFile,grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
+        grid_tif.gdal_diff(maskedDemFile, grisDem.name,maskedDemFile.replace(".tif","_diff.tif"),-32768,-32768,-32768)
     
         if iteration == it and loadConfig["generateESAGriddedProduct"]:
             print("Generating ESA Gridded Product")

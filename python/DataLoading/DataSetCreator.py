@@ -14,7 +14,6 @@ from os import listdir
 import ProcessingRequest as pr
 
 import parallel_run_config as prc
-import GriddingPreProcessor as gpp
 
 import DataSetLoader as dsl
 
@@ -39,7 +38,7 @@ def find_swath_dir( path ):
             raise ValueError("No files with extension {} found".format(".nc"))
         return find_swath_dir(os.path.join(path, sub_path[0]) )
     
-def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, generateESAGriddedProduct ):
+def main( loadData, applyUncertainty, loadEsaPoca, runGridding, generateESAPointProduct, generateESAGriddedProduct ):
     for parentDataSet in listdir( base_dir ):
         
         parentDataSetPath = os.path.join(base_dir, parentDataSet )
@@ -65,18 +64,18 @@ def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, gene
                 swath_dir = find_swath_dir(dataSetPath)
                 print(swath_dir)
                 
-                monthsAndYears = [(3,2011),(4,2011),(5,2011),(3,2012),(4,2012),(5,2012),(3,2013),(4,2013),(5,2013),(3,2014),(4,2014),(5,2014),(3,2015),(4,2015),(5,2015),(3,2016),(4,2016),(5,2016)]#getMonthsAndYears(listdir(swath_dir))
+                monthsAndYears = [(5,2019),(6,2019),(7,2019),(8,2019),(9,2019),(10,2019),(11,2019),(12,2019),(1,2020),(2,2020)]#getMonthsAndYears(listdir(swath_dir))
                 print(monthsAndYears)
                 #Load the swath and the Poca.
-                ds_swath = "swath_c_{}".format(ds)
-                ds_poca = "poca_c_{}".format(ds)
+                ds_swath = "swath_{}".format(ds)
+                ds_poca = "poca_{}".format(ds)
                 demDiffMad = 6
                 pocaDemDiff = 100
-                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_oib"
+                resultBasePath = "/data/puma/scratch/cryotempo/processeddata/greenland_bd"
                 powerdB = -160
                 resolution = 2000
                 uncertainty = 7
-                maxPixelDist = 20
+                maxPixelDist = 8
                 minCoh = 0.6
                 
                 run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
@@ -105,13 +104,18 @@ def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, gene
                               , "coh" : minCoh
                               , "loadData" : loadData
                               , "applyUncertainty" : applyUncertainty
-                              , "medianFilterIterations" : [4,8] 
-                              , "pocaParentDataSet" : "test"
-                              , "pocaDataSet" : "poca_d_nw_esa_demDiff"
+                              , "medianFilterIterations" : [8]
+                              , 'loadEsaPoca' : loadEsaPoca
+                              , "pocaPath" : '/data/snail/scratch/rawdata/poca_d'
+                              , "pocaParentDataSet" : parentDataSet
+                              , "pocaInputDataSet" : "poca_d_esa"
+                              , "pocaDataSet" : "poca_d_esa_demDiff"
                               , "MalardEnvironment": "MALARD-PROD"
                               , "generatePointProduct": generateESAPointProduct
                               , "GridIncludePoca":False
-                              , "generateESAGriddedProduct":generateESAGriddedProduct}
+                              , "generateESAGriddedProduct":generateESAGriddedProduct
+                              , "regionMaskShpFile": "/data/puma/scratch/cryotempo/masks/greenland/icesheet_noperiph.shp"
+                              , "regionLRMMaskShpFile" : "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp"}
                 
                 request = pr.ProcessingRequest(loadConfig)
                 
@@ -120,16 +124,17 @@ def main( loadData, applyUncertainty, runGridding, generateESAPointProduct, gene
                 prc.main("PointLoadMonth", 6, monthsAndYears, request )
                 
                 if runGridding :
-                    g_monthsyears =[(4,2011),(4,2012),(4,2013),(4,2014),(4,2015),(4,2016)]#[(2,2011)]
+                    g_monthsyears = [(6,2019),(7,2019),(8,2019),(9,2019),(10,2019),(11,2019),(12,2019),(1,2020)]
                     print(g_monthsyears)
                 
                     prc.main("GriddingRunMonth", 6, g_monthsyears, request)
                     
 if __name__ == "__main__":
-    loadData = False
-    applyUncertainty = False
+    loadData = True
+    applyUncertainty = True
+    loadEsaPoca = True
     generateESAPointProduct = False
-    runGridding = True
+    runGridding = False
     generateESAGriddedProduct =False
     
-    main(loadData, applyUncertainty, runGridding, generateESAPointProduct, generateESAGriddedProduct )
+    main(loadData, applyUncertainty, loadEsaPoca, runGridding, generateESAPointProduct, generateESAGriddedProduct )
