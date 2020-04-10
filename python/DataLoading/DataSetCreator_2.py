@@ -138,9 +138,9 @@ def main( request ):
                   , "pocaInputDataSet" : request.esaPocaDataSet
                   , "pocaDataSet" : "{}_demDiff".format(request.esaPocaDataSet)
                   , "MalardEnvironment": request.malardEnvironment
-                  , "generatePointProduct": request.generateESAPointProduct
+                  , "generatePointProduct": request.generateEsaPointProduct
                   , "GridIncludePoca": request.gridding.includeEsaPoca
-                  , "generateESAGriddedProduct": request.generateESAGriddedProduct
+                  , "generateESAGriddedProduct": request.generateEsaGriddedProduct
                   , "regionMaskShpFile": "/data/puma/scratch/cryotempo/masks/greenland/icesheet_noperiph.shp"
                   , "regionLRMMaskShpFile" : "/data/puma/scratch/cryotempo/masks/greenland/LRM_Greenland.shp"}
 
@@ -148,7 +148,7 @@ def main( request ):
 
     runRequest.persistRequest()
 
-    if request.dataLoadConfig.loadData or request.applyUncertainty or request.esaPocaConfig.loadData or request.generateESAPointProduct:
+    if request.dataLoadConfig.loadData or request.applyUncertainty or request.esaPocaConfig.loadData or request.generateEsaPointProduct:
         pass
         #prc.main("PointLoadMonth", 6, monthsAndYears, runRequest )
 
