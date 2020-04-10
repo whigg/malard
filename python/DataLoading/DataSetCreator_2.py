@@ -43,6 +43,7 @@ def find_swath_dir( path ):
 
 def getLoadPath( loadConfig, region, parentDataSet, dataSet ):
 
+    print( "tar file {} region {} parentDataSet {} dataSet {} ".format(loadConfig.tarFile, region, parentDataSet, dataSet ) )
     if loadConfig.tarFile is None:
         return loadConfig.path
     else:
