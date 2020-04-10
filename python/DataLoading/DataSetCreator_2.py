@@ -98,7 +98,7 @@ def main( request ):
     pocaDemDiff = request.pocaDemDiff
     resultBasePath = request.resultBasePath
     powerdB = request.powerdB
-    resolution = request.gridding
+    resolution = request.gridding.resolution
     uncertainty = request.uncertaintyThreshold
     maxPixelDist = request.gridding.interpolationPixels
     minCoh = request.coh
