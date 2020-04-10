@@ -160,8 +160,5 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     
     requestFile = args[0]    
-    with open( requestFile, "r" ) as f:
-        fileReader = f.read()    
-        requestObj = json.loads(fileReader)
 
-        main( r.Request(requestObj) )
+    main( r.Request(requestFile) )
