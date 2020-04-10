@@ -43,7 +43,7 @@ if __name__ == "__main__":
         dslp.main(month,year,loadConfig)
     
     if loadEsaPoca:
-        loader = getattr(loadConfig, "pocaDataSetLoader", None)
+        loader =  loadConfig["pocaDataSetLoader"] if "pocaDataSetLoader" in loadConfig else None
         if  loader is None or loader == "DataSetLoader_poca_d":
             dslpd.main(month,year,loadConfig )
         elif loader == "DataSetLoader_poca_c":

@@ -5,12 +5,14 @@ import json
 
 class DataLoad:
     def __init__(self, config):
-        print(config)
+
         self._loadData = config["loadData"]
-        self._tarFile = getattr(config, "tarFile", None)
-        print(self._tarFile)
-        self._path = getattr(config, "path", None)
-        self._loader = getattr(config, "loader", None)
+        print("LoadData {}".format(self._loadData))
+        self._tarFile = config["tarFile"]
+        print("Tar File {}".format(self._tarFile))
+        self._path = config["path"]
+        print("Path {}".format(self._tarFile))
+        self._loader = config["loader"]
 
     @property
     def loadData(self):
