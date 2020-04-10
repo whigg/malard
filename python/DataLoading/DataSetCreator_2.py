@@ -48,30 +48,32 @@ def getLoadPath( loadConfig, region, parentDataSet, dataSet ):
         return loadConfig.path
     else:
         # need to make the load path
-        targetpath = os.path.join( loadConfig.path , "{}/{}/{}".format(parentDataSet,region,dataSet) )
-        if not os.path.exists(targetpath):
-            print("Making directory {}".format(targetpath))
-            os.makedirs(targetpath)
+        start_dir = os.getcwd()
+        try:
+            targetpath = os.path.join( loadConfig.path , "{}/{}/{}".format(parentDataSet,region,dataSet) )
+            if not os.path.exists(targetpath):
+                print("Making directory {}".format(targetpath))
+                os.makedirs(targetpath)
 
-        # need to copy the tar file over to local machine
-        if not os.path.isfile(loadConfig.tarFile):
-            raise ValueError("TarFile in load config needs to be a file {}".format( loadConfig.tarFile ))
+            # need to copy the tar file over to local machine
+            if not os.path.isfile(loadConfig.tarFile):
+                raise ValueError("TarFile in load config needs to be a file {}".format( loadConfig.tarFile ))
 
-        targetFile = os.path.join(targetpath, "{}.tgz".format(dataSet))
-        copyfile( loadConfig.tarFile, targetFile )
+            targetFile = os.path.join(targetpath, "{}.tgz".format(dataSet))
+            copyfile( loadConfig.tarFile, targetFile )
 
-        # need to unzip
-        os.chdir(targetpath)
-        print(os.getcwd())
+            # need to unzip
+            os.chdir(targetpath)
+            print(os.getcwd())
 
-        command = "tar -xvzf {}".format("{}.tgz".format(dataSet))
-        os.system(command)
+            command = "tar -xvzf {}".format("{}.tgz".format(dataSet))
+            os.system(command)
 
-        # need to remove the copied tgz file
-        os.remove(targetFile)
-
-        return targetpath
-
+            # need to remove the copied tgz file
+            os.remove(targetFile)
+        finally:
+            os.chdir(start_dir)
+    return targetpath
 
 def main( request ):
 
