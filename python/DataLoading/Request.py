@@ -6,9 +6,9 @@ import json
 class DataLoad:
     def __init__(self, config):
         self._loadData = config["loadData"]
-        self.tarFile = getAttr(config, tarFile, None)
-        self.path = getAttr(config, path, None)
-        self.loader = getAttr(config, "loader", None)
+        self._tarFile = getattr(config, config["tarFile"], None)
+        self._path = getattr(config, config["path"], None)
+        self._loader = getattr(config, config["loader"], None)
 
     @property
     def loadData(self):
@@ -134,7 +134,7 @@ class Request:
     def coh(self):
         return self._coh
 
-    @@property
+    @property
     def resultBasePath(self):
         return self._resultBasePath
 
@@ -165,3 +165,9 @@ class Request:
     @property
     def pocaDemDiff(self):
         return self._pocaDemDiff
+
+if __name__ == "__main__":
+
+    request = Request( r"G:\Shared drives\team\users\jon\request.json" )
+
+    print(request)
