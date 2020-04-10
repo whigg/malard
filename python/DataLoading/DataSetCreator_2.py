@@ -103,7 +103,7 @@ def main( request ):
     maxPixelDist = request.gridding.interpolationPixels
     minCoh = request.coh
 
-    run = "{}_PDD_{}_PwrdB_{}_Coh_{}_Unc_{}_MaxPix_{}_DemDiffMad_{}_Res_{}".format(ds_swath, pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
+    run = "pocadd_{}_pwrdb_{}_coh_{}_unc_{}_pix_{}_ddm_{}_Res_{}".format(pocaDemDiff, powerdB, minCoh, uncertainty, maxPixelDist, demDiffMad, resolution )
 
     output_dir = os.path.join(resultBasePath, run)
 
