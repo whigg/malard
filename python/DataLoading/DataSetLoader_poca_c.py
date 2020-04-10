@@ -14,18 +14,18 @@ from os import listdir
 from datetime import datetime
 import sys
 
-def main(month, year):
+def main(month, year, loadConfig):
     # My code here
     # Get the arguments from the command-line except the filename
-    parentDataSet = 'test'
-    dataSet = 'ThwaitesBergPOCA'
-    region = 'antarctic'
-    swathdir = '/data/snail1/scratch/rawdata/ThwaitesBergPOCA'
+    parentDataSet = loadConfig["pocaParentDataSet"]
+    dataSet = loadConfig["pocaDataSet"]
+    region = loadConfig["region"]
+    swathdir = loadConfig["pocaPath"]
     
     columnFilters = []# [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns = []# ['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']
     gridCellSize = 100000
-    environmentName = 'DEVv2'
+    environmentName = loadConfig["malardEnvironment"]
     
     years = [year]
     months = [month]

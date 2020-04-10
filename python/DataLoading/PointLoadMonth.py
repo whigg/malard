@@ -13,6 +13,7 @@ import PointPreProcessor as ppp
 import ProcessingRequest as pr
 import PointProcessor as pp
 import DataSetLoader_poca_d as dslpd
+import DataSetLoader_poca_c as dslpc
 
 import sys
 
@@ -38,12 +39,18 @@ if __name__ == "__main__":
     
     if loadData:
         dsl.main(month,year,loadConfig)
-    
+
         dslp.main(month,year,loadConfig)
     
     if loadEsaPoca:
-        dslpd.main(month,year,loadConfig )
-    
+        loader = getattr(loadConfig, "pocaDataSetLoader", None)
+        if  loader is None or loader == "DataSetLoader_poca_d":
+            dslpd.main(month,year,loadConfig )
+        elif loader == "DataSetLoader_poca_c":
+            dslpc.main(month, year, loadConfig)
+        else:
+            raise ValueError("Unsupported loader {}".format(loader))
+
     if applyUncertainty:
         ppp.main( month, year, loadConfig, maxDemDiffMad=loadConfig["demDiffMad"], newMaxDemDiffMad=None, adjustWaveform=False)
 
