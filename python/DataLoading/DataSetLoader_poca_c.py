@@ -25,7 +25,7 @@ def main(month, year, loadConfig):
     columnFilters = []# [{'column':'coh','op':'gte','threshold':0.3},{'column':'powerScaled','op':'gte','threshold':100.0}]
     includeColumns = []# ['lon', 'lat', 'elev', 'heading', 'demDiff', 'demDiffMad', 'demDiffMad2','phaseAmb', 'meanDiffSpread', 'wf_number', 'sampleNb', 'powerScaled','powerdB', 'phase', 'phaseS', 'phaseSSegment', 'phaseConfidence', 'coh']
     gridCellSize = 100000
-    environmentName = loadConfig["malardEnvironment"]
+    environmentName = loadConfig["MalardEnvironment"]
     
     years = [year]
     months = [month]
