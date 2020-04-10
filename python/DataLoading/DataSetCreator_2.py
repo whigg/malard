@@ -75,9 +75,9 @@ def getLoadPath( loadConfig, region, parentDataSet, dataSet ):
 def main( request ):
 
     dataSetPath = getLoadPath( request.dataLoadConfig, request.region, request.parentDataSet, request.dataSetSwath )
-
+    print("Dataset path is: {}".format(dataSetPath))
     pocaDataSetPath = getLoadPath( request.esaPocaConfig, request.region, request.parentDataSet, request.pocaDataSet )
-
+    print("Poca Dataset path is: {}".format(pocaDataSetPath))
     #Now look for the swath dir
     swath_dir = find_swath_dir(dataSetPath)
 
