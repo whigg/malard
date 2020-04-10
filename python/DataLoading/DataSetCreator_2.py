@@ -14,6 +14,8 @@ import json
 from os import listdir
 from shutil import copyfile
 
+import Request as r
+
 import ProcessingRequest as pr
 
 import parallel_run_config as prc
@@ -162,4 +164,4 @@ if __name__ == "__main__":
         fileReader = f.read()    
         requestObj = json.loads(fileReader)
 
-        main( requestObj )
+        main( r.Request(requestObj) )
