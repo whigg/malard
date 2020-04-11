@@ -67,6 +67,7 @@ class Request:
             self._pocaDataSet = obj["pocaDataSet"]
             self._pocaParentDataSet = obj["pocaParentDataSet"]
             self._esaPocaDataSet = obj["esaPocaDataSet"]
+            self._esaPocaDataSet_demDiff = obj["esaPocaDataSet_demDiff"]
             self._monthsAndYears = obj["monthsAndYears"]
             self._extent = obj["extent"]
             self._uncertaintyThreshold = obj["uncertaintyThreshold"]
@@ -109,6 +110,10 @@ class Request:
     @property
     def esaPocaDataSet(self):
         return self._esaPocaDataSet
+
+    @property
+    def esaPocaDataSet_demDiff(self):
+        return self._esaPocaDataSet_demDiff
 
     @property
     def gridding(self):

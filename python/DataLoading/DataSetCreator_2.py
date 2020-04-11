@@ -138,7 +138,7 @@ def main( request ):
                   , "pocaPath" : poca_dir
                   , "pocaParentDataSet" : request.pocaParentDataSet
                   , "pocaInputDataSet" : request.esaPocaDataSet
-                  , "pocaDataSet" : "{}_demDiff".format(request.esaPocaDataSet)
+                  , "pocaDataSet" : request.e
                   , "MalardEnvironment": request.malardEnvironment
                   , "generatePointProduct": request.generateEsaPointProduct
                   , "GridIncludePoca": request.gridding.includeEsaPoca
