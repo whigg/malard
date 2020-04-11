@@ -85,6 +85,8 @@ class Request:
             self._generateEsaPointProduct = obj["generateEsaPointProduct"]
             self._generateEsaGriddedProduct = obj["generateEsaGriddedProduct"]
             self._malardEnvironment = obj["malardEnvironment"]
+            self._numLoadProcesses = obj["numLoadProcesses"]
+            self._numGriddingProcesses = obj["numGriddingProcesses"]
 
 
     @property
@@ -174,6 +176,16 @@ class Request:
     @property
     def pocaDemDiff(self):
         return self._pocaDemDiff
+
+    @property
+    def numLoadProcesses(self):
+        return self._numLoadProcesses
+
+    @property
+    def numGriddingProcesses(self):
+        return self._numGriddingProcesses
+
+
 
 if __name__ == "__main__":
 
