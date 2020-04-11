@@ -47,7 +47,6 @@ def main(month, year, loadConfig):
                 d.publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns,gridCellSize, maskFilters )
 
 def dateFromFileName( file ):
-    print(file)
     matchObj = re.findall(r'2P_(\d+T\d+)', file)
     dataTime = datetime.strptime(matchObj[0], '%Y%m%dT%H%M%S')
     return dataTime
