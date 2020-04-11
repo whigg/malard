@@ -41,7 +41,7 @@ def main(month, year, loadConfig):
         for month in months:
             swathfiles = [(f,dateFromFileName(f)) for f in listdir(swathdir) if  f.endswith(".nc") and isyearandmonth( f, year, month ) ]
     
-            print('Processing Year Month %d-%d. Num Swaths %d' % (year,month,len(swathfiles) ))
+            print('ESA Poca bC Processing Year Month %d-%d. Num Swaths %d' % (year,month,len(swathfiles) ))
     
             if len(swathfiles) > 0:
                 d.publishData(environmentName, swathfiles, parentDataSet, dataSet, region, swathdir, columnFilters, includeColumns,gridCellSize, maskFilters )
