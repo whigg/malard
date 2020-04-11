@@ -151,11 +151,11 @@ def main( request ):
     runRequest.persistRequest()
 
     if request.dataLoadConfig.loadData or request.applyUncertainty or request.esaPocaConfig.loadData or request.generateEsaPointProduct:
-        prc.main("PointLoadMonth", 6, monthsAndYears, runRequest )
+        prc.main("PointLoadMonth", request.numLoadProcesses, monthsAndYears, runRequest )
 
     if request.gridding.runGridding:
         print(monthsAndYears)
-        prc.main("GriddingRunMonth", 2, monthsAndYears, runRequest)
+        prc.main("GriddingRunMonth", request.numGriddingProcesses, monthsAndYears, runRequest)
 
 if __name__ == "__main__":
     args = sys.argv[1:]
